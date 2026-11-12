@@ -19,8 +19,8 @@ Low quality renders at the full 1920 × 1080 resolution on this device, uses 102
 
 | View | Median completed render | 95th percentile |
 | --- | --- | --- |
-| Beachfront, golden hour | 5.3 ms | 9.6 ms |
-| Casino district, night with local lighting | 5.1 ms | 13.1 ms |
+| Beachfront, golden hour | 4.1 ms | 22.1 ms |
+| Casino district, night with local lighting | 3.9 ms | 9.5 ms |
 | Headland, golden hour | 6.0 ms | 11.4 ms |
 
 The automated browser throttled requestAnimationFrame to roughly one callback per second between interactions despite reporting a visible document. Sustained foreground gameplay FPS remains unverified. The completed-render timings fit within a 33.3 ms frame budget. Audio output was verified through its running graph and volume response, while perceptual listening remains unverified.
@@ -35,3 +35,4 @@ node scripts/serve.mjs --no-open
 ```
 
 The TypeScript check script requires Node.js 22.18 or newer. Open the printed local URL and append `?qa=1&routes=1&view=headland&quality=low&benchmark=1`. The hidden `qa-report` JSON element contains the actual route and timing results. Diagnostic views continue while browser focus changes, and normal play pauses on lost focus. Use the normal URL for manual driving and listening.
+
