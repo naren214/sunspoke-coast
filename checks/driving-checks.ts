@@ -44,7 +44,7 @@ test('city steering turns promptly and recentres after releasing the key', () =>
   assert.ok(Math.abs(drive.state.steering) < 0.03);
 });
 
-test('left and right inputs apply five times the bicycle-model turn rate', () => {
+test('left and right inputs apply 2.5 times the bicycle-model turn rate', () => {
   for (const left of [true, false]) {
     const drive = new Driving(makeWorld());
     run(drive, 0.8, forward);
@@ -52,7 +52,7 @@ test('left and right inputs apply five times the bicycle-model turn rate', () =>
     drive.step(1 / 60, { ...forward, left, right: !left });
     const rate = (drive.state.heading - before) * 60;
     const baseline = drive.state.speed * Math.tan(drive.state.steering) / VEHICLE.wheelbase;
-    assert.ok(Math.abs(rate / baseline - 5) < 0.02);
+    assert.ok(Math.abs(rate / baseline - 2.5) < 0.02);
   }
 });
 

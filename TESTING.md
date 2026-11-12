@@ -1,5 +1,10 @@
 # Sunspoke Coast verification
 
+## Half-strength steering — 13 November 2026
+
+- Reduced the steering gain from 5 to 2.5, halving the current left/right turn-rate gain. Steering response, grip assistance, front-wheel animation and route-test input compensation use the shared gain.
+- Build, all 15 driving/camera checks, model checks, both road loops and all 2,262 road probes passed. The turn-rate regression check verifies 2.5× gain in both directions. Fresh browser playtesting remains unavailable.
+
 ## Five-times steering — 13 November 2026
 
 - Applied 5× steering curvature gain and quicker key response. Increased the normal cornering and grip assistance to support the tighter arcade turns. Handbrake turning retains its lower-grip response and grip returns progressively after release. Visible front-wheel angles and route-test steering account for the new gain.
