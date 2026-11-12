@@ -173,9 +173,9 @@ export class Driving {
 
     // More steering lock and quicker response make city corners easier.
     // Assistance tapers with speed so highway inputs stay progressive.
-    const steerLimit = 0.72 / (1 + absSpeed * 0.07);
+    const steerLimit = 0.82 / (1 + absSpeed * 0.08);
     const steer = (Number(input.left) - Number(input.right)) * steerLimit;
-    const steeringResponse = steer === 0 ? 11 / (1 + absSpeed * 0.015) : 9.5 / (1 + absSpeed * 0.025);
+    const steeringResponse = steer === 0 ? 11 / (1 + absSpeed * 0.015) : 13 / (1 + absSpeed * 0.025);
     state.steering += (steer - state.steering) * damping(steeringResponse, STEP);
     const yawLimit = 0.35 + 11 / (4 + absSpeed);
     const corneringLimit = CORNERING_GRIP / Math.max(absSpeed, 4);
@@ -336,4 +336,5 @@ export class ChaseCamera {
     this.camera.lookAt(start);
   }
 }
+
 
