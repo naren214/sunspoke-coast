@@ -1,5 +1,10 @@
 # Sunspoke Coast verification
 
+## Five-times steering — 13 November 2026
+
+- Applied 5× steering curvature gain and quicker key response. Increased the normal cornering and grip assistance to support the tighter arcade turns. Handbrake turning retains its lower-grip response and grip returns progressively after release. Visible front-wheel angles and route-test steering account for the new gain.
+- All 15 driving/camera checks pass, including an explicit check that both left and right inputs produce 5× the baseline bicycle-model turn rate. Both road loops and all 2,262 route probes passed. Production build passed. Fresh browser gameplay inspection remains unavailable.
+
 ## Easier steering — 13 November 2026
 
 - Increased steering lock and turn rate at city speeds. Steering responds faster to key presses and recentres faster after release. Assistance tapers with speed, while the existing traction and cornering-force limits continue to stabilize faster turns.

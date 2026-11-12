@@ -1,7 +1,7 @@
 import { Vector3 } from 'three';
 import { Driving } from './driving';
 import type { Road, World } from './types';
-import { VEHICLE } from './vehicle.ts';
+import { VEHICLE, STEERING_GAIN } from './vehicle.ts';
 
 const forward = { forward: true, backward: false, left: false, right: false, handbrake: false };
 const frames = 48;
@@ -39,7 +39,7 @@ function driveClosedRoad(world: World, road: Road) {
     const x = position.x, z = position.z;
     const dx = points[waypoint].x - x, dz = points[waypoint].z - z;
     const error = Math.atan2(-dx, -dz) - heading;
-    const wanted = Math.atan2(2 * VEHICLE.wheelbase * Math.sin(error), Math.max(1, Math.hypot(dx, dz)));
+    const wanted = Math.atan2(2 * VEHICLE.wheelbase / STEERING_GAIN * Math.sin(error), Math.max(1, Math.hypot(dx, dz)));
     input.left = wanted > 0.002 && steering < wanted - 0.001;
     input.right = wanted < -0.002 && steering > wanted + 0.001;
     input.forward = speed < 10;
@@ -155,4 +155,5 @@ export function validateRoads(world: World) {
     nominalTravelM: round(free), worstTravelM: total ? Math.min(...routes.map(r => r.minTravelM ?? Infinity)) : null,
     routes, innerLap, failures };
 }
+
 

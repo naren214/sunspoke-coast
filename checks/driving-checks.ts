@@ -38,10 +38,22 @@ test('city steering turns promptly and recentres after releasing the key', () =>
   run(drive, 1, forward);
   run(drive, 0.2, { ...idle, left: true });
   assert.ok(drive.state.steering > 0.4, `steering response ${drive.state.steering}`);
-  run(drive, 0.8, { ...idle, left: true });
+  run(drive, 0.2, { ...idle, left: true });
   assert.ok(drive.state.heading > 0.65, `city turn angle ${drive.state.heading}`);
   run(drive, 0.3, idle);
   assert.ok(Math.abs(drive.state.steering) < 0.03);
+});
+
+test('left and right inputs apply five times the bicycle-model turn rate', () => {
+  for (const left of [true, false]) {
+    const drive = new Driving(makeWorld());
+    run(drive, 0.8, forward);
+    const before = drive.state.heading;
+    drive.step(1 / 60, { ...forward, left, right: !left });
+    const rate = (drive.state.heading - before) * 60;
+    const baseline = drive.state.speed * Math.tan(drive.state.steering) / VEHICLE.wheelbase;
+    assert.ok(Math.abs(rate / baseline - 5) < 0.02);
+  }
 });
 
 test('traction limits drift and eases throttle in medium and high-speed corners', () => {
@@ -124,8 +136,8 @@ test('accelerates from rest, brakes before reverse, and coasts to rest', () => {
 test('steers left moving forward and reverses its yaw response while backing up', () => {
   const a = new Driving(makeWorld()), b = new Driving(makeWorld());
   run(a, 1.7, forward); run(b, 1.7, backward);
-  run(a, 0.7, { ...forward, left: true });
-  run(b, 0.7, { ...backward, left: true });
+  run(a, 0.25, { ...forward, left: true });
+  run(b, 0.25, { ...backward, left: true });
   assert.ok(a.state.heading > 0.3 && a.state.position.x < -65.3);
   assert.ok(b.state.heading < -0.3 && b.state.position.x < -65.1);
 });
@@ -208,3 +220,5 @@ test('free orbit keeps the camera above terrain across a crest', () => {
   const rayAtCrest = pivot.clone().lerp(camera.position, 0.5);
   assert.ok(rayAtCrest.y > world.groundHeight(rayAtCrest.x, rayAtCrest.z));
 });
+
+

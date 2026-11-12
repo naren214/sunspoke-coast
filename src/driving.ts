@@ -1,6 +1,6 @@
 import { MathUtils, PerspectiveCamera, Vector3 } from 'three';
 import type { Collider, DriveState, World } from './types';
-import { VEHICLE } from './vehicle.ts';
+import { VEHICLE, STEERING_GAIN } from './vehicle.ts';
 
 export interface DriveInput {
   forward: boolean;
@@ -15,7 +15,8 @@ const HALF_WIDTH = VEHICLE.halfWidth;
 const HALF_LENGTH = VEHICLE.halfLength;
 const CAR_RADIUS = Math.hypot(HALF_WIDTH, HALF_LENGTH);
 const GRID = 24;
-const CORNERING_GRIP = 9.5;
+
+const CORNERING_GRIP = 9.5 * STEERING_GAIN;
 const clamp = MathUtils.clamp;
 const damping = (rate: number, dt: number) => 1 - Math.exp(-rate * dt);
 const approach = (value: number, target: number, increment: number) =>
@@ -175,12 +176,12 @@ export class Driving {
     // Assistance tapers with speed so highway inputs stay progressive.
     const steerLimit = 0.82 / (1 + absSpeed * 0.08);
     const steer = (Number(input.left) - Number(input.right)) * steerLimit;
-    const steeringResponse = steer === 0 ? 11 / (1 + absSpeed * 0.015) : 13 / (1 + absSpeed * 0.025);
+    const steeringResponse = steer === 0 ? 11 / (1 + absSpeed * 0.015) : 13 * STEERING_GAIN / (1 + absSpeed * 0.025);
     state.steering += (steer - state.steering) * damping(steeringResponse, STEP);
-    const yawLimit = 0.35 + 11 / (4 + absSpeed);
+    const yawLimit = (0.35 + 11 / (4 + absSpeed)) * STEERING_GAIN;
     const corneringLimit = CORNERING_GRIP / Math.max(absSpeed, 4);
     const normalYawLimit = Math.min(yawLimit, corneringLimit);
-    const requestedYaw = speed * Math.tan(state.steering) / VEHICLE.wheelbase;
+    const requestedYaw = speed * Math.tan(state.steering) / VEHICLE.wheelbase * STEERING_GAIN;
     const normalYaw = clamp(requestedYaw, -normalYawLimit, normalYawLimit);
 
     // Turning and acceleration share the tires' available grip. Ease power
@@ -194,7 +195,7 @@ export class Driving {
     const traction = Math.min(1, availableAcceleration / acceleration) * (1 - excessSlip * 0.8);
     const wantedThrottle = direction && !state.braking ? traction : 0;
     state.throttle += (wantedThrottle - state.throttle) * damping(6, STEP);
-    this.grip += ((input.handbrake ? 0 : 1) - this.grip) * damping(input.handbrake ? 10 : 4.5, STEP);
+    this.grip += ((input.handbrake ? 0 : 1) - this.grip) * damping(input.handbrake ? 10 : 1.5, STEP);
 
     let nextSpeed = speed;
     if (state.braking) {
@@ -206,15 +207,15 @@ export class Driving {
       nextSpeed = approach(speed, 0, (0.63 + absSpeed * 0.025 + absSpeed * absSpeed * 0.0007) * STEP);
     }
 
-    const assistedYawLimit = MathUtils.lerp(yawLimit * 1.38, normalYawLimit, this.grip);
-    const yawRate = clamp(nextSpeed * Math.tan(state.steering) / VEHICLE.wheelbase, -assistedYawLimit, assistedYawLimit);
+    const assistedYawLimit = MathUtils.lerp(yawLimit / STEERING_GAIN * 1.38, normalYawLimit, this.grip);
+    const yawRate = clamp(nextSpeed * Math.tan(state.steering) / VEHICLE.wheelbase * STEERING_GAIN, -assistedYawLimit, assistedYawLimit);
     state.heading = Math.atan2(Math.sin(state.heading + yawRate * STEP), Math.cos(state.heading + yawRate * STEP));
     const c = Math.cos(state.heading), s = Math.sin(state.heading);
     // Project existing momentum into the new heading before applying drive
     // force, so steering cannot manufacture extra forward kinetic energy.
     nextSpeed += -this.vx * s - this.vz * c - speed;
     let lateral = this.vx * c - this.vz * s;
-    lateral *= Math.exp(-MathUtils.lerp(2.1, 17, this.grip) * STEP);
+    lateral *= Math.exp(-MathUtils.lerp(2.1, 17 * (1 + (STEERING_GAIN - 1) * clamp(Math.abs(state.steering) * 20, 0, 1)), this.grip) * STEP);
     this.vx = -s * nextSpeed + c * lateral;
     this.vz = -c * nextSpeed - s * lateral;
     // At maximum speed the footprint advances under 0.3m per collision pass.
@@ -336,5 +337,9 @@ export class ChaseCamera {
     this.camera.lookAt(start);
   }
 }
+
+
+
+
 
 
