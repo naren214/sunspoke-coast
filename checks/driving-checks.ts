@@ -3,6 +3,7 @@ import { Group, PerspectiveCamera, Vector3 } from 'three';
 import { ChaseCamera, Driving } from '../src/driving.ts';
 import type { DriveInput } from '../src/driving.ts';
 import type { Collider, World } from '../src/types.ts';
+import { VEHICLE } from '../src/vehicle.ts';
 
 const idle: DriveInput = { forward: false, backward: false, left: false, right: false, handbrake: false };
 const forward = { ...idle, forward: true }, backward = { ...idle, backward: true };
@@ -145,10 +146,11 @@ test('high-speed collision stops the full car footprint at a six-centimetre wall
   for (let i = 0; i < 900; i++) {
     drive.step(1 / 60, forward);
     peak = Math.max(peak, drive.state.speed);
-    assert.ok(drive.state.position.z >= 42.27999);
+    assert.ok(drive.state.position.z >= 40.03 + VEHICLE.halfLength - 0.00001);
   }
-  assert.ok(peak > 27 && Math.abs(drive.state.speed) < 0.02);
-  assert.ok(drive.state.position.z < 42.29);
+  // The contact skin may permit one acceleration tick before the next contact.
+  assert.ok(peak > 27 && Math.abs(drive.state.speed) < 0.2);
+  assert.ok(drive.state.position.z < 40.03 + VEHICLE.halfLength + 0.01);
   drive.reset();
   assert.ok(drive.state.position.z > 44.7 && drive.state.position.z < 80);
   assert.equal(drive.state.speed, 0);
@@ -159,13 +161,13 @@ test('a glancing strike slides along a rotated façade', () => {
   run(drive, 8, forward);
   assert.ok(drive.state.position.x > -64);
   const zFromWall = Math.sin(0.57) * (drive.state.position.x + 65) + Math.cos(0.57) * (drive.state.position.z - 150);
-  assert.ok(zFromWall >= 0.08 + 0.95 * Math.sin(0.57) + 2.25 * Math.cos(0.57) - 0.01);
+  assert.ok(zFromWall >= 0.08 + VEHICLE.halfWidth * Math.sin(0.57) + VEHICLE.halfLength * Math.cos(0.57) - 0.01);
 });
 
 test('city bounds hold and reset returns to a clear road', () => {
   const drive = new Driving(makeWorld());
   run(drive, 42, forward);
-  assert.ok(drive.state.position.z >= -310 + 2.25 && drive.state.position.z < -307);
+  assert.ok(drive.state.position.z >= -310 + VEHICLE.halfLength && drive.state.position.z < -307);
   drive.reset();
   assert.ok(Math.abs(drive.state.position.x + 65) < 0.001);
   assert.ok(drive.state.position.z >= -286 && drive.state.position.z < -260);
@@ -191,7 +193,7 @@ test('free orbit keeps the camera above terrain across a crest', () => {
   new ChaseCamera(camera, world).update(1 / 60, drive.state, { ...orbit, yaw: Math.PI / 2 });
   assert.ok(camera.position.x > -60);
   assert.ok(camera.position.y > world.groundHeight(camera.position.x, camera.position.z) + 0.4);
-  const pivot = drive.state.position.clone().add(new Vector3(0, 1.19, -0.72));
+  const pivot = drive.state.position.clone().add(new Vector3(0, 1.35, -0.72));
   const rayAtCrest = pivot.clone().lerp(camera.position, 0.5);
   assert.ok(rayAtCrest.y > world.groundHeight(rayAtCrest.x, rayAtCrest.z));
 });

@@ -1,6 +1,6 @@
 # Sunspoke Coast
 
-A desktop browser driving game set in a fictional seaside entertainment district. Drive one midnight-teal convertible through the beach boulevard, hotel streets, and coastal overlook. Every road is available immediately.
+A desktop browser driving game set in a fictional seaside entertainment district. Drive one midnight-teal Porsche Cayenne SUV through the beach boulevard, hotel streets, and coastal overlook. Every road is available immediately.
 
 ## Play the included build
 
@@ -58,7 +58,9 @@ node scripts/serve.mjs
 
 ## Assets and audio
 
-The car, buildings, landscaping, beach, ocean, and material textures are generated procedurally in the project. Engine, tire, surf, and city ambience use Web Audio synthesis. These systems require no secret keys, paid services, or runtime asset downloads. Audio begins after clicking **Drive**, following browser audio permissions.
+The Cayenne model, buildings, landscaping, beach, ocean, and material textures are generated procedurally in the project. The car is an original approximation of the Cayenne with an enclosed roof, four doors, four-point headlights, and a rear light bar. Engine, tire, surf, and city ambience use Web Audio synthesis. These systems require no secret keys, paid services, or runtime asset downloads. Audio begins after clicking **Drive**, following browser audio permissions.
+
+The SUV proportions follow Porsche's published Cayenne dimensions. [Porsche technical data](https://download.newsroom.porsche.com/dam/jcr%3Abb376133-788c-4e9c-8e92-9630383cc062/pag-cayenne-td-en.pdf.PDF)
 
 The bundled Barlow and Baskervville fonts use the SIL Open Font License. Their licenses accompany the fonts in `public/fonts/` and `dist/fonts/`. Three.js uses the MIT license, included in `public/Three-LICENSE.txt` and `dist/Three-LICENSE.txt`.
 
@@ -68,6 +70,8 @@ See `TESTING.md` for the measured render timings, driving checks, screenshot rev
 
 ```sh
 node checks/driving-checks.ts
+node checks/car-checks.ts
 ```
 
 For browser diagnostics, append `?qa=1&routes=1` to the local URL. Route results are written to the hidden `qa-report` JSON element. Add `&view=beach&quality=low&benchmark=1` for a 60-frame completed-render timing sample. Diagnostic views run independently of browser focus so automated screenshots can be captured. The normal game pauses when focus is lost.
+

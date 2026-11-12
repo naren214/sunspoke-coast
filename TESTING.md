@@ -1,5 +1,12 @@
 # Sunspoke Coast verification
 
+## Cayenne update — 13 November 2026
+
+- Replaced the roadster with an original procedural Porsche Cayenne approximation. The SUV has an enclosed roof and panoramic panel, four doors, sculpted hood, wheel arches, four-point headlights, rear light bar, hatch badges, larger wheels, brake calipers and interior seating.
+- Measured model bounds are approximately 4.95 m long, 2.20 m wide including mirrors, and 1.71 m tall. Shared vehicle dimensions now control the collision footprint and wheelbase. The chase camera focuses higher and maintains extra clearance above the SUV when retracted.
+- All 13 driving and camera checks passed. Both continuous city loops and all 2,262 route probes passed with the larger footprint. Model checks passed for dimensions, collision envelope, finite vertex positions and wheel/body animation transforms.
+- Inspected front and rear quarter geometry previews using an offline software render. Browser inspection remains unavailable because its runtime cannot initialize its assets. The software previews omit textured badges and browser lighting, so in-browser appearance remains unverified for this update.
+
 ## Traction update — 13 November 2026
 
 - Normal driving now has stronger lateral grip, a speed-sensitive cornering-force limit, and smooth power reduction as cornering or sideslip uses the tires' grip. Velocity projection prevents steering from creating extra forward energy. Handbrake slides retain reduced grip, which recovers progressively after release.

@@ -1,5 +1,6 @@
 import { MathUtils, PerspectiveCamera, Vector3 } from 'three';
 import type { Collider, DriveState, World } from './types';
+import { VEHICLE } from './vehicle.ts';
 
 export interface DriveInput {
   forward: boolean;
@@ -10,8 +11,8 @@ export interface DriveInput {
 }
 
 const STEP = 1 / 60;
-const HALF_WIDTH = 0.95;
-const HALF_LENGTH = 2.25;
+const HALF_WIDTH = VEHICLE.halfWidth;
+const HALF_LENGTH = VEHICLE.halfLength;
 const CAR_RADIUS = Math.hypot(HALF_WIDTH, HALF_LENGTH);
 const GRID = 24;
 const CORNERING_GRIP = 9.5;
@@ -176,7 +177,7 @@ export class Driving {
     const yawLimit = 0.21 + 8.3 / (4 + absSpeed);
     const corneringLimit = CORNERING_GRIP / Math.max(absSpeed, 4);
     const normalYawLimit = Math.min(yawLimit, corneringLimit);
-    const requestedYaw = speed * Math.tan(state.steering) / 2.65;
+    const requestedYaw = speed * Math.tan(state.steering) / VEHICLE.wheelbase;
     const normalYaw = clamp(requestedYaw, -normalYawLimit, normalYawLimit);
 
     // Turning and acceleration share the tires' available grip. Ease power
@@ -203,7 +204,7 @@ export class Driving {
     }
 
     const assistedYawLimit = MathUtils.lerp(yawLimit * 1.38, normalYawLimit, this.grip);
-    const yawRate = clamp(nextSpeed * Math.tan(state.steering) / 2.65, -assistedYawLimit, assistedYawLimit);
+    const yawRate = clamp(nextSpeed * Math.tan(state.steering) / VEHICLE.wheelbase, -assistedYawLimit, assistedYawLimit);
     state.heading = Math.atan2(Math.sin(state.heading + yawRate * STEP), Math.cos(state.heading + yawRate * STEP));
     const c = Math.cos(state.heading), s = Math.sin(state.heading);
     // Project existing momentum into the new heading before applying drive
@@ -302,7 +303,7 @@ export class ChaseCamera {
     const distance = clamp(orbit.distance, 4, 16);
     const horizontal = Math.cos(pitch) * distance;
     const lookAhead = 0.72 + Math.min(Math.abs(state.speed) / 30, 0.65);
-    this.focus.set(position.x - Math.sin(heading) * lookAhead, position.y + 1.19,
+    this.focus.set(position.x - Math.sin(heading) * lookAhead, position.y + 1.35,
       position.z - Math.cos(heading) * lookAhead);
     this.desired.set(position.x + Math.sin(yaw) * horizontal, position.y + 1.3 + Math.sin(pitch) * distance,
       position.z + Math.cos(yaw) * horizontal);
@@ -328,7 +329,8 @@ export class ChaseCamera {
     if (fraction < 1) end.copy(start).addScaledVector(this.ray, Math.max(0, fraction - 0.015));
     const gap = Math.hypot(end.x - position.x, end.z - position.z);
     end.y = Math.max(end.y, this.world.groundHeight(end.x, end.z) + 0.45,
-      position.y + Math.max(0, 3.2 - gap) + 0.85);
+      position.y + Math.max(0, 3.2 - gap) + VEHICLE.height + 0.25);
     this.camera.lookAt(start);
   }
 }
+
