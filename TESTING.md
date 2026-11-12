@@ -1,5 +1,13 @@
 # Sunspoke Coast verification
 
+## Full steering review — 13 November 2026
+
+- Replaced the accumulated steering multipliers with one actual front-wheel angle shared by physics, wheel animation and route checks. Removed the sensitivity multiplier's coupling to grip and maximum cornering force.
+- At parking speeds the car has up to 0.68 radians of steering lock, approximately 39°, for a geometric minimum turning radius of about 3.6 m. The available angle tapers continuously with speed and tire force. Normal cornering assistance is bounded around 10 m/s². Steering rate is limited, with faster recentring and countersteering than initial turn-in.
+- Normal steering response transitions from 10/s at rest to 4/s by 28 m/s. Steering slew transitions from 2.8 to 0.65 radians/s. These independent controls replace the previous global sensitivity multiplier.
+- All 19 driving/camera checks passed. Coverage includes stationary steering, launch with steering held, left/right symmetry, entry-speed sweep from 1 to 32 m/s, high-speed lane-change settling, braking through a bend, reverse, handbrake recovery, collision contacts, reset and 30/120 Hz consistency. Model geometry checks, both continuous road loops and all 2,262 route probes also passed.
+- Build and strict TypeScript checks passed. Browser gameplay inspection remains unavailable, so subjective driving feel still needs an in-browser check.
+
 ## Half-strength steering — 13 November 2026
 
 - Reduced the steering gain from 5 to 2.5, halving the current left/right turn-rate gain. Steering response, grip assistance, front-wheel animation and route-test input compensation use the shared gain.

@@ -38,13 +38,13 @@ test('city steering turns promptly and recentres after releasing the key', () =>
   run(drive, 1, forward);
   run(drive, 0.2, { ...idle, left: true });
   assert.ok(drive.state.steering > 0.4, `steering response ${drive.state.steering}`);
-  run(drive, 0.2, { ...idle, left: true });
+  run(drive, 0.8, { ...idle, left: true });
   assert.ok(drive.state.heading > 0.65, `city turn angle ${drive.state.heading}`);
   run(drive, 0.3, idle);
   assert.ok(Math.abs(drive.state.steering) < 0.03);
 });
 
-test('left and right inputs apply 2.5 times the bicycle-model turn rate', () => {
+test('left and right inputs use the actual front-wheel angle', () => {
   for (const left of [true, false]) {
     const drive = new Driving(makeWorld());
     run(drive, 0.8, forward);
@@ -52,8 +52,69 @@ test('left and right inputs apply 2.5 times the bicycle-model turn rate', () => 
     drive.step(1 / 60, { ...forward, left, right: !left });
     const rate = (drive.state.heading - before) * 60;
     const baseline = drive.state.speed * Math.tan(drive.state.steering) / VEHICLE.wheelbase;
-    assert.ok(Math.abs(rate / baseline - 2.5) < 0.02);
+    assert.ok(Math.abs(rate / baseline - 1) < 0.02);
   }
+});
+
+test('steering at rest does not rotate the car and launch turns are symmetric', () => {
+  const left = new Driving(makeWorld()), right = new Driving(makeWorld());
+  run(left, 1, { ...idle, left: true });
+  run(right, 1, { ...idle, right: true });
+  assert.equal(left.state.heading, 0);
+  assert.equal(left.state.speed, 0);
+  assert.equal(left.state.position.z, 210);
+  run(left, 1.5, { ...forward, left: true });
+  run(right, 1.5, { ...forward, right: true });
+  assert.ok(left.state.heading > 0.3);
+  assert.ok(Math.abs(left.state.heading + right.state.heading) < 1e-8);
+  assert.ok(Math.abs(left.state.position.x + right.state.position.x + 130) < 1e-8);
+});
+
+test('speed sweep keeps normal cornering bounded and steering changes continuous', () => {
+  for (const targetSpeed of [1, 3, 6, 10, 16, 24, 32]) {
+    const drive = new Driving(makeWorld());
+    while (drive.state.speed < targetSpeed) drive.step(1 / 60, forward);
+    drive.state.position.set(0, 0, 0);
+    let maxCornering = 0;
+    for (let frame = 0; frame < 60; frame++) {
+      const beforeHeading = drive.state.heading, beforeSteering = drive.state.steering;
+      drive.step(1 / 60, { ...idle, left: true });
+      const yaw = Math.atan2(Math.sin(drive.state.heading - beforeHeading), Math.cos(drive.state.heading - beforeHeading)) * 60;
+      maxCornering = Math.max(maxCornering, Math.abs(yaw * drive.state.speed));
+      assert.ok(Math.abs(drive.state.steering - beforeSteering) <= 2.8 / 60 + 1e-8);
+      assert.ok(Number.isFinite(drive.state.speed));
+    }
+    assert.ok(maxCornering <= 10.1, `cornering at ${targetSpeed}m/s: ${maxCornering}`);
+    console.log(`  ${targetSpeed}m/s: ${maxCornering.toFixed(2)}m/s² peak cornering`);
+  }
+});
+
+test('high-speed lane-change inputs settle without continued steering or drift', () => {
+  const drive = new Driving(makeWorld());
+  run(drive, 8, forward);
+  run(drive, 0.2, { ...forward, left: true });
+  run(drive, 0.2, { ...forward, right: true });
+  run(drive, 1, forward);
+  const heading = drive.state.heading;
+  const motion = motionStep(drive, forward);
+  assert.ok(Math.abs(drive.state.steering) < 0.001);
+  assert.ok(motion.lateral < 0.02);
+  run(drive, 0.25, forward);
+  assert.ok(Math.abs(drive.state.heading - heading) < 0.001);
+});
+
+test('braking through a bend reduces speed without an abrupt steering jump', () => {
+  const drive = new Driving(makeWorld());
+  run(drive, 4, forward);
+  run(drive, 0.5, { ...forward, right: true });
+  const speed = drive.state.speed;
+  for (let frame = 0; frame < 42; frame++) {
+    const steering = drive.state.steering;
+    drive.step(1 / 60, { ...backward, right: true });
+    assert.ok(Math.abs(drive.state.steering - steering) <= 2.8 / 60 + 1e-8);
+  }
+  assert.ok(drive.state.speed < speed - 6);
+  assert.ok(drive.state.speed > 0);
 });
 
 test('traction limits drift and eases throttle in medium and high-speed corners', () => {
@@ -136,8 +197,8 @@ test('accelerates from rest, brakes before reverse, and coasts to rest', () => {
 test('steers left moving forward and reverses its yaw response while backing up', () => {
   const a = new Driving(makeWorld()), b = new Driving(makeWorld());
   run(a, 1.7, forward); run(b, 1.7, backward);
-  run(a, 0.25, { ...forward, left: true });
-  run(b, 0.25, { ...backward, left: true });
+  run(a, 0.7, { ...forward, left: true });
+  run(b, 0.7, { ...backward, left: true });
   assert.ok(a.state.heading > 0.3 && a.state.position.x < -65.3);
   assert.ok(b.state.heading < -0.3 && b.state.position.x < -65.1);
 });

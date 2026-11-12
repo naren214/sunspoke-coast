@@ -6,4 +6,4 @@ export const VEHICLE = {
   wheelbase: 2.895,
   wheelRadius: 0.39,
 };
-export const STEERING_GAIN = 2.5;
+

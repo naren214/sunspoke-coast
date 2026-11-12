@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import type { Car } from "./types";
-import { VEHICLE, STEERING_GAIN } from "./vehicle.ts";
+import { VEHICLE } from "./vehicle.ts";
 
 /** Procedural Cayenne SUV, in metres, facing local -Z. */
 export function createCar(): Car {
@@ -631,7 +631,7 @@ export function createCar(): Car {
       wheelAngle -= (speed * dt) / VEHICLE.wheelRadius;
       for (const wheel of wheels) {
         wheel.spin.rotation.x = wheelAngle;
-        wheel.pivot.rotation.y = wheel.front ? Math.atan(Math.tan(steering) * STEERING_GAIN) : 0;
+        wheel.pivot.rotation.y = wheel.front ? steering : 0;
       }
       body.rotation.z = THREE.MathUtils.damp(
         body.rotation.z,
