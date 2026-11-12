@@ -33,6 +33,17 @@ function motionStep(drive: Driving, input: DriveInput) {
   return { lateral, angle: Math.atan2(lateral, longitudinal) * 180 / Math.PI, speed: velocity.length() };
 }
 
+test('city steering turns promptly and recentres after releasing the key', () => {
+  const drive = new Driving(makeWorld());
+  run(drive, 1, forward);
+  run(drive, 0.2, { ...idle, left: true });
+  assert.ok(drive.state.steering > 0.4, `steering response ${drive.state.steering}`);
+  run(drive, 0.8, { ...idle, left: true });
+  assert.ok(drive.state.heading > 0.65, `city turn angle ${drive.state.heading}`);
+  run(drive, 0.3, idle);
+  assert.ok(Math.abs(drive.state.steering) < 0.03);
+});
+
 test('traction limits drift and eases throttle in medium and high-speed corners', () => {
   for (const accelerationSeconds of [3, 8]) {
     const drive = new Driving(makeWorld());

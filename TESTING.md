@@ -1,5 +1,11 @@
 # Sunspoke Coast verification
 
+## Easier steering — 13 November 2026
+
+- Increased steering lock and turn rate at city speeds. Steering responds faster to key presses and recentres faster after release. Assistance tapers with speed, while the existing traction and cornering-force limits continue to stabilize faster turns.
+- All 14 driving/camera checks, model checks, both continuous loops and all 2,262 road probes passed. Added a regression check for prompt low-speed steering, a useful city turn angle and return to centre.
+- Production build and TypeScript checks passed. Driving feel was verified numerically. Fresh browser gameplay inspection remains unavailable due to the previously recorded browser-tool initialization failure.
+
 ## Cayenne update — 13 November 2026
 
 - Replaced the roadster with an original procedural Porsche Cayenne approximation. The SUV has an enclosed roof and panoramic panel, four doors, sculpted hood, wheel arches, four-point headlights, rear light bar, hatch badges, larger wheels, brake calipers and interior seating.

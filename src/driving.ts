@@ -171,10 +171,13 @@ export class Driving {
     const footBrake = opposing || (input.forward && input.backward);
     state.braking = footBrake || input.handbrake;
 
-    const steerLimit = 0.57 / (1 + absSpeed * 0.047);
+    // More steering lock and quicker response make city corners easier.
+    // Assistance tapers with speed so highway inputs stay progressive.
+    const steerLimit = 0.72 / (1 + absSpeed * 0.07);
     const steer = (Number(input.left) - Number(input.right)) * steerLimit;
-    state.steering += (steer - state.steering) * damping(steer === 0 ? 8 : 5.7, STEP);
-    const yawLimit = 0.21 + 8.3 / (4 + absSpeed);
+    const steeringResponse = steer === 0 ? 11 / (1 + absSpeed * 0.015) : 9.5 / (1 + absSpeed * 0.025);
+    state.steering += (steer - state.steering) * damping(steeringResponse, STEP);
+    const yawLimit = 0.35 + 11 / (4 + absSpeed);
     const corneringLimit = CORNERING_GRIP / Math.max(absSpeed, 4);
     const normalYawLimit = Math.min(yawLimit, corneringLimit);
     const requestedYaw = speed * Math.tan(state.steering) / VEHICLE.wheelbase;
