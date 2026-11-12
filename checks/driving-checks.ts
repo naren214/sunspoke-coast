@@ -22,6 +22,78 @@ function test(name: string, check: () => void) {
   console.log('PASS', name);
 }
 
+function motionStep(drive: Driving, input: DriveInput) {
+  const before = drive.state.position.clone();
+  drive.step(1 / 60, input);
+  const velocity = drive.state.position.clone().sub(before).multiplyScalar(60);
+  const { heading } = drive.state;
+  const lateral = Math.abs(velocity.x * Math.cos(heading) - velocity.z * Math.sin(heading));
+  const longitudinal = Math.abs(-velocity.x * Math.sin(heading) - velocity.z * Math.cos(heading));
+  return { lateral, angle: Math.atan2(lateral, longitudinal) * 180 / Math.PI, speed: velocity.length() };
+}
+
+test('traction limits drift and eases throttle in medium and high-speed corners', () => {
+  for (const accelerationSeconds of [3, 8]) {
+    const drive = new Driving(makeWorld());
+    run(drive, accelerationSeconds, forward);
+    let peakAngle = 0, peakLateral = 0;
+    for (let i = 0; i < 72; i++) {
+      const motion = motionStep(drive, { ...forward, left: true });
+      peakAngle = Math.max(peakAngle, motion.angle);
+      peakLateral = Math.max(peakLateral, motion.lateral);
+    }
+    assert.ok(peakAngle < (accelerationSeconds === 8 ? 1.5 : 2), `sideslip ${peakAngle}`);
+    assert.ok(peakLateral < 0.8, `lateral speed ${peakLateral}`);
+    assert.ok(drive.state.throttle < 0.35, `corner throttle ${drive.state.throttle}`);
+    console.log(`  ${accelerationSeconds}s launch: ${peakAngle.toFixed(3)} degrees, ${peakLateral.toFixed(3)} m/s lateral`);
+  }
+});
+
+test('rapid steering reversals stay planted at high speed', () => {
+  const drive = new Driving(makeWorld());
+  run(drive, 8, forward);
+  let peakAngle = 0;
+  for (const [seconds, left] of [[0.6, true], [1.2, false], [1.2, true], [0.6, false]] as const) {
+    for (let i = 0; i < seconds * 60; i++) {
+      const motion = motionStep(drive, { ...forward, left, right: !left });
+      peakAngle = Math.max(peakAngle, motion.angle);
+    }
+  }
+  assert.ok(peakAngle < 1.5, `slalom sideslip ${peakAngle}`);
+});
+
+test('handbrake allows a slide and grip recovers smoothly after release', () => {
+  const drive = new Driving(makeWorld());
+  run(drive, 6, forward);
+  let peakAngle = 0, previousLateral = 0, largestDrop = 0;
+  for (let i = 0; i < 42; i++) {
+    const motion = motionStep(drive, { ...forward, left: true, handbrake: true });
+    peakAngle = Math.max(peakAngle, motion.angle);
+    previousLateral = motion.lateral;
+  }
+  let recoveredAngle = 0;
+  for (let i = 0; i < 30; i++) {
+    const motion = motionStep(drive, forward);
+    largestDrop = Math.max(largestDrop, previousLateral - motion.lateral);
+    previousLateral = motion.lateral;
+    recoveredAngle = motion.angle;
+  }
+  assert.ok(peakAngle > 5, `handbrake sideslip ${peakAngle}`);
+  assert.ok(recoveredAngle < 2, `recovered sideslip ${recoveredAngle}`);
+  assert.ok(largestDrop < 1, `single-frame lateral drop ${largestDrop}`);
+});
+
+test('coasting through a turn cannot add kinetic speed', () => {
+  const drive = new Driving(makeWorld());
+  run(drive, 6, forward);
+  let previousSpeed = Infinity;
+  for (let i = 0; i < 90; i++) {
+    const motion = motionStep(drive, { ...idle, left: true });
+    assert.ok(motion.speed <= previousSpeed + 1e-7);
+    previousSpeed = motion.speed;
+  }
+});
+
 test('accelerates from rest, brakes before reverse, and coasts to rest', () => {
   const drive = new Driving(makeWorld());
   run(drive, 3, forward);

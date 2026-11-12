@@ -14,6 +14,7 @@ const HALF_WIDTH = 0.95;
 const HALF_LENGTH = 2.25;
 const CAR_RADIUS = Math.hypot(HALF_WIDTH, HALF_LENGTH);
 const GRID = 24;
+const CORNERING_GRIP = 9.5;
 const clamp = MathUtils.clamp;
 const damping = (rate: number, dt: number) => 1 - Math.exp(-rate * dt);
 const approach = (value: number, target: number, increment: number) =>
@@ -128,6 +129,7 @@ export class Driving {
   private vx = 0;
   private vz = 0;
   private accumulated = 0;
+  private grip = 1;
   private safePosition: Vector3;
   private safeHeading = 0;
   private checkTime = 0;
@@ -148,6 +150,7 @@ export class Driving {
     state.speed = state.steering = state.throttle = state.slip = 0;
     state.braking = false;
     this.vx = this.vz = this.accumulated = 0;
+    this.grip = 1;
     this.checkTime = 0;
   }
 
@@ -166,27 +169,48 @@ export class Driving {
     const opposing = direction * speed < -0.12;
     const footBrake = opposing || (input.forward && input.backward);
     state.braking = footBrake || input.handbrake;
-    state.throttle += ((direction && !footBrake && !input.handbrake ? 1 : 0) - state.throttle) * damping(6, STEP);
+
+    const steerLimit = 0.57 / (1 + absSpeed * 0.047);
+    const steer = (Number(input.left) - Number(input.right)) * steerLimit;
+    state.steering += (steer - state.steering) * damping(steer === 0 ? 8 : 5.7, STEP);
+    const yawLimit = 0.21 + 8.3 / (4 + absSpeed);
+    const corneringLimit = CORNERING_GRIP / Math.max(absSpeed, 4);
+    const normalYawLimit = Math.min(yawLimit, corneringLimit);
+    const requestedYaw = speed * Math.tan(state.steering) / 2.65;
+    const normalYaw = clamp(requestedYaw, -normalYawLimit, normalYawLimit);
+
+    // Turning and acceleration share the tires' available grip. Ease power
+    // before a loaded corner or existing sideslip can grow into a slide.
+    const lateralSpeed = this.vx * Math.cos(state.heading) - this.vz * Math.sin(state.heading);
+    const slipRatio = Math.abs(lateralSpeed) / Math.max(absSpeed, 4);
+    const excessSlip = clamp((slipRatio - 0.035) / 0.12, 0, 1);
+    const corneringLoad = Math.min(1, Math.abs(normalYaw * speed) / CORNERING_GRIP);
+    const availableAcceleration = CORNERING_GRIP * Math.sqrt(Math.max(0, 1 - corneringLoad * corneringLoad));
+    const acceleration = direction > 0 ? 6.3 : 3.6;
+    const traction = Math.min(1, availableAcceleration / acceleration) * (1 - excessSlip * 0.8);
+    const wantedThrottle = direction && !state.braking ? traction : 0;
+    state.throttle += (wantedThrottle - state.throttle) * damping(6, STEP);
+    this.grip += ((input.handbrake ? 0 : 1) - this.grip) * damping(input.handbrake ? 10 : 4.5, STEP);
+
     let nextSpeed = speed;
     if (state.braking) {
       nextSpeed = approach(speed, 0, (footBrake ? 11 : 6) * STEP);
     } else if (direction) {
       const limit = direction > 0 ? 34 : 8;
-      const acceleration = direction > 0 ? 6.3 : 3.6;
-      nextSpeed += direction * acceleration * (1 - (absSpeed / limit) ** 2) * STEP;
+      nextSpeed += direction * acceleration * state.throttle * (1 - (absSpeed / limit) ** 2) * STEP;
     } else {
       nextSpeed = approach(speed, 0, (0.63 + absSpeed * 0.025 + absSpeed * absSpeed * 0.0007) * STEP);
     }
 
-    const steerLimit = 0.57 / (1 + absSpeed * 0.047);
-    const steer = (Number(input.left) - Number(input.right)) * steerLimit;
-    state.steering += (steer - state.steering) * damping(steer === 0 ? 8 : 5.7, STEP);
-    const yawLimit = (0.21 + 8.3 / (4 + absSpeed)) * (input.handbrake ? 1.38 : 1);
-    const yawRate = clamp(nextSpeed * Math.tan(state.steering) / 2.65, -yawLimit, yawLimit);
+    const assistedYawLimit = MathUtils.lerp(yawLimit * 1.38, normalYawLimit, this.grip);
+    const yawRate = clamp(nextSpeed * Math.tan(state.steering) / 2.65, -assistedYawLimit, assistedYawLimit);
     state.heading = Math.atan2(Math.sin(state.heading + yawRate * STEP), Math.cos(state.heading + yawRate * STEP));
     const c = Math.cos(state.heading), s = Math.sin(state.heading);
+    // Project existing momentum into the new heading before applying drive
+    // force, so steering cannot manufacture extra forward kinetic energy.
+    nextSpeed += -this.vx * s - this.vz * c - speed;
     let lateral = this.vx * c - this.vz * s;
-    lateral *= Math.exp(-(input.handbrake ? 2.1 : 9.5) * STEP);
+    lateral *= Math.exp(-MathUtils.lerp(2.1, 17, this.grip) * STEP);
     this.vx = -s * nextSpeed + c * lateral;
     this.vz = -c * nextSpeed - s * lateral;
     // At maximum speed the footprint advances under 0.3m per collision pass.

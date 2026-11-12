@@ -1,5 +1,13 @@
 # Sunspoke Coast verification
 
+## Traction update — 13 November 2026
+
+- Normal driving now has stronger lateral grip, a speed-sensitive cornering-force limit, and smooth power reduction as cornering or sideslip uses the tires' grip. Velocity projection prevents steering from creating extra forward energy. Handbrake slides retain reduced grip, which recovers progressively after release.
+- All 13 deterministic driving and camera checks passed. Added regression checks measure actual travel velocity during cornering and slalom, progressive handbrake recovery, and decreasing kinetic speed during a coasting turn.
+- In the high-speed full-throttle corner test after eight seconds of acceleration, peak lateral velocity fell from approximately 1.36 m/s to 0.483 m/s. Peak sideslip fell from approximately 2.46° to 0.908°. The medium-speed test measured 1.624° sideslip. Both tests confirmed reduced throttle during the loaded corner.
+- All 2,262 actual-world road probes passed. The continuous coastal lap passed 452 waypoints and the inner lap passed 296 waypoints. These route checks ran in Node using the actual world and collision modules, with canvas texture drawing stubbed.
+- Production TypeScript compilation and build passed. A fresh browser inspection could not run because the browser tool failed to initialize its assets, including after a reset. The earlier browser and render observations below describe the initial build.
+
 Verified on 12 November 2026 using Windows, Chrome 157, Intel Iris Xe through ANGLE Direct3D11, Node.js 26.8.2, and a 1920 × 1080 browser viewport.
 
 ## Checks completed

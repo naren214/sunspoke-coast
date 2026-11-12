@@ -34,6 +34,8 @@ Use `node scripts/serve.mjs --no-open` to start the server without opening a bro
 
 The camera gently recentres after you stop orbiting. The small pause button also opens the settings. Choose golden hour, twilight, or night, adjust master volume, choose Low, Medium, or High rendering quality, and toggle the controls hint. Speed is displayed in kilometres per hour. The **×** in the driving hint hides it.
 
+Automatic traction assistance eases engine power in loaded corners and stabilizes sideways motion. Releasing the handbrake progressively restores grip.
+
 Start with **Low** quality on integrated graphics. Medium and High add bloom and increase rendering resolution or shadow quality. Settings apply immediately. Volume, quality, and controls-hint preferences are saved in browser storage when it is available. Each new session begins at golden hour.
 
 ## Rebuild or develop
