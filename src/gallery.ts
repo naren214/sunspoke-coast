@@ -30,7 +30,7 @@ export function createGrandGallery(){
   }
   // A clear-span hall, rather than a solid building collider. Cars can explore
   // its 210 x 140 metre floor and leave through either sensor entrance.
-  box(floorMat,x,floor+.005,z,width,.14,depth); 
+  box(floorMat,x,floor+.005,z,width,.14,depth);
   wall(x-width/2,z,1.2,depth);wall(x+width/2,z,1.2,depth);
   for(const side of [-1,1]){
     const zz=z+side*depth/2;
