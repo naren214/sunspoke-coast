@@ -9,10 +9,11 @@ export interface World {
   colliders: Collider[];
   roads: Road[];
   groundHeight: (x: number, z: number) => number;
+  surfaceHeight?: (x: number, z: number) => number;
   update: (time: number, lighting: Lighting, carPosition: THREE.Vector3) => void;
 }
 export interface Car {
   group: THREE.Group;
   update: (speed: number, steering: number, throttle: number, braking: boolean, time: number, night: number) => void;
 }
-export interface DriveState { position: THREE.Vector3; heading: number; speed: number; steering: number; throttle: number; braking: boolean; slip: number; }
+export interface DriveState { position: THREE.Vector3; heading: number; speed: number; steering: number; throttle: number; braking: boolean; slip: number; airborne: boolean; pitch: number; verticalSpeed: number; }

@@ -1,5 +1,15 @@
 # Sunspoke Coast verification
 
+## Ramp Time stunt compound — 15 November 2026
+
+Added a walled stunt compound at the central city/beach junction, with an approximately 25-metre-tall gold-and-teal welcome arch named RAMP TIME. A 5-metre takeoff ramp launches over a 26-metre recessed water channel to a wide landing ramp and braking apron. An open city-side gateway and return lane allow entry and repeated attempts. Original beach props and visitors were moved out of the compound, retaining all 84 adult beachgoers on the surrounding public beaches. Compound lamps join the existing nearby-light pool, and arch illumination follows the lighting setting.
+
+The car now has vertical velocity, gravity, airborne pitch and landing state. Ramp ascent supplies launch velocity. Airborne tire steering and braking cannot change horizontal momentum. Elevation-aware collisions let the car clear the landing lip while catching an undershoot. A tall ramp face cannot lift a grounded car onto its top. Reset clears flight state, and the chase camera clears ramp surfaces. Existing road handling remains covered by all 23 driving/camera checks.
+
+The deterministic jump test accelerates from rest at the southern run-up, launches at **25.26 m/s (90.95 km/h)**, reaches **7.16 m** above the compound's datum, remains airborne for **1.75 s**, lands on the far ramp, and brakes to a stop inside the compound. A slow attempt lands in the recessed gap and recovers with R. Tests also verify city-side gateway access, the absence of tire forces in midair, and matching results at 30 and 120 Hz input frequencies. All **3,477 road probes** and **four continuous road loops** still pass. Car geometry and strict TypeScript/production build checks pass.
+
+Browser inspection confirmed the arch lettering and daylight/night appearance, the visible water gap, and a car physically airborne over it. The diagnostic `?qa=1&view=jump&capture=1` advances the actual Driving simulation from rest to the middle of the jump, then holds that state for visual inspection; it does not substitute an artificial car position. Normal gameplay is never frozen. Console error capture was empty. Current-update sustained gameplay FPS was not remeasured; older timing sections describe their respective builds.
+
 ## Expanded city and rebuilt controls — 15 November 2026
 
 The bounded city footprint grows from 202,120 to 303,180 m², exactly 1.5×. The original coastline and landmarks remain at their authored positions. Palm Quarter adds an inland boulevard, three connectors, twelve buildings, six fountain courts, palms, lamps, and a moved eastern perimeter. Nine authored roads total approximately 4,025 m of centerline. Adult beachgoers use instanced geometry: 84 adults, including 21 walkers, with bikinis, thong swimsuits, swim shorts, sunglasses, and reclining poses.

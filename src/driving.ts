@@ -145,7 +145,7 @@ export class Driving {
   constructor(world: World) {
     this.world = world;
     const position = new Vector3(-65, world.groundHeight(-65, 210), 210);
-    this.state = { position, heading: 0, speed: 0, steering: 0, throttle: 0, braking: false, slip: 0 };
+    this.state = { position, heading: 0, speed: 0, steering: 0, throttle: 0, braking: false, slip: 0, airborne:false, pitch:0, verticalSpeed:0 };
     this.safePosition = position.clone();
     this.index = sceneryFor(world);
   }
@@ -156,6 +156,7 @@ export class Driving {
     state.heading = this.safeHeading;
     state.speed = state.steering = state.throttle = state.slip = 0;
     state.braking = false;
+    state.airborne = false; state.pitch = state.verticalSpeed = 0;
     this.vx = this.vz = this.accumulated = 0;
     this.grip = 1;
     this.steeringInput = this.yawRate = this.shiftTime = 0;
@@ -174,6 +175,8 @@ export class Driving {
 
   private advance(input: DriveInput) {
     const state = this.state, pos = state.position;
+    if(state.airborne){this.fly(input);return;}
+    const oldX=pos.x,oldY=pos.y,oldZ=pos.z;
     const speed = state.speed, absSpeed = Math.abs(speed);
     const direction = Number(input.forward) - Number(input.backward);
     const bothPedals = input.forward && input.backward;
@@ -238,7 +241,21 @@ export class Driving {
       pos.z += this.vz * STEP * 0.5;
       this.collide(c, s);
     }
-    pos.y = this.world.groundHeight(pos.x, pos.z);
+    const surface=this.surfaceHeight(pos.x,pos.z);
+    if(surface < oldY-0.22){
+      state.airborne=true;
+      // Carry the actual ramp ascent velocity over the lip into ballistic flight.
+      state.verticalSpeed=clamp(state.verticalSpeed,-8,14);
+      pos.y=oldY+state.verticalSpeed*STEP-0.5*9.81*STEP*STEP;
+    }else if(surface > oldY+0.65){
+      // A vertical ramp face is a wall, never an elevator onto its deck.
+      pos.x=oldX;pos.z=oldZ;this.vx=this.vz=0;state.verticalSpeed=0;
+    }else{
+      pos.y=surface;
+      state.verticalSpeed=(surface-oldY)/STEP;
+      const pitch=Math.atan2(state.verticalSpeed*Math.sign(state.speed||1),Math.max(Math.hypot(this.vx,this.vz),0.2));
+      state.pitch+=(pitch-state.pitch)*damping(14,STEP);
+    }
     state.speed = -this.vx * s - this.vz * c;
     const slide = Math.max(Math.abs(lateral) / 5, input.handbrake ? absSpeed / 14 : 0);
     state.slip += (clamp(slide, 0, 1) - state.slip) * damping(7, STEP);
@@ -246,15 +263,41 @@ export class Driving {
     this.checkTime += STEP;
     if (this.checkTime >= 0.4) {
       this.checkTime = 0;
-      if (pos.distanceToSquared(this.safePosition) > 36 && !input.handbrake) this.rememberRoad();
+      if (pos.distanceToSquared(this.safePosition) > 36 && !input.handbrake && !state.airborne) this.rememberRoad();
     }
+  }
+
+  private surfaceHeight(x:number,z:number){return (this.world.surfaceHeight??this.world.groundHeight)(x,z);}
+
+  private fly(input:DriveInput){
+    const state=this.state,pos=state.position;
+    state.braking=Boolean(input.brake)||input.backward||input.handbrake;
+    state.throttle+=(Number(input.forward&&!state.braking)-state.throttle)*damping(8,STEP);
+    // Wheel input has no tire force in the air. Preserve launch momentum.
+    state.steering+=(0-state.steering)*damping(8,STEP);
+    this.yawRate*=Math.exp(-12*STEP);
+    this.vx*=Math.exp(-0.025*STEP);this.vz*=Math.exp(-0.025*STEP);
+    state.verticalSpeed-=9.81*STEP;
+    pos.y+=state.verticalSpeed*STEP;
+    const c=Math.cos(state.heading),s=Math.sin(state.heading);
+    for(let i=0;i<2;i++){
+      pos.x+=this.vx*STEP*0.5;pos.z+=this.vz*STEP*0.5;this.collide(c,s);
+    }
+    const surface=this.surfaceHeight(pos.x,pos.z);
+    state.pitch+=(Math.atan2(state.verticalSpeed*Math.sign(state.speed||1),Math.max(Math.hypot(this.vx,this.vz),0.2))-state.pitch)*damping(7,STEP);
+    if(pos.y<=surface&&state.verticalSpeed<=0){
+      pos.y=surface;state.verticalSpeed=0;state.airborne=false;
+      this.steeringInput=0;this.yawRate=0;
+    }
+    state.speed=-this.vx*s-this.vz*c;
+    state.slip*=Math.exp(-6*STEP);
   }
 
   private collide(c: number, s: number) {
     const pos = this.state.position;
     const neighbors = this.index.query(pos.x - CAR_RADIUS, pos.z - CAR_RADIUS, pos.x + CAR_RADIUS, pos.z + CAR_RADIUS);
     for (const box of neighbors) {
-      if (box.height < 0.12 || !contact(pos.x, pos.z, c, s, box, this.contact)) continue;
+      if (box.height < 0.12 || pos.y>box.top+0.03 || pos.y+VEHICLE.height<box.bottom || !contact(pos.x, pos.z, c, s, box, this.contact)) continue;
       const n = this.contact;
       pos.x += n.x * (n.depth + 0.002);
       pos.z += n.z * (n.depth + 0.002);
@@ -337,7 +380,7 @@ export class ChaseCamera {
     for (let i = 1; i <= 8; i++) {
       const t = i / 8;
       const x = start.x + t * (end.x - start.x), z = start.z + t * (end.z - start.z);
-      const ground = this.world.groundHeight(x, z) + 0.45;
+      const ground = (this.world.surfaceHeight??this.world.groundHeight)(x, z) + 0.45;
       end.y = Math.max(end.y, start.y + (ground - start.y) / t);
     }
     this.ray.subVectors(end, start);
@@ -347,7 +390,7 @@ export class ChaseCamera {
     for (const box of boxes) fraction = Math.min(fraction, boxHit(start, this.ray, box, radius));
     if (fraction < 1) end.copy(start).addScaledVector(this.ray, Math.max(0, fraction - 0.015));
     const gap = Math.hypot(end.x - position.x, end.z - position.z);
-    end.y = Math.max(end.y, this.world.groundHeight(end.x, end.z) + 0.45,
+    end.y = Math.max(end.y, (this.world.surfaceHeight??this.world.groundHeight)(end.x, end.z) + 0.45,
       position.y + Math.max(0, 3.2 - gap) + VEHICLE.height + 0.25);
     this.camera.lookAt(start);
   }

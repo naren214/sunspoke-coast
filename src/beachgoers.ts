@@ -25,7 +25,9 @@ export function createBeachgoers(height: (x: number, z: number) => number) {
   }
   for (let i = 0; i < 84; i++) {
     const walking = i % 4 === 0, reclining = i % 5 === 1;
-    const z = -155 + (i % 28) * 12.6 + Math.floor(i / 28) * 2.2;
+    let z = -155 + (i % 28) * 12.6 + Math.floor(i / 28) * 2.2;
+    // Keep the central stunt compound clear; visitors occupy the public beaches.
+    if(Math.abs(z)<103)z=z<0?-108-Math.abs(z)*0.6:108+z*0.8;
     const x = walking ? -111 + random() * 1.5 : -108 + (i % 3) * 3.1 + random();
     people.push({ x, z, yaw: walking ? (i % 8 ? 0 : Math.PI) : random() * Math.PI * 2, scale: 0.96 + random() * 0.14, walking, reclining, phase: random() * 6.28 });
     const skin = skins[i % skins.length], suit = suits[i % suits.length];

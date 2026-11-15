@@ -2,13 +2,14 @@ import * as T from 'three';
 import type { Collider, Lighting, Road, World } from './types';
 import { CITY } from './city';
 import { createBeachgoers } from './beachgoers';
+import { createStuntArena, insideStunt, stuntGround, stuntSurface } from './stunt';
 
 const tau = Math.PI * 2;
 const clamp = T.MathUtils.clamp;
 const smooth = (v: number) => { v = clamp(v, 0, 1); return v * v * (3 - 2 * v); };
 const groundHeight = (x: number, z: number) => {
   const upland = 6 * smooth((-z - 200) / 78);
-  return T.MathUtils.lerp(-0.55, upland, smooth((x + 122) / 36));
+  return stuntGround(x,z,T.MathUtils.lerp(-0.55, upland, smooth((x + 122) / 36)));
 };
 function noiseGenerator(seed: number) {
   return () => { seed = (Math.imul(1664525, seed) + 1013904223) >>> 0; return seed / 4294967296; };
@@ -64,6 +65,7 @@ export function createWorld(): World {
   const buckets = new Map<string,{g:T.BufferGeometry,m:T.Material, matrices:T.Matrix4[], shadow:boolean}>();
   const dummy = new T.Object3D();
   function geom(g:T.BufferGeometry,m:T.Material,x:number,y:number,z:number,sx:number,sy:number,sz:number,ry=0,rz=0,rx=0,shadow=true) {
+    if(insideStunt(x,z,1.5))return;
     // Spatial batches let the camera and shadow frusta discard distant blocks.
     const key=g.uuid+m.uuid+(shadow?'1':'0')+':'+Math.floor(x/120)+','+Math.floor(z/120);
     let b=buckets.get(key); if (!b) { b={g,m,matrices:[],shadow}; buckets.set(key,b); }
@@ -75,12 +77,12 @@ export function createWorld(): World {
   function post(m:T.Material,x:number,z:number,r:number,h:number,base=groundHeight(x,z)) {
     geom(cyl,m,x,base+h/2,z,r,h,r);
   }
-  function collider(x:number,z:number,hx:number,hz:number,height:number,rotation=0) { colliders.push({x,z,halfX:hx,halfZ:hz,height,rotation}); }
+  function collider(x:number,z:number,hx:number,hz:number,height:number,rotation=0) { if(!insideStunt(x,z,1.5))colliders.push({x,z,halfX:hx,halfZ:hz,height,rotation}); }
   function grid(x1:number,x2:number,z1:number,z2:number,nx:number,nz:number,m:T.Material,yOffset=0) {
     const p:number[]=[],uv:number[]=[], idx:number[]=[];
     for(let j=0;j<=nz;j++) for(let i=0;i<=nx;i++) {
       const x=x1+(x2-x1)*i/nx, z=z1+(z2-z1)*j/nz; p.push(x,groundHeight(x,z)+yOffset,z); uv.push(x,z);
-      if(i<nx&&j<nz) { const a=j*(nx+1)+i; idx.push(a,a+nx+1,a+1,a+1,a+nx+1,a+nx+2); }
+      if(i<nx&&j<nz&&!insideStunt(x+(x2-x1)/nx/2,z+(z2-z1)/nz/2)) { const a=j*(nx+1)+i; idx.push(a,a+nx+1,a+1,a+1,a+nx+1,a+nx+2); }
     }
     const g=new T.BufferGeometry(); g.setAttribute('position',new T.Float32BufferAttribute(p,3)); g.setAttribute('uv',new T.Float32BufferAttribute(uv,2)); g.setIndex(idx);g.computeVertexNormals();
     const mesh=new T.Mesh(g,m); mesh.receiveShadow=true;group.add(mesh);
@@ -442,6 +444,7 @@ export function createWorld(): World {
   for(const z of [-160,0,160])for(let x=207;x<331;x+=28){lamp(x,z+9,Math.PI);palm(x,z-11,7.6);}
   lettering('PALM QUARTER','GARDENS · MARKET · RESIDENCES','#ffe3a3','#37534c',263,9,170,21,3.7,0);
   const beachgoers=createBeachgoers(groundHeight);group.add(beachgoers.group);
+  const stunt=createStuntArena();group.add(stunt.group);colliders.push(...stunt.colliders);lightSources.push(...stunt.lights);
   // Pergolas overlooking the water, with unobstructed road-side sea views.
   for(const z of [-192,64,236]){
     const x=-83.5,y=groundHeight(x,z);
@@ -546,6 +549,7 @@ export function createWorld(): World {
   });
   let last:Lighting|undefined, nextLightUpdate=0;
   function update(time:number,lighting:Lighting,carPosition:T.Vector3){
+    stunt.update(lighting);
     beachgoers.update(time);
     oceanUniforms.clock.value=time;
     for(const [i,r] of ripples.entries()){
@@ -572,7 +576,7 @@ export function createWorld(): World {
     oceanUniforms.power.value=lighting==='night'?.23:lighting==='twilight'?.6:1.1;
   }
   group.userData.cityArea={original:CITY.originalArea,current:CITY.area,ratio:CITY.area/CITY.originalArea};
-  return {group,roads,colliders,groundHeight,update,bounds:CITY};
+  return {group,roads,colliders,groundHeight,surfaceHeight:(x,z)=>stuntSurface(x,z,groundHeight(x,z)),update,bounds:CITY};
 }
 
 

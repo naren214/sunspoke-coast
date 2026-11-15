@@ -39,8 +39,8 @@ async function boot() {
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2('#e9be94', .00145);
   const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, .2, 1800);
+  await Promise.all([document.fonts.load('190px CoastSignature'),document.fonts.load('900 245px Barlow')]);
   const world = createWorld();
-  await document.fonts.load('190px CoastSignature');
   const car = createCar();
   scene.add(world.group, car.group);
   const drive = new Driving(world);
@@ -177,6 +177,7 @@ async function boot() {
   window.addEventListener('resize', resize);
   let toastTimer = 0;
   function toast(text: string) { $('toast').textContent = text; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = window.setTimeout(()=>$('toast').hidden=true,2400); }
+  let captureJump=false;
   const input = { forward:false,backward:false,left:false,right:false,handbrake:false,brake:false };
   const sunDirection = new THREE.Vector3(-.9,.24,-.36).normalize();
   let fpsStart = performance.now();
@@ -195,20 +196,18 @@ async function boot() {
     if (!paused) {
       input.forward=keys.has('KeyW')||keys.has('ArrowUp'); input.backward=keys.has('KeyS')||keys.has('ArrowDown'); input.left=keys.has('KeyA')||keys.has('ArrowLeft'); input.right=keys.has('KeyD')||keys.has('ArrowRight'); input.handbrake=keys.has('Space');
       input.brake=keys.has('ShiftLeft')||keys.has('ShiftRight');
-      drive.step(dt,input);
+      if(!captureJump)drive.step(dt,input);
       if (!dragging && elapsed-orbitLast>2.5) { orbit.yaw=THREE.MathUtils.damp(orbit.yaw,0,1.5,dt);orbit.pitch=THREE.MathUtils.damp(orbit.pitch,.34,1,dt); }
     }
     const state = drive.state;
     car.group.position.copy(state.position);
-    const forwardX = Math.sin(state.heading), forwardZ = Math.cos(state.heading);
-    const slope = (world.groundHeight(state.position.x-forwardX,state.position.z-forwardZ)-world.groundHeight(state.position.x+forwardX,state.position.z+forwardZ))/2;
-    car.group.rotation.set(Math.atan(slope),state.heading,0,'YXZ');
+    car.group.rotation.set(state.pitch,state.heading,0,'YXZ');
     car.update(paused?0:state.speed,state.steering,paused?0:state.throttle,state.braking,elapsed,lighting==='golden'?0:lighting==='night'?1:.5);
     if (!started) {
       const a = Math.sin(elapsed*.06)*.07;
       camera.position.set(-72+Math.sin(a)*3,3.5,217);
       camera.lookAt(-61,1.1,202);
-    } else chase.update(dt,state,orbit);
+    } else if(captureJump){camera.position.set(-81,17,24);camera.lookAt(-101,3,0);} else chase.update(dt,state,orbit);
     const targetFov=55+7*THREE.MathUtils.smoothstep(Math.abs(state.speed),12,34);
     camera.fov=THREE.MathUtils.damp(camera.fov,targetFov,3,dt);camera.updateProjectionMatrix();
     sky.position.copy(camera.position);
@@ -238,13 +237,13 @@ async function boot() {
       drive, world, car, camera, renderer, audio, input,
       pause: setPaused, light: applyLighting, quality: applyQuality,
       teleport(x:number,z:number,heading=0) { stateTeleport(x,z,heading); },
-      stats() { const sorted=[...frameTimes].sort((a,b)=>a-b);return {fps:measuredFps,medianMs:sorted[Math.floor(sorted.length*.5)],p95Ms:sorted[Math.floor(sorted.length*.95)],frames:sorted.length,width:innerWidth,height:innerHeight,renderWidth:canvas.width,renderHeight:canvas.height,quality,lighting,paused,renderer:ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER),cityArea:world.group.userData.cityArea,beachgoers:world.group.getObjectByName('Adult beachgoers')?.userData,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,speed:drive.state.speed,heading:drive.state.heading,steering:drive.state.steering,position:drive.state.position.toArray(),audioState:(audio as any).ctx?.state,audioGain:(audio as any).master?.gain.value}; },
+      stats() { const sorted=[...frameTimes].sort((a,b)=>a-b);return {fps:measuredFps,medianMs:sorted[Math.floor(sorted.length*.5)],p95Ms:sorted[Math.floor(sorted.length*.95)],frames:sorted.length,width:innerWidth,height:innerHeight,renderWidth:canvas.width,renderHeight:canvas.height,quality,lighting,paused,renderer:ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER),airborne:drive.state.airborne,verticalSpeed:drive.state.verticalSpeed,pitch:drive.state.pitch,captureJump,stunt:world.group.getObjectByName('RAMP TIME stunt compound')?.userData,cityArea:world.group.userData.cityArea,beachgoers:world.group.getObjectByName('Adult beachgoers')?.userData,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,speed:drive.state.speed,heading:drive.state.heading,steering:drive.state.steering,position:drive.state.position.toArray(),audioState:(audio as any).ctx?.state,audioGain:(audio as any).master?.gain.value}; },
       clearStats() { frameTimes.length=0;fpsFrames=0;fpsStart=performance.now(); }
     };
-    function stateTeleport(x:number,z:number,heading:number) { drive.state.position.set(x,world.groundHeight(x,z),z);drive.state.heading=heading;drive.state.speed=0;drive.state.steering=0; }
+    function stateTeleport(x:number,z:number,heading:number) { drive.reset();drive.state.position.set(x,(world.surfaceHeight??world.groundHeight)(x,z),z);drive.state.heading=heading; }
     if (params.get('quality') && params.get('quality')! in presets) applyQuality(params.get('quality') as Quality);
     const view = params.get('view');
-    if (view) { const poses:Record<string,number[]>={beach:[-65,110,0],crowd:[-99,100,Math.PI/2],quarter:[263,160,Math.PI/2],highway:[-65,110,0],casino:[-65,145,0],headland:[-65,-252,Math.PI],inland:[180,-85,Math.PI]};const p=poses[view]||poses.beach;stateTeleport(p[0],p[1],p[2]);if(view==='highway'){for(let i=0;i<480;i++)drive.step(1/60,{forward:true,backward:false,left:false,right:false,handbrake:false});drive.state.position.set(p[0],world.groundHeight(p[0],p[1]),p[1]);}started=true;$('opening').hidden=true;setPaused(false); }
+    if (view) { const poses:Record<string,number[]>={stunt:[5,0,Math.PI/2],runup:[-101,82,0],jump:[-101,82,0],beach:[-65,110,0],crowd:[-99,100,Math.PI/2],quarter:[263,160,Math.PI/2],highway:[-65,110,0],casino:[-65,145,0],headland:[-65,-252,Math.PI],inland:[180,-85,Math.PI]};const p=poses[view]||poses.beach;stateTeleport(p[0],p[1],p[2]);if(view==='highway'){for(let i=0;i<480;i++)drive.step(1/60,{forward:true,backward:false,left:false,right:false,handbrake:false});drive.state.position.set(p[0],world.groundHeight(p[0],p[1]),p[1]);}if(view==='jump'&&params.has('capture')){for(let i=0;i<600;i++){drive.step(1/60,{forward:true,backward:false,left:false,right:false,handbrake:false});if(drive.state.airborne&&drive.state.position.z<0)break;}captureJump=true;}started=true;$('opening').hidden=true;setPaused(false); }
     const time = params.get('time');if (time==='night'||time==='twilight')applyLighting(time);
     window.setInterval(()=>{report.textContent=JSON.stringify({...((window as any).__SUNSPOKE__.stats()),visibility:document.visibilityState,benchmark,routeChecks});},500);
     if(params.has('routes')) import('./qa').then(({validateRoads})=>{routeChecks=validateRoads(world);});

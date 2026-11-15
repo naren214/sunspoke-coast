@@ -23,6 +23,8 @@ Use `node scripts/serve.mjs --no-open` to start the server without opening a bro
 
 ## Controls
 
+**Ramp Time:** drive north from the starting point along the beachfront, then turn toward the beach at the central cross street under the huge gold-and-teal welcome arch. Follow the return lane to the southern run-up, line up with the arrows, and hold W toward the northbound takeoff. Aim for **70+ km/h** at the lip. Clear the 26-metre recessed water channel, land on the far ramp, then use Shift to brake. R recovers a missed jump to the last clear road position. The walled compound has a return lane for repeated jumps; every ordinary city road remains open.
+
 | Input | Action |
 | --- | --- |
 | W / Up arrow | Accelerate |
