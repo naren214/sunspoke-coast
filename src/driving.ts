@@ -33,12 +33,14 @@ interface Box extends Collider {
 class Scenery {
   private cells = new Map<string, Box[]>();
   private nearby = new Set<Box>();
+  private world:World;
 
   constructor(world: World) {
+    this.world=world;
     for (const collider of world.colliders) {
       const cosine = Math.cos(collider.rotation ?? 0);
       const sine = Math.sin(collider.rotation ?? 0);
-      const bottom = world.groundHeight(collider.x, collider.z);
+      const bottom = collider.baseY ?? world.groundHeight(collider.x, collider.z);
       const box = { ...collider, cosine, sine, bottom, top: bottom + collider.height };
       const rx = Math.abs(cosine) * box.halfX + Math.abs(sine) * box.halfZ;
       const rz = Math.abs(sine) * box.halfX + Math.abs(cosine) * box.halfZ;
@@ -60,6 +62,16 @@ class Scenery {
         const cell = this.cells.get(i + ',' + j);
         if (cell) for (const box of cell) this.nearby.add(box);
       }
+    }
+    // Doors move independently of the immutable scenery grid. Query their live
+    // volumes for both swept car collisions and camera clearance.
+    for(const collider of this.world.dynamicColliders??[]){
+      const cosine=Math.cos(collider.rotation??0),sine=Math.sin(collider.rotation??0);
+      const rx=Math.abs(cosine)*collider.halfX+Math.abs(sine)*collider.halfZ;
+      const rz=Math.abs(sine)*collider.halfX+Math.abs(cosine)*collider.halfZ;
+      if(collider.x+rx<x0||collider.x-rx>x1||collider.z+rz<z0||collider.z-rz>z1)continue;
+      const bottom=collider.baseY??this.world.groundHeight(collider.x,collider.z);
+      this.nearby.add({...collider,cosine,sine,bottom,top:bottom+collider.height});
     }
     return this.nearby;
   }
@@ -222,6 +234,7 @@ export class Driving {
 
   private advance(input: DriveInput) {
     const state = this.state, pos = state.position;
+    this.world.stepEnvironment?.(STEP,pos);
     if(state.airborne){this.fly(input);return;}
     const oldX=pos.x,oldY=pos.y,oldZ=pos.z;
     const speed = state.speed, absSpeed = Math.abs(speed);
@@ -368,6 +381,7 @@ export class Driving {
     const clearance = 4.7;
     const neighbors = this.index.query(pos.x - clearance, pos.z - clearance, pos.x + clearance, pos.z + clearance);
     for (const box of neighbors) {
+      if(pos.y>box.top+.03||pos.y+VEHICLE.height<box.bottom)continue;
       const x = pos.x - box.x, z = pos.z - box.z;
       const lx = Math.max(0, Math.abs(x * box.cosine - z * box.sine) - box.halfX);
       const lz = Math.max(0, Math.abs(x * box.sine + z * box.cosine) - box.halfZ);

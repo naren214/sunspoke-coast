@@ -21,7 +21,7 @@ function trial(world: World, x: number, z: number, heading: number) {
 
 // Steer with the same five boolean inputs as the keyboard. This is a QA-only
 // uninterrupted lap, in addition to independent probes of every lane segment.
-function driveClosedRoad(world: World, road: Road) {
+export function driveRoad(world: World, road: Road) {
   const points = road.points, start = points[0], next = points[1];
   const drive = new Driving(world);
   drive.state.position.copy(start);
@@ -51,7 +51,7 @@ function driveClosedRoad(world: World, road: Road) {
     passed: waypoint >= points.length,
     waypointsPassed: waypoint - 1, waypointsTotal: points.length - 1,
     seconds: round(steps / 60), drivenMeters: round(travel),
-    finishGapMeters: round(drive.state.position.distanceTo(start)),
+    finishGapMeters: round(drive.state.position.distanceTo(points.at(-1)!)),
     end: [round(drive.state.position.x), round(drive.state.position.z)]
   };
 }
@@ -88,7 +88,7 @@ function driveInnerLoop(world: World, expansion = false) {
   straight(x1, z1 - radius); corner(x1 - radius, z1 - radius, 0);
   straight(x0 + radius, z1); corner(x0 + radius, z1 - radius, Math.PI / 2);
   straight(x0, midZ);
-  return driveClosedRoad(world, { points, width: spine.width });
+  return driveRoad(world, { points, width: spine.width });
 }
 
 export function validateRoads(world: World) {
@@ -140,7 +140,7 @@ export function validateRoads(world: World) {
     }
     const first = road.points[0], last = road.points.at(-1);
     const loop = first && last && road.points.length > 2 && first.distanceTo(last) < 0.1;
-    const lap = loop ? driveClosedRoad(world, road) : undefined;
+    const lap = loop ? driveRoad(world, road) : undefined;
     total += tests;
     failed += blocked;
     return { road: roadIndex + 1, lengthM: round(length), samples: tests, failures: blocked,
@@ -156,7 +156,7 @@ export function validateRoads(world: World) {
   if(districtLap && original && extension){
     const first=extension.points[0],last=extension.points.at(-1)!;
     const start=original.points.findIndex(p=>p.distanceTo(first)<0.1),end=original.points.findIndex(p=>p.distanceTo(last)<0.1);
-    if(start>=0&&end>start)expandedLap=driveClosedRoad(world,{width:18,points:[...original.points.slice(0,start+1),...extension.points.slice(1),...original.points.slice(end+1)]});
+    if(start>=0&&end>start)expandedLap=driveRoad(world,{width:18,points:[...original.points.slice(0,start+1),...extension.points.slice(1),...original.points.slice(end+1)]});
   }
   return { passed: roadCount > 0 && total > 0 && !failed && Boolean(innerLap?.passed) && (!districtLap || districtLap.passed) && (!districtLap || Boolean(expandedLap?.passed)) && routes.every(r => r.samples && (!r.continuousLap || r.continuousLap.passed)),
     roadCount, probes: total, failedProbes: failed, probeSeconds: frames / 60,

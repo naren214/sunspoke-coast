@@ -42,6 +42,7 @@ async function boot() {
   const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, .2, 1800);
   await Promise.all([document.fonts.load('190px CoastSignature'),document.fonts.load('900 245px Barlow')]);
   const world = createWorld();
+  await world.loadAssets?.();
   const atlas=new CountyAtlas(world);
   let atlasOpen=false,resumeAfterAtlas=false;
   const car = createCar();
@@ -256,7 +257,7 @@ async function boot() {
     function stateTeleport(x:number,z:number,heading:number) { drive.reset();drive.state.position.set(x,(world.surfaceHeight??world.groundHeight)(x,z),z);drive.state.heading=heading; }
     if (params.get('quality') && params.get('quality')! in presets) applyQuality(params.get('quality') as Quality);
     const view = params.get('view');
-    if (view) { const poses:Record<string,number[]>={stunt:[5,0,Math.PI/2],runup:[-101,82,0],jump:[-101,82,0],downtown:[720,220,0],canals:[1030,200,0],airport:[180,390,0],port:[900,600,0],island:[200,905,Math.PI/2],hills:[620,-960,Math.PI],lake:[1190,-640,Math.PI],beach:[-65,110,0],crowd:[-99,100,Math.PI/2],quarter:[263,160,Math.PI/2],highway:[-65,110,0],casino:[-65,145,0],headland:[-65,-252,Math.PI],inland:[180,-85,Math.PI]};const p=poses[view]||poses.beach;stateTeleport(p[0],p[1],p[2]);if(view==='highway'){for(let i=0;i<480;i++)drive.step(1/60,{forward:true,backward:false,left:false,right:false,handbrake:false});drive.state.position.set(p[0],world.groundHeight(p[0],p[1]),p[1]);}if(view==='jump'&&params.has('capture')){for(let i=0;i<600;i++){drive.step(1/60,{forward:true,backward:false,left:false,right:false,handbrake:false});if(drive.state.airborne&&drive.state.position.z<0)break;}captureJump=true;}started=true;$('opening').hidden=true;setPaused(false); }
+    if (view) { const poses:Record<string,number[]>={gallery:[930,-865,0],interior:[930,-950,0],verde:[370,-800,0],bridge:[675,-752,-Math.PI/2],skyline:[1120,-780,Math.PI],stunt:[5,0,Math.PI/2],runup:[-101,82,0],jump:[-101,82,0],downtown:[720,220,0],canals:[1030,200,0],airport:[180,390,0],port:[900,600,0],island:[200,905,Math.PI/2],hills:[620,-960,Math.PI],lake:[1190,-640,Math.PI],beach:[-65,110,0],crowd:[-99,100,Math.PI/2],quarter:[263,160,Math.PI/2],highway:[-65,110,0],casino:[-65,145,0],headland:[-65,-252,Math.PI],inland:[180,-85,Math.PI]};const p=poses[view]||poses.beach;stateTeleport(p[0],p[1],p[2]);if(view==='highway'){for(let i=0;i<480;i++)drive.step(1/60,{forward:true,backward:false,left:false,right:false,handbrake:false});drive.state.position.set(p[0],world.groundHeight(p[0],p[1]),p[1]);}if(view==='jump'&&params.has('capture')){for(let i=0;i<600;i++){drive.step(1/60,{forward:true,backward:false,left:false,right:false,handbrake:false});if(drive.state.airborne&&drive.state.position.z<0)break;}captureJump=true;}started=true;$('opening').hidden=true;setPaused(false); }
     if(params.has('map'))toggleAtlas();
     const time = params.get('time');if (time==='night'||time==='twilight')applyLighting(time);
     window.setInterval(()=>{report.textContent=JSON.stringify({...((window as any).__SUNSPOKE__.stats()),visibility:document.visibilityState,benchmark,routeChecks});},500);

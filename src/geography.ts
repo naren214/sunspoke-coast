@@ -8,6 +8,26 @@ export const WATERS: {name:string;x:number;z:number;rx:number;rz:number;shape:st
   {name:'Canal',x:1080,z:155,rx:18,rz:295,shape:'box'},
   {name:'Port Basin',x:1165,z:700,rx:80,rz:190,shape:'box'},
 ];
+// A mountain-fed river empties through Silver Lake into the eastern sea.
+export const RIVER = {name:'Verde River',width:56,points:[
+  [730,-1120,27],[730,-1010,24],[715,-890,20],[715,-790,16],
+  [750,-700,11],[825,-640,8],[965,-640,8],[1110,-640,8],
+  [1205,-600,5],[1280,-570,2],[1360,-550,-.535]
+]};
+export function riverAt(x:number,z:number){
+  let distance=Infinity,height=0;
+  for(let i=1;i<RIVER.points.length;i++){
+    const a=RIVER.points[i-1],b=RIVER.points[i],dx=b[0]-a[0],dz=b[1]-a[1];
+    const t=MathUtils.clamp(((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz),0,1);
+    const d=Math.hypot(x-a[0]-t*dx,z-a[1]-t*dz);
+    if(d<distance){distance=d;height=MathUtils.lerp(a[2],b[2],t);}
+  }
+  return {distance,height};
+}
+export const GALLERY = {x:930,z:-980,width:210,depth:140,floor:24,clearance:24};
+export const insideGallery=(x:number,z:number,margin=0)=>Math.abs(x-GALLERY.x)<GALLERY.width/2+margin&&Math.abs(z-GALLERY.z)<GALLERY.depth/2+margin;
+export const lakeContains=(x:number,z:number)=>inPolygon(x,z,lakeOutline);
+export const waterLevel=(x:number,z:number)=>lakeContains(x,z)?8:riverAt(x,z).distance<RIVER.width/2?riverAt(x,z).height:-.535;
 export const DISTRICTS=[
   {name:'SUNSPOKE BEACH',x:15,z:80,color:'#debe8b'},
   {name:'PALM QUARTER',x:255,z:-60,color:'#8fac9d'},
@@ -29,6 +49,7 @@ export function inPolygon(x:number,z:number,p:number[][]){
 }
 export function isLand(x:number,z:number){
   if(!inPolygon(x,z,MAINLAND)&&!inPolygon(x,z,ISLAND))return false;
+  if(riverAt(x,z).distance<RIVER.width/2)return false;
   return !WATERS.some(w=>w.polygon?inPolygon(x,z,w.polygon):w.shape==='ellipse'?((x-w.x)/w.rx)**2+((z-w.z)/w.rz)**2<1:Math.abs(x-w.x)<w.rx&&Math.abs(z-w.z)<w.rz);
 }
 export function landHeight(x:number,z:number){
@@ -36,6 +57,18 @@ export function landHeight(x:number,z:number){
   const coast=MathUtils.lerp(-0.55,6*smooth((-z-200)/78),smooth((x+122)/36));
   const north=smooth((-z-360)/350);
   const hill=76*Math.exp(-(((x-520)/280)**2)-((z+865)/260)**2)+93*Math.exp(-(((x-1160)/245)**2)-((z+1040)/180)**2);
-  return coast+north*hill+3*smooth((x-390)/180)*(1-north);
+  let y=coast+north*hill+3*smooth((x-390)/180)*(1-north);
+  // Terraced town and lakefront building pads blend back into the hills.
+  const pad=(cx:number,cz:number,hx:number,hz:number,level:number,feather:number)=>{
+    const d=Math.max(Math.abs(x-cx)-hx,Math.abs(z-cz)-hz);
+    y=MathUtils.lerp(y,level,1-MathUtils.smoothstep(d,0,feather));
+  };
+  pad(390,-815,200,170,28,80);
+  const lakeDistance=Math.hypot((x-965)/340,(z+640)/260);
+  y=MathUtils.lerp(y,10,1-MathUtils.smoothstep(lakeDistance,.88,1.18));
+  pad(GALLERY.x,GALLERY.z,116,84,GALLERY.floor,40);
+  const river=riverAt(x,z),bank=1-MathUtils.smoothstep(river.distance,RIVER.width/2+18,RIVER.width/2+65);
+  y=MathUtils.lerp(y,Math.max(y,river.height+6),bank);
+  return y;
 }
 export const naturalHeight=(x:number,z:number)=>isLand(x,z)?landHeight(x,z):-3.5;

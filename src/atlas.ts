@@ -1,6 +1,6 @@
 import type { DriveState, World } from './types';
 import { CITY } from './city';
-import { DISTRICTS, MAINLAND, ISLAND, WATERS } from './geography';
+import { DISTRICTS, MAINLAND, ISLAND, WATERS, RIVER, GALLERY } from './geography';
 
 export class CountyAtlas {
   private root=document.getElementById('atlas')!;
@@ -39,6 +39,7 @@ export class CountyAtlas {
     for(const district of DISTRICTS){const p=point(district.x,district.z);c.fillStyle=district.color+'75';c.beginPath();c.ellipse(p[0],p[1],160*scale,200*scale,0,0,Math.PI*2);c.fill();}
     c.restore();
     for(const water of WATERS){const p=point(water.x,water.z);c.fillStyle='#315a6a';c.beginPath();if(water.polygon)polygon(water.polygon);else if(water.shape==='ellipse')c.ellipse(p[0],p[1],water.rx*scale,water.rz*scale,0,0,Math.PI*2);else c.rect(p[0]-water.rx*scale,p[1]-water.rz*scale,water.rx*2*scale,water.rz*2*scale);c.fill();}
+    c.beginPath();RIVER.points.forEach(([x,z],i)=>{const p=point(x,z);i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]);});c.strokeStyle='#315a6a';c.lineWidth=RIVER.width*scale;c.lineCap=c.lineJoin='round';c.stroke();
     for(const road of this.world.roads){
       c.beginPath();road.points.forEach((p,i)=>{const a=point(p.x,p.z);i?c.lineTo(a[0],a[1]):c.moveTo(a[0],a[1]);});
       c.lineCap=c.lineJoin='round';c.strokeStyle='#3a484b';c.lineWidth=Math.max(3,road.width*scale+2);c.stroke();
@@ -46,6 +47,8 @@ export class CountyAtlas {
     }
     c.textAlign='center';c.textBaseline='middle';
     for(const d of DISTRICTS){const p=point(d.x,d.z);c.font='600 10px Barlow,Arial';const tw=c.measureText(d.name).width;c.fillStyle='#20333bd9';c.fillRect(p[0]-tw/2-5,p[1]-8,tw+10,16);c.fillStyle='#f3efda';c.fillText(d.name,p[0],p[1]);}
+    const hall=point(GALLERY.x,GALLERY.z);c.fillStyle='#f8dc9a';c.fillRect(hall[0]-GALLERY.width*scale/2,hall[1]-GALLERY.depth*scale/2,GALLERY.width*scale,GALLERY.depth*scale);c.fillStyle='#213842';c.font='600 10px Barlow,Arial';c.fillText('GRAND GALLERY',hall[0],hall[1]);
+    const bridge=point(725,-737);c.fillStyle='#f4e5b7';c.font='10px Barlow,Arial';c.fillText('VERDE BRIDGE',bridge[0],bridge[1]-12);
     const stunt=point(-101,0);c.fillStyle='#f6b861';c.beginPath();c.arc(stunt[0],stunt[1],4,0,Math.PI*2);c.fill();
     c.font='10px Barlow,Arial';c.textAlign='right';c.fillText('RAMP TIME',stunt[0]-9,stunt[1]);
     const p=point(this.pose.x,this.pose.z);c.save();c.translate(p[0],p[1]);c.rotate(-this.pose.heading);c.beginPath();c.moveTo(0,-10);c.lineTo(6,7);c.lineTo(0,4);c.lineTo(-6,7);c.closePath();c.fillStyle='#ffcf71';c.shadowColor='#10222c';c.shadowBlur=7;c.fill();c.restore();

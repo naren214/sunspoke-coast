@@ -1,7 +1,9 @@
 import * as T from 'three';
 import type { Collider, Lighting, Road, World } from './types';
 import { CITY } from './city';
-import { isLand, landHeight, naturalHeight, MAINLAND, ISLAND, WATERS, DISTRICTS } from './geography';
+import { isLand, landHeight, MAINLAND, ISLAND, WATERS, DISTRICTS, RIVER, riverAt, waterLevel, insideGallery, GALLERY } from './geography';
+import { createGrandGallery } from './gallery';
+import { developHighlands, reservedNorth } from './highlands';
 import { createRoadIndex } from './road-grading';
 import { COUNTY_ROADS } from './county-roads';
 import { createBeachgoers } from './beachgoers';
@@ -19,7 +21,7 @@ export function createWorld(): World {
   const roads: Road[] = [];
   const colliders: Collider[] = [];
   let roadIndex:ReturnType<typeof createRoadIndex>|undefined;
-  const baseGroundHeight=(x:number,z:number)=>isLand(x,z)?(roadIndex?.grade(x,z)??landHeight(x,z)):-3.5;
+  const baseGroundHeight=(x:number,z:number)=>isLand(x,z)?(roadIndex?.grade(x,z)??landHeight(x,z)):waterLevel(x,z)-4;
   const groundHeight=(x:number,z:number)=>stuntGround(x,z,baseGroundHeight(x,z));
   const random = noiseGenerator(27061);
   const dayGlow: { material: T.MeshStandardMaterial; day: number; night: number }[] = [];
@@ -153,7 +155,7 @@ export function createWorld(): World {
     let length=0;
     for(let i=1;i<r.points.length;i++){
       const a=r.points[i-1],b=r.points[i],x=(a.x+b.x)/2,z=(a.z+b.z)/2,dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz),yaw=Math.atan2(dx,dz);
-      length+=l;if(nearJoin(x,z))continue;
+      length+=l;if(nearJoin(x,z)||insideGallery(x,z))continue;
       const pitch=-Math.atan2(b.y-a.y,l);
       for(const side of [-1,1]) {
         const ox=x+side*dz/l*(r.width/2-.37),oz=z-side*dx/l*(r.width/2-.37);
@@ -227,7 +229,7 @@ export function createWorld(): World {
     const m=new T.MeshStandardMaterial({map:tex,emissive:'#ffffff',emissiveMap:tex,emissiveIntensity:.26,roughness:.8});
     dayGlow.push({material:m,day:.26,night:1.2});geom(canvasPlane,m,x,y,z,w,h,1,yaw,0,0,false);
   }
-  const lightSources:{position:T.Vector3,color:T.Color,intensity:number}[]=[];
+  const lightSources:{position:T.Vector3,color:T.Color,intensity:number,range?:number}[]=[];
   function lamp(x:number,z:number,rotation:number){
     const y=groundHeight(x,z);post(surface.black,x,z,.115,5.8);
     const dx=Math.sin(rotation),dz=Math.cos(rotation);
@@ -467,12 +469,15 @@ export function createWorld(): World {
   lettering('PALM QUARTER','GARDENS · MARKET · RESIDENCES','#ffe3a3','#37534c',263,9,170,21,3.7,0);
   const beachgoers=createBeachgoers(groundHeight);group.add(beachgoers.group);
   const stunt=createStuntArena();group.add(stunt.group);colliders.push(...stunt.colliders);lightSources.push(...stunt.lights);
+  const gallery=createGrandGallery();group.add(gallery.group);colliders.push(...gallery.colliders);lightSources.push(...gallery.lights);
   // County scenery uses the same spatially culled batches as the original city.
   function lotClear(x:number,z:number,w:number,d:number){
-    if(!isLand(x,z))return false;
+    if(!isLand(x,z)||insideGallery(x,z,25))return false;
     const radius=Math.hypot(w,d)/2,p=roadIndex!.nearest(x,z);
     return p.distance>p.width/2+radius+2&&[[-1,-1],[1,-1],[1,1],[-1,1]].every(([a,b])=>isLand(x+a*w/2,z+b*d/2));
   }
+  const roadClear=(x:number,z:number,margin:number)=>{const p=roadIndex!.nearest(x,z);return p.distance>p.width/2+margin;};
+  const highlands=developHighlands({group,roads,surface,mat,glow,cube,geom,collider,groundHeight,lotClear,roadClear,palm,lamp,tower,podium,fountain,bench,lettering});
   const cityConcrete=mat('#bac2c2'),citySilver=mat('#a6b3b9'),cityDark=mat('#576875');
   for(const [column,x] of [615,800].entries())for(const [row,z] of [-180,-10,170].entries()){
     if(!lotClear(x,z,50,70))continue;
@@ -570,7 +575,7 @@ export function createWorld(): World {
   const pine=mat('#45694d');
   for(let i=0;i<290;i++){
     const x=80+random()*1200,z=-1180+random()*760,p=roadIndex!.nearest(x,z);
-    if(!isLand(x,z)||p.distance<p.width/2+10)continue;
+    if(!isLand(x,z)||reservedNorth(x,z)||p.distance<p.width/2+10)continue;
     const y=groundHeight(x,z),h=7+random()*8;
     geom(tube,surface.wood,x,y+h*.35,z,.25,h*.7,.25);
     for(let k=0;k<3;k++)geom(shade,pine,x,y+h*(.48+k*.18),z,h*(.28-k*.06),h*.5,h*(.28-k*.06),random()*tau);
@@ -578,15 +583,15 @@ export function createWorld(): World {
   }
   for(let i=0;i<120;i++){
     const x=250+random()*1000,z=-1150+random()*650;
-    if(isLand(x,z)&&roadIndex!.nearest(x,z).distance>24)stone(x,z,1.5+random()*3);
+    if(isLand(x,z)&&!reservedNorth(x,z)&&roadIndex!.nearest(x,z).distance>24)stone(x,z,1.5+random()*3);
   }
   const hillSignCanvas=document.createElement('canvas');hillSignCanvas.width=2048;hillSignCanvas.height=256;
   const hillCtx=hillSignCanvas.getContext('2d')!;hillCtx.font='900 210px Barlow, Arial';hillCtx.fillStyle='#fff4de';hillCtx.textAlign='center';hillCtx.fillText('SIERRA',1024,220);
   const hillTexture=new T.CanvasTexture(hillSignCanvas);hillTexture.colorSpace=T.SRGBColorSpace;
   const hillLetters=new T.Mesh(new T.PlaneGeometry(90,13),new T.MeshStandardMaterial({map:hillTexture,transparent:true,alphaTest:.15,side:T.DoubleSide,roughness:.8}));
   hillLetters.position.set(470,groundHeight(470,-680)+12,-680);group.add(hillLetters);
-  podium(1240,-600,38,24,5,surface.cream,surface.amber);
-  lettering('SIERRA MOTOR INN','FUEL · FOOD · LAKE ROAD','#f5dfaf','#5c5346',1220,groundHeight(1220,-600)+7,-600,20,3,-Math.PI/2);
+  podium(1285,-480,38,24,5,surface.cream,surface.amber);
+  lettering('SIERRA MOTOR INN','FUEL · FOOD · LAKE ROAD','#f5dfaf','#5c5346',1265,groundHeight(1265,-480)+7,-480,20,3,-Math.PI/2);
   // Freeway signs and guardrails on the raised island causeway.
   for(const [x,z,text] of [[490,-120,'DOWNTOWN'],[890,-420,'SIERRA / LAKE'],[810,650,'AIRFIELD / PORT']] as [number,number,string][]){
     const freeway=roads[9],i=freeway.points.reduce((best,p,index)=>p.distanceToSquared(new T.Vector3(x,p.y,z))<freeway.points[best].distanceToSquared(new T.Vector3(x,p.y,z))?index:best,0);
@@ -611,7 +616,7 @@ export function createWorld(): World {
     const a=polygon[i],b=polygon[(i+1)%polygon.length],steps=Math.ceil(Math.hypot(a[0]-b[0],a[1]-b[1])/9);
     for(let j=0;j<steps;j++){
       const x=T.MathUtils.lerp(a[0],b[0],j/steps),z=T.MathUtils.lerp(a[1],b[1],j/steps),p=roadIndex!.nearest(x,z);
-      if(insideStunt(x,z,4)||p.distance<p.width/2+10)continue;
+      if(insideStunt(x,z,4)||riverAt(x,z).distance<RIVER.width/2+6||p.distance<p.width/2+10)continue;
       const y=landHeight(x,z);geom(boulder,surface.rock,x,y+.3,z,2.2,1.1,2,random()*tau);
       collider(x,z,1.6,1.6,y-groundHeight(x,z)+1.7);
     }
@@ -712,21 +717,22 @@ export function createWorld(): World {
   let last:Lighting|undefined, nextLightUpdate=0;
   function update(time:number,lighting:Lighting,carPosition:T.Vector3){
     stunt.update(lighting);
+    gallery.lighting(lighting);highlands.update(time,lighting);
     beachgoers.update(time);
     oceanUniforms.clock.value=time;
     for(const [i,r] of ripples.entries()){
       const phase=(time*.36+i*.27)%1;
       r.scale.setScalar(r.userData.r*(.29+phase*.57));r.position.y=groundHeight(r.position.x,r.position.z)+.62+Math.sin(phase*Math.PI)*.025;
     }
-    if(last!==lighting||(lighting!=='golden'&&time>=nextLightUpdate)){
+    if(last!==lighting||time>=nextLightUpdate){
       nextLightUpdate=time+.5;
-      if(lighting==='golden')localLights.forEach(light=>{light.visible=false;});
+      if(lighting==='golden'&&!insideGallery(carPosition.x,carPosition.z,10))localLights.forEach(light=>{light.visible=false;});
       else{
         lightSources.sort((a,b)=>a.position.distanceToSquared(carPosition)-b.position.distanceToSquared(carPosition));
         localLights.forEach((light,i)=>{
           const site=lightSources[i];
           light.position.copy(site.position);light.color.copy(site.color);
-          light.intensity=site.intensity*(lighting==='night'?1:.63);light.visible=true;
+          light.distance=site.range??26;light.intensity=site.intensity*(lighting==='night'?1:.75);light.visible=true;
         });
       }
     }
@@ -739,7 +745,8 @@ export function createWorld(): World {
   }
   group.userData.cityArea={original:CITY.originalArea,current:CITY.area,ratio:CITY.area/CITY.originalArea};
   group.userData.districts=DISTRICTS;
-  return {group,roads,colliders,groundHeight,surfaceHeight:(x,z)=>{const p=roadIndex!.nearest(x,z);return stuntSurface(x,z,p.distance<=p.width/2+0.3?p.height:groundHeight(x,z));},update,bounds:CITY};
+  group.userData.lightSources=lightSources.length;
+  return {group,roads,colliders,dynamicColliders:gallery.dynamicColliders,stepEnvironment:gallery.step,loadAssets:gallery.loadAssets,groundHeight,surfaceHeight:(x,z)=>{if(insideGallery(x,z))return GALLERY.floor+.08;const p=roadIndex!.nearest(x,z);return stuntSurface(x,z,p.distance<=p.width/2+0.3?p.height:groundHeight(x,z));},update,bounds:CITY};
 }
 
 

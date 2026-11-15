@@ -2,11 +2,19 @@
 
 A desktop browser driving game set in a fictional seaside entertainment district. Drive one midnight-teal Porsche Cayenne SUV through the beach boulevard, hotel streets, and coastal overlook. Every road is available immediately.
 
-Sunspoke County now has **nine districts, 43 connected roads and about 22.4 km of authored road centerlines** across a **3.38 km² bounded play area**. Crown Downtown adds a dense skyline, Canal Gardens has villas and neighbourhood bridges, Southport has working-port scenery, Coast Airfield has a drivable runway and perimeter circuit, and Isla Luz is reached by an elevated causeway. Sierra Verde and Silver Lake add winding northern country roads. The original beachfront, Palm Quarter, Ramp Time compound, Cayenne, beach crowd and smooth driving camera remain part of the county.
+Sunspoke County now has **nine districts, 53 connected roads and about 25.8 km of authored road centerlines** across a **3.38 km² bounded play area**. Crown Downtown adds a dense skyline, Canal Gardens has villas and neighbourhood bridges, Southport has working-port scenery, Coast Airfield has a drivable runway and perimeter circuit, and Isla Luz is reached by an elevated causeway. Sierra Verde and Silver Lake add winding northern country roads. The original beachfront, Palm Quarter, Ramp Time compound, Cayenne, beach crowd and smooth driving camera remain part of the county.
 
 Press **M** to open the county atlas. It draws the actual road geometry, coast, districts and car position, with scroll zoom and drag panning. M or Esc returns to the previous driving/pause state. The map screen pauses driving and suspends the hidden 3D rendering.
 
 This is original procedural geography inspired by the city, coast, islands and countryside mix in [Rockstar's official location overview](https://www.rockstargames.com/VI/only-in-leonida). All buildings and scenery are bundled/generated locally.
+
+## Sierra Verde and Silver Lake
+
+Sierra Verde is now a connected hill town with 16 homes, 10 shops/civic venues, a market street, a fountain square, a fuel stop and scenic overlooks. Silver Lake has 13 modern high-rise and sculptural landmarks, lit promenades, palms and a fountain installation. A 56-metre-wide, 1.07 km mountain-fed river flows through the lake toward the eastern sea. The cable-stayed Verde Skyline Bridge links the town and lake district. Roadside lighting now reaches all districts; more than 700 new fixtures join the nearby-light pool without adding hundreds of active point lights.
+
+**NAREN Grand Gallery** stands north of Silver Lake. Its 210 x 140 metre hall has a 24-metre clear interior and a stepped high-rise crown. Drive north on the lake circuit to the straight approach beneath the gallery name. Both entrances have automatic sliding doors: approach normally, and they open for the car. They remain open while the doorway is occupied and close after you leave. Drive through either end or explore the broad interior aisles with the normal controls. No character-exit mode or extra interaction key is required. The atlas marks the gallery and bridge.
+
+Inside are eight locally bundled internet images: four memes and four real photographs. Each display has a title and credit; **Gallery photos & image credits** in the pause menu opens the complete [source and license page](public/gallery/index.html). Full provenance is in `public/gallery/credits.json`. These pictures require no live image service or internet connection when playing the downloaded build.
 
 ## Play the included build
 
@@ -68,9 +76,11 @@ node scripts/serve.mjs
 
 ## Assets and audio
 
-The Cayenne model, buildings, landscaping, beach, ocean, and material textures are generated procedurally in the project. The car is an original approximation of the Cayenne with an enclosed roof, four doors, four-point headlights, and a rear light bar. Engine, tire, surf, and city ambience use Web Audio synthesis. These systems require no secret keys, paid services, or runtime asset downloads. Audio begins after clicking **Drive**, following browser audio permissions.
+The Cayenne model, buildings, landscaping, beach, ocean, and material textures are generated procedurally in the project. The car is an original approximation of the Cayenne with an enclosed roof, four doors, four-point headlights, and a rear light bar. Engine, tire, surf, and city ambience use Web Audio synthesis. These systems require no secret keys, paid services, or external runtime asset services. Audio begins after clicking **Drive**, following browser audio permissions.
 
 The SUV proportions follow Porsche's published Cayenne dimensions. [Porsche technical data](https://download.newsroom.porsche.com/dam/jcr%3Abb376133-788c-4e9c-8e92-9630383cc062/pag-cayenne-td-en.pdf.PDF)
+
+The gallery images retain their individual public-domain, CC0 or CC BY licenses. Credits and original source links are included in `public/gallery/` and `dist/gallery/`.
 
 The bundled Barlow, Baskervville, and Explora fonts use the SIL Open Font License. Their licenses accompany the fonts in `public/fonts/` and `dist/fonts/`. Explora supplies the gold NAREN calligraphy on the rear hatch. Three.js uses the MIT license, included in `public/Three-LICENSE.txt` and `dist/Three-LICENSE.txt`.
 
@@ -83,6 +93,7 @@ node checks/driving-checks.ts
 node checks/car-checks.ts
 node checks/camera-stability.ts
 node checks/world-checks.mjs
+node checks/northern-checks.mjs
 ```
 
 For browser diagnostics, append `?qa=1&routes=1` to the local URL. Route results are written to the hidden `qa-report` JSON element. Add `&view=beach&quality=low&benchmark=1` for a 60-frame completed-render timing sample. Diagnostic views run independently of browser focus so automated screenshots can be captured. The normal game pauses when focus is lost.
