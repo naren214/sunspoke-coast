@@ -41,6 +41,7 @@ async function boot() {
   scene.fog = new THREE.FogExp2('#e9be94', .00145);
   const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, .2, 1800);
   const world = createWorld();
+  await document.fonts.load('190px CoastSignature');
   const car = createCar();
   scene.add(world.group, car.group);
   const drive = new Driving(world);

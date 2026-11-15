@@ -62,7 +62,7 @@ The Cayenne model, buildings, landscaping, beach, ocean, and material textures a
 
 The SUV proportions follow Porsche's published Cayenne dimensions. [Porsche technical data](https://download.newsroom.porsche.com/dam/jcr%3Abb376133-788c-4e9c-8e92-9630383cc062/pag-cayenne-td-en.pdf.PDF)
 
-The bundled Barlow and Baskervville fonts use the SIL Open Font License. Their licenses accompany the fonts in `public/fonts/` and `dist/fonts/`. Three.js uses the MIT license, included in `public/Three-LICENSE.txt` and `dist/Three-LICENSE.txt`.
+The bundled Barlow, Baskervville, and Explora fonts use the SIL Open Font License. Their licenses accompany the fonts in `public/fonts/` and `dist/fonts/`. Explora supplies the gold NAREN calligraphy on the rear hatch. Three.js uses the MIT license, included in `public/Three-LICENSE.txt` and `dist/Three-LICENSE.txt`.
 
 ## Verification
 

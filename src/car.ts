@@ -483,11 +483,47 @@ export function createCar(): Car {
       metalness: 0.55,
       depthWrite: false,
     });
-    mesh(new THREE.PlaneGeometry(width, height), material, 0, y, z).castShadow =
-      false;
+    const label = mesh(new THREE.PlaneGeometry(width, height), material, 0, y, z);
+    label.castShadow = false;
+    return label;
   }
   badge("P O R S C H E", 1.11, 0.105, 1.025, 2.419);
-  badge("Cayenne", 0.43, 0.09, 0.885, 2.423, true);
+  badge("Cayenne", 0.43, 0.09, 0.855, 2.423, true).position.x = 0.64;
+  // Gold calligraphy sits directly on the painted rear hatch.
+  const signatureCanvas = document.createElement("canvas");
+  signatureCanvas.width = 1024;
+  signatureCanvas.height = 256;
+  const signatureContext = signatureCanvas.getContext("2d")!;
+  signatureContext.font = '190px CoastSignature, cursive';
+  signatureContext.textAlign = "center";
+  signatureContext.textBaseline = "middle";
+  signatureContext.strokeStyle = "#deb56a";
+  signatureContext.lineWidth = 2;
+  signatureContext.strokeText("NAREN", 512, 138, 930);
+  signatureContext.fillStyle = "#f2cf8f";
+  signatureContext.fillText("NAREN", 512, 138, 930);
+  const signatureTexture = new THREE.CanvasTexture(signatureCanvas);
+  signatureTexture.colorSpace = THREE.SRGBColorSpace;
+  const signatureMaterial = new THREE.MeshStandardMaterial({
+    map: signatureTexture,
+    emissiveMap: signatureTexture,
+    emissive: "#b48a42",
+    emissiveIntensity: 0.2,
+    transparent: true,
+    alphaTest: 0.03,
+    metalness: 0.4,
+    roughness: 0.4,
+    depthWrite: false,
+  });
+  const signature = mesh(
+    new THREE.PlaneGeometry(1.0, 0.23),
+    signatureMaterial,
+    -0.15,
+    0.865,
+    2.427,
+  );
+  signature.name = "NAREN rear calligraphy";
+  signature.castShadow = false;
   // Small enamel hood crest, built as original geometry.
   const crest = new THREE.Shape();
   crest.moveTo(-0.032, 0.042);

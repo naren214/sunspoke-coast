@@ -1,5 +1,9 @@
 # Sunspoke Coast verification
 
+## Rear signature — 15 November 2026
+
+Added gold NAREN calligraphy to the rear hatch with a locally bundled, OFL-licensed Explora font. The font loads before the car's canvas texture is created. Chrome inspection of the production build confirmed the lettering is legible from the close chase camera, with the Porsche badge above and Cayenne badge to the right. Driving physics are unchanged.
+
 ## High-speed arcade handling — 15 November 2026
 
 The previous model reduced both steering lock and turn-in response as speed increased. At an entry speed of 32 m/s, a half-second full-left coasting input produced only 5.23° of heading change and an average transient turn radius of 172 m. Its steering wheel angle reached only 1.46° in that time.
