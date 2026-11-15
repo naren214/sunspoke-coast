@@ -76,6 +76,13 @@ function sceneryFor(world: World) {
 }
 
 interface Contact { x: number; z: number; depth: number; }
+
+function copyState(target:DriveState,source:DriveState){
+  target.position.copy(source.position);
+  target.heading=source.heading;target.speed=source.speed;target.steering=source.steering;
+  target.throttle=source.throttle;target.braking=source.braking;target.slip=source.slip;
+  target.airborne=source.airborne;target.pitch=source.pitch;target.verticalSpeed=source.verticalSpeed;
+}
 // 2D oriented rectangles have four candidate separating axes.
 function contact(x: number, z: number, c: number, s: number, box: Box, out: Contact) {
   const dx = x - box.x, dz = z - box.z;
@@ -126,6 +133,11 @@ function boxHit(origin: Vector3, ray: Vector3, box: Box, radius: number) {
 
 export class Driving {
   readonly state: DriveState;
+  private previousState: DriveState;
+  private visualState: DriveState;
+  private lastPosition = new Vector3();
+  private lastHeading = 0;
+  private lastPitch = 0;
   private world: World;
   private index: Scenery;
   private vx = 0;
@@ -146,6 +158,9 @@ export class Driving {
     this.world = world;
     const position = new Vector3(-65, world.groundHeight(-65, 210), 210);
     this.state = { position, heading: 0, speed: 0, steering: 0, throttle: 0, braking: false, slip: 0, airborne:false, pitch:0, verticalSpeed:0 };
+    this.previousState={...this.state,position:position.clone()};
+    this.visualState={...this.state,position:position.clone()};
+    this.lastPosition.copy(position);
     this.safePosition = position.clone();
     this.index = sceneryFor(world);
   }
@@ -163,14 +178,46 @@ export class Driving {
     this.gear = 1;
     this.collisionGrace = 0;
     this.checkTime = 0;
+    this.snapPresentation();
   }
 
   step(dt: number, input: DriveInput) {
+    this.syncExternalPose();
     this.accumulated += clamp(dt, 0, 0.12);
     while (this.accumulated + 1e-9 >= STEP) {
+      copyState(this.previousState,this.state);
       this.advance(input);
       this.accumulated -= STEP;
     }
+    this.lastPosition.copy(this.state.position);
+    this.lastHeading=this.state.heading;this.lastPitch=this.state.pitch;
+  }
+
+  // Render between the last two fixed steps. Both car and chase camera must use
+  // this same pose, otherwise a fast display sees alternating still/jump frames.
+  renderState(exact=false):DriveState{
+    this.syncExternalPose();
+    const out=this.visualState,current=this.state,previous=this.previousState;
+    copyState(out,current);
+    if(exact)return out;
+    const alpha=clamp(this.accumulated/STEP,0,1);
+    out.position.lerpVectors(previous.position,current.position,alpha);
+    const delta=Math.atan2(Math.sin(current.heading-previous.heading),Math.cos(current.heading-previous.heading));
+    out.heading=previous.heading+delta*alpha;
+    for(const key of ['speed','steering','throttle','slip','pitch','verticalSpeed'] as const)
+      out[key]=MathUtils.lerp(previous[key],current[key],alpha);
+    return out;
+  }
+
+  private syncExternalPose(){
+    if(!this.state.position.equals(this.lastPosition)||this.state.heading!==this.lastHeading||this.state.pitch!==this.lastPitch)
+      this.snapPresentation();
+  }
+
+  private snapPresentation(){
+    copyState(this.previousState,this.state);copyState(this.visualState,this.state);
+    this.lastPosition.copy(this.state.position);this.lastHeading=this.state.heading;this.lastPitch=this.state.pitch;
+    this.accumulated=0;
   }
 
   private advance(input: DriveInput) {

@@ -1,5 +1,13 @@
 # Sunspoke Coast verification
 
+## Driving camera shake — 15 November 2026
+
+Reproduced a presentation timing bug: the car and camera rendered the latest 60 Hz physics pose directly, repeating positions between fixed steps on faster displays. The camera's position was damped while its aim jumped to each new physics pose, visibly shaking static scenery. Physics state is now retained at both sides of the most recent fixed step and interpolated using the remaining simulation time. Car position, pitch, steering visuals, chase-camera aim, field of view and following lights use the same interpolated state. Steering, grip, acceleration, collision and jump simulation equations are unchanged. Reset and external pose changes clear interpolation history; heading interpolation follows the short arc across ±π.
+
+The camera regression test drives the real Driving/ChaseCamera pair on unobstructed flat ground. During the final second of a warmed-up straight-line run at 144 Hz, the previous rendering repeated **83 poses** and measured **0.38680557° RMS frame-to-frame camera angular second difference**. The corrected rendering repeats **zero poses** and measures **0.00001438°** on the same run. At 90, 120 and 165 Hz, corrected RMS values are 0.00001655°, 0.00002624° and 0.00001304°. All fixed-rate cases, a variable-frame-time sequence, paused rendering, reset, teleport and heading-wrap checks pass. These are deterministic camera-motion measurements, not browser FPS measurements.
+
+All 23 existing driving/camera checks, car geometry checks, jump tests, 3,477 road probes and four continuous road loops still pass. The jump's measured takeoff, peak height, airtime and landing values are unchanged. Chrome production-build checks confirmed high-speed steering, reset and pause/resume, with no captured console errors. Browser scheduling remains variable; the high-refresh stability result above comes from the deterministic regression. Run it with `node checks/camera-stability.ts`.
+
 ## Ramp Time stunt compound — 15 November 2026
 
 Added a walled stunt compound at the central city/beach junction, with an approximately 25-metre-tall gold-and-teal welcome arch named RAMP TIME. A 5-metre takeoff ramp launches over a 26-metre recessed water channel to a wide landing ramp and braking apron. An open city-side gateway and return lane allow entry and repeated attempts. Original beach props and visitors were moved out of the compound, retaining all 84 adult beachgoers on the surrounding public beaches. Compound lamps join the existing nearby-light pool, and arch illumination follows the lighting setting.

@@ -76,6 +76,7 @@ See `TESTING.md` for the measured render timings, driving checks, screenshot rev
 ```sh
 node checks/driving-checks.ts
 node checks/car-checks.ts
+node checks/camera-stability.ts
 node checks/world-checks.mjs
 ```
 

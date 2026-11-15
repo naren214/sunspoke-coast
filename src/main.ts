@@ -199,7 +199,7 @@ async function boot() {
       if(!captureJump)drive.step(dt,input);
       if (!dragging && elapsed-orbitLast>2.5) { orbit.yaw=THREE.MathUtils.damp(orbit.yaw,0,1.5,dt);orbit.pitch=THREE.MathUtils.damp(orbit.pitch,.34,1,dt); }
     }
-    const state = drive.state;
+    const state = drive.renderState(captureJump);
     car.group.position.copy(state.position);
     car.group.rotation.set(state.pitch,state.heading,0,'YXZ');
     car.update(paused?0:state.speed,state.steering,paused?0:state.throttle,state.braking,elapsed,lighting==='golden'?0:lighting==='night'?1:.5);
