@@ -12,8 +12,10 @@ try {
     import assert from 'node:assert/strict';
     import { InstancedMesh, Vector3, Raycaster } from 'three';
     import { createWorld } from './src/world.ts';
-    import { validateRoads } from './src/qa.ts';
+    import { validateRoads,validateConnectivity } from './src/qa.ts';
     import { Driving } from './src/driving.ts';
+    import { CITY } from './src/city.ts';
+    import { COUNTY_ROADS } from './src/county-roads.ts';
     globalThis.document = { createElement() { return { width:0, height:0, getContext() {
       return new Proxy({createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)})},
         {get:(target,key)=>key in target ? target[key] : ()=>{}});
@@ -26,8 +28,18 @@ try {
       const hits=ray.intersectObjects(terrain,false);
       assert.ok(hits.length&&hits.every(hit=>hit.point.y<=world.groundHeight(-65,z)+0.03), 'Compound terrain and sidewalk underlay must stay below the beachfront asphalt');
     }
-    assert.equal((b.maxX-b.minX)*(b.maxZ-b.minZ)/202120,1.5);
-    assert.equal(world.roads.length,9);
+    const asphalt=world.group.children.filter(o=>o.name==='Road asphalt');
+    let surfaceSamples=0;const covers=[];
+    for(const road of world.roads)for(let i=2;i<road.points.length-2;i+=20){
+      const p=road.points[i],ray=new Raycaster(new Vector3(p.x,p.y+60,p.z),new Vector3(0,-1,0));
+      const top=ray.intersectObjects(asphalt,false)[0],under=ray.intersectObjects(terrain,false)[0];
+      if(top&&under&&under.point.y>top.point.y+0.015)covers.push({road:road.name,x:p.x,z:p.z,overlap:under.point.y-top.point.y});
+      surfaceSamples++;
+    }
+    console.log(JSON.stringify({surfaceSamples,overlaps:covers.slice(0,10)}));
+    assert.equal(covers.length,0,'County terrain and sidewalks must not cover the drivable asphalt');
+    assert.equal((b.maxX-b.minX)*(b.maxZ-b.minZ),CITY.area);
+    assert.equal(world.roads.length,9+COUNTY_ROADS.length);
     assert.ok(world.roads.some(r=>r.points.some(p=>p.x>340)));
     const crowd=world.group.getObjectByName('Adult beachgoers');
     assert.equal(crowd.userData.adults,84);
@@ -76,13 +88,14 @@ try {
       world.update(time,'golden',new Vector3(-65,0,110));
       crowd.traverse(o=>{if(o instanceof InstancedMesh)assert.ok(Array.from(o.instanceMatrix.array).every(Number.isFinite));});
     }
-    console.log('PASS 1.5x city footprint, connected inland roads and animated adult beach crowd');
+    console.log('PASS county footprint, expanded road network and animated adult beach crowd');
+    const connectivity=validateConnectivity(world);console.log(JSON.stringify({connectivity}));assert.ok(connectivity.passed,'Every district must be reachable from the starting road network');
     const result=validateRoads(world);
-    console.log(JSON.stringify(result));
+    console.log(JSON.stringify({passed:result.passed,roadCount:result.roadCount,probes:result.probes,failedProbes:result.failedProbes,lengthM:result.routes.reduce((sum,r)=>sum+r.lengthM,0),laps:result.routes.filter(r=>r.continuousLap).map(r=>({road:r.road,...r.continuousLap})),innerLap:result.innerLap,districtLap:result.districtLap,expandedLap:result.expandedLap,failures:result.failures}));
     assert.ok(result.passed,'Every road probe and all four continuous laps must pass');
   `, loader: 'js', resolveDir: fileURLToPath(new URL('../', import.meta.url)) },
     bundle: true, platform: 'node', format: 'esm', outfile });
-  const result = spawnSync(process.execPath, [outfile], { encoding: 'utf8', timeout: 60000 });
+  const result = spawnSync(process.execPath, [outfile], { encoding: 'utf8', timeout: 120000 });
   process.stdout.write(result.stdout ?? ''); process.stderr.write(result.stderr ?? '');
   if (result.error) throw result.error;
   process.exitCode = result.status ?? 1;

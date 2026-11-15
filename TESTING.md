@@ -1,5 +1,15 @@
 # Sunspoke Coast verification
 
+## GTA-inspired county expansion - 15 November 2026
+
+Added an original coastal county with nine districts, 43 authored roads, 22,434 metres of road centerlines and a 3,380,960-square-metre bounded play area. The county includes a downtown grid, a freeway circuit, canals, a port, an airfield, an island causeway, hills and a lake. The original beachfront, Cayenne, Ramp Time and adult beach crowd remain. M opens a map drawn from the actual roads and geography; driving pauses and hidden 3D rendering stops while it is open. New installations default to Low quality; saved preferences are retained.
+
+Deterministic world checks confirm all 43 roads connect to the starting network, all 19,437 lane-clearance probes pass, and nine continuous test-driver loops complete. Another 338 downward-ray samples verify that terrain and sidewalk underlays do not cover road centerlines. The tests include the original four circuits plus the freeway, lake, airfield, island and port circuits. These checks simulate keyboard driving and inspect geometry; they are not manual browser laps. The ramp jump retains its measured 25.26 m/s launch, 7.16 m peak and 1.75-second airtime.
+
+All 23 driving/camera checks, the 60-165 Hz camera stability checks, car geometry checks and strict TypeScript/production build checks pass. The new map retains spatial instance batches for distant scenery. The supplied county overview is generated from actual world geometry, not a browser screenshot.
+
+Current-build browser visual inspection, M-key interaction, audio response, console capture and sustained FPS measurement could not be completed: browser control failed with the Windows error `GetCursorPos failed: Access is denied. (0x80070005)`. In particular, the expanded county is not verified at 30 FPS on Intel Iris Xe. Earlier browser screenshots and performance results below refer to their respective earlier builds and must not be treated as validation of this expansion.
+
 ## Driving camera shake — 15 November 2026
 
 Reproduced a presentation timing bug: the car and camera rendered the latest 60 Hz physics pose directly, repeating positions between fixed steps on faster displays. The camera's position was damped while its aim jumped to each new physics pose, visibly shaking static scenery. Physics state is now retained at both sides of the most recent fixed step and interpolated using the remaining simulation time. Car position, pitch, steering visuals, chase-camera aim, field of view and following lights use the same interpolated state. Steering, grip, acceleration, collision and jump simulation equations are unchanged. Reset and external pose changes clear interpolation history; heading interpolation follows the short arc across ±π.

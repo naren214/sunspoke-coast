@@ -9,7 +9,7 @@ const round = (v: number) => Math.round(v * 1000) / 1000;
 
 function trial(world: World, x: number, z: number, heading: number) {
   const drive = new Driving(world);
-  drive.state.position.set(x, world.groundHeight(x, z), z);
+  drive.state.position.set(x, (world.surfaceHeight??world.groundHeight)(x, z), z);
   drive.state.heading = heading;
   for (let i = 0; i < frames; i++) drive.step(1 / 60, forward);
   const dx = drive.state.position.x - x, dz = drive.state.position.z - z;
@@ -59,7 +59,7 @@ function driveClosedRoad(world: World, road: Road) {
 // Join the two farthest cross streets to the beachfront and the inland spine.
 // Rounded turns follow ordinary cornering lines through the real intersections.
 function driveInnerLoop(world: World, expansion = false) {
-  const open = world.roads.filter(r => r.points.length > 1 && r.points[0].distanceTo(r.points.at(-1)!) > 1);
+  const open = world.roads.slice(0,9).filter(r => r.points.length > 1 && r.points[0].distanceTo(r.points.at(-1)!) > 1);
   const cross = open.filter(r => Math.abs(r.points[0].z - r.points.at(-1)!.z) < 0.1);
   const spine = open.find(r => Math.abs(r.points[0].x - r.points.at(-1)!.x) < 0.1);
   if (cross.length < 2 || !spine) return null;
@@ -162,6 +162,24 @@ export function validateRoads(world: World) {
     roadCount, probes: total, failedProbes: failed, probeSeconds: frames / 60,
     nominalTravelM: round(free), worstTravelM: total ? Math.min(...routes.map(r => r.minTravelM ?? Infinity)) : null,
     routes, innerLap, districtLap, expandedLap, failures };
+}
+
+// Roads connect where their drivable ribbons overlap at the same elevation.
+export function validateConnectivity(world:World){
+  const cells=new Map<string,{road:number;point:Vector3;width:number}[]>(),cellSize=32;
+  const links=world.roads.map(()=>new Set<number>());
+  world.roads.forEach((road,id)=>road.points.forEach(point=>{
+    const x=Math.floor(point.x/cellSize),z=Math.floor(point.z/cellSize);
+    for(let a=x-1;a<=x+1;a++)for(let b=z-1;b<=z+1;b++)for(const other of cells.get(a+','+b)??[]){
+      if(id===other.road||links[id].has(other.road))continue;
+      if(Math.hypot(point.x-other.point.x,point.z-other.point.z)<(road.width+other.width)/2-3&&Math.abs(point.y-other.point.y)<0.7){links[id].add(other.road);links[other.road].add(id);}
+    }
+    const key=x+','+z,list=cells.get(key)??[];list.push({road:id,point,width:road.width});cells.set(key,list);
+  }));
+  const reached=new Set<number>(),queue=[0];
+  while(queue.length){const next=queue.pop()!;if(reached.has(next))continue;reached.add(next);queue.push(...links[next]);}
+  const disconnected=world.roads.flatMap((road,i)=>reached.has(i)?[]:[road.name??String(i+1)]);
+  return {passed:reached.size===world.roads.length,connectedRoads:reached.size,totalRoads:world.roads.length,disconnected};
 }
 
 

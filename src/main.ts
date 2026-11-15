@@ -6,6 +6,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { createWorld } from './world';
+import { CountyAtlas } from './atlas';
 import { createCar } from './car';
 import { Driving, ChaseCamera } from './driving';
 import { GameAudio } from './audio';
@@ -18,7 +19,7 @@ const qaView = new URLSearchParams(location.search).has('qa') && new URLSearchPa
 let paused = true;
 let started = false;
 let lighting: Lighting = 'golden';
-let quality: Quality = 'medium';
+let quality: Quality = 'low';
 let volume = .45;
 let showControls = true;
 let lastFrame = performance.now();
@@ -41,6 +42,8 @@ async function boot() {
   const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, .2, 1800);
   await Promise.all([document.fonts.load('190px CoastSignature'),document.fonts.load('900 245px Barlow')]);
   const world = createWorld();
+  const atlas=new CountyAtlas(world);
+  let atlasOpen=false,resumeAfterAtlas=false;
   const car = createCar();
   scene.add(world.group, car.group);
   const drive = new Driving(world);
@@ -129,7 +132,7 @@ async function boot() {
   document.querySelectorAll('#quality button').forEach(b => b.classList.toggle('selected', (b as HTMLElement).dataset.value === quality));
   function setPaused(next: boolean) {
     paused = next; keys.clear(); dragging = false; lastFrame = performance.now();
-    $('pause').hidden = !next || !started;
+    $('pause').hidden = !next || !started || atlasOpen;
     $('hud').hidden = next || !started;
     $('hint').hidden = !showControls;
     audio.setPaused(next);
@@ -143,6 +146,12 @@ async function boot() {
     audio.setVolume(volume);
     setPaused(false);
   };
+  function toggleAtlas(){
+    if(!started)return;
+    if(atlasOpen){atlasOpen=false;atlas.close();setPaused(!resumeAfterAtlas);}
+    else{resumeAfterAtlas=!paused;atlasOpen=true;setPaused(true);atlas.open(drive.renderState(true));}
+  }
+  $('close-map').onclick=toggleAtlas;$('open-map').onclick=toggleAtlas;
   $('pause-button').onclick = () => setPaused(true);
   $('resume').onclick = () => setPaused(false);
   function reset() { drive.reset(); orbit.yaw = 0; orbit.pitch = .34; orbit.distance = 9.5; toast('Back on the coast road'); }
@@ -152,9 +161,12 @@ async function boot() {
   $('volume').oninput = e => { volume = Number((e.target as HTMLInputElement).value) / 100; audio.setVolume(volume); persist(); };
   document.querySelectorAll('#lighting button').forEach(button => button.addEventListener('click', () => { applyLighting((button as HTMLElement).dataset.value as Lighting); persist(); }));
   document.querySelectorAll('#quality button').forEach(button => button.addEventListener('click', () => { applyQuality((button as HTMLElement).dataset.value as Quality); document.querySelectorAll('#quality button').forEach(b => b.classList.toggle('selected', b === button)); persist(); }));
-  const drivingKeys = ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight','Space','ShiftLeft','ShiftRight','KeyR','Escape'];
+  const drivingKeys = ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight','Space','ShiftLeft','ShiftRight','KeyR','KeyM','Escape'];
   window.addEventListener('keydown', e => {
     if (!drivingKeys.includes(e.code)) return;
+    if(e.code==='KeyM'&&started&&!e.repeat){e.preventDefault();toggleAtlas();return;}
+    if(e.code==='Escape'&&atlasOpen&&!e.repeat){e.preventDefault();toggleAtlas();return;}
+    if(atlasOpen)return;
     if ((e.target as HTMLElement)?.matches('input,button') && e.code !== 'Escape' && paused) return;
     e.preventDefault();
     if (e.code === 'Escape' && started && !e.repeat) { setPaused(!paused); return; }
@@ -164,7 +176,7 @@ async function boot() {
     keys.add(e.code);
   });
   window.addEventListener('keyup', e => keys.delete(e.code));
-  window.addEventListener('blur', () => { if (started && !qaView) setPaused(true); });
+  window.addEventListener('blur', () => { if (started && !qaView) {if(atlasOpen)resumeAfterAtlas=false;setPaused(true);} });
   document.addEventListener('visibilitychange', () => { if (document.hidden && started && !qaView) setPaused(true); });
   const canvas = $('scene') as HTMLCanvasElement;
   canvas.tabIndex = 0;
@@ -193,6 +205,7 @@ async function boot() {
       frameTimes.push(rawDt*1000); if (frameTimes.length>1800) frameTimes.shift();
       fpsFrames++; if (now-fpsStart>1000) { measuredFps=fpsFrames*1000/(now-fpsStart);fpsStart=now;fpsFrames=0; }
     }
+    if(atlasOpen){canvas.dataset.ready='true';return;}
     if (!paused) {
       input.forward=keys.has('KeyW')||keys.has('ArrowUp'); input.backward=keys.has('KeyS')||keys.has('ArrowDown'); input.left=keys.has('KeyA')||keys.has('ArrowLeft'); input.right=keys.has('KeyD')||keys.has('ArrowRight'); input.handbrake=keys.has('Space');
       input.brake=keys.has('ShiftLeft')||keys.has('ShiftRight');
@@ -243,7 +256,8 @@ async function boot() {
     function stateTeleport(x:number,z:number,heading:number) { drive.reset();drive.state.position.set(x,(world.surfaceHeight??world.groundHeight)(x,z),z);drive.state.heading=heading; }
     if (params.get('quality') && params.get('quality')! in presets) applyQuality(params.get('quality') as Quality);
     const view = params.get('view');
-    if (view) { const poses:Record<string,number[]>={stunt:[5,0,Math.PI/2],runup:[-101,82,0],jump:[-101,82,0],beach:[-65,110,0],crowd:[-99,100,Math.PI/2],quarter:[263,160,Math.PI/2],highway:[-65,110,0],casino:[-65,145,0],headland:[-65,-252,Math.PI],inland:[180,-85,Math.PI]};const p=poses[view]||poses.beach;stateTeleport(p[0],p[1],p[2]);if(view==='highway'){for(let i=0;i<480;i++)drive.step(1/60,{forward:true,backward:false,left:false,right:false,handbrake:false});drive.state.position.set(p[0],world.groundHeight(p[0],p[1]),p[1]);}if(view==='jump'&&params.has('capture')){for(let i=0;i<600;i++){drive.step(1/60,{forward:true,backward:false,left:false,right:false,handbrake:false});if(drive.state.airborne&&drive.state.position.z<0)break;}captureJump=true;}started=true;$('opening').hidden=true;setPaused(false); }
+    if (view) { const poses:Record<string,number[]>={stunt:[5,0,Math.PI/2],runup:[-101,82,0],jump:[-101,82,0],downtown:[720,220,0],canals:[1030,200,0],airport:[180,390,0],port:[900,600,0],island:[200,905,Math.PI/2],hills:[620,-960,Math.PI],lake:[1190,-640,Math.PI],beach:[-65,110,0],crowd:[-99,100,Math.PI/2],quarter:[263,160,Math.PI/2],highway:[-65,110,0],casino:[-65,145,0],headland:[-65,-252,Math.PI],inland:[180,-85,Math.PI]};const p=poses[view]||poses.beach;stateTeleport(p[0],p[1],p[2]);if(view==='highway'){for(let i=0;i<480;i++)drive.step(1/60,{forward:true,backward:false,left:false,right:false,handbrake:false});drive.state.position.set(p[0],world.groundHeight(p[0],p[1]),p[1]);}if(view==='jump'&&params.has('capture')){for(let i=0;i<600;i++){drive.step(1/60,{forward:true,backward:false,left:false,right:false,handbrake:false});if(drive.state.airborne&&drive.state.position.z<0)break;}captureJump=true;}started=true;$('opening').hidden=true;setPaused(false); }
+    if(params.has('map'))toggleAtlas();
     const time = params.get('time');if (time==='night'||time==='twilight')applyLighting(time);
     window.setInterval(()=>{report.textContent=JSON.stringify({...((window as any).__SUNSPOKE__.stats()),visibility:document.visibilityState,benchmark,routeChecks});},500);
     if(params.has('routes')) import('./qa').then(({validateRoads})=>{routeChecks=validateRoads(world);});
@@ -257,6 +271,3 @@ async function boot() {
   }
 }
 boot().catch(error => { console.error(error); $('opening').hidden=true; $('error').hidden=false; $('error-message').textContent = `The 3D scene could not start. ${error instanceof Error ? error.message : String(error)}. Try an up-to-date desktop browser with hardware acceleration enabled.`; });
-
-
-

@@ -2,7 +2,11 @@
 
 A desktop browser driving game set in a fictional seaside entertainment district. Drive one midnight-teal Porsche Cayenne SUV through the beach boulevard, hotel streets, and coastal overlook. Every road is available immediately.
 
-The city now covers **303,180 square metres**, exactly **1.5 times** the previous bounded footprint. Palm Quarter adds an inland boulevard, three connecting streets, garden residences, courtyards, shops, and fountains. The beach has 84 stylized adult holidaymakers in swimwear, including bikinis, thong swimsuits, and swim shorts, with walking and reclining poses.
+Sunspoke County now has **nine districts, 43 connected roads and about 22.4 km of authored road centerlines** across a **3.38 km² bounded play area**. Crown Downtown adds a dense skyline, Canal Gardens has villas and neighbourhood bridges, Southport has working-port scenery, Coast Airfield has a drivable runway and perimeter circuit, and Isla Luz is reached by an elevated causeway. Sierra Verde and Silver Lake add winding northern country roads. The original beachfront, Palm Quarter, Ramp Time compound, Cayenne, beach crowd and smooth driving camera remain part of the county.
+
+Press **M** to open the county atlas. It draws the actual road geometry, coast, districts and car position, with scroll zoom and drag panning. M or Esc returns to the previous driving/pause state. The map screen pauses driving and suspends the hidden 3D rendering.
+
+This is original procedural geography inspired by the city, coast, islands and countryside mix in [Rockstar's official location overview](https://www.rockstargames.com/VI/only-in-leonida). All buildings and scenery are bundled/generated locally.
 
 ## Play the included build
 
@@ -33,6 +37,7 @@ Use `node scripts/serve.mjs --no-open` to start the server without opening a bro
 | Shift | Brake without selecting reverse |
 | Space | Handbrake |
 | R | Return to the last clear road position |
+| M | Open or close the county map |
 | Esc | Pause or resume |
 | Mouse drag | Orbit the chase camera |
 | Mouse wheel | Zoom |
@@ -81,4 +86,3 @@ node checks/world-checks.mjs
 ```
 
 For browser diagnostics, append `?qa=1&routes=1` to the local URL. Route results are written to the hidden `qa-report` JSON element. Add `&view=beach&quality=low&benchmark=1` for a 60-frame completed-render timing sample. Diagnostic views run independently of browser focus so automated screenshots can be captured. The normal game pauses when focus is lost.
-
