@@ -71,7 +71,7 @@ test('steering at rest does not rotate the car and launch turns are symmetric', 
 });
 
 test('speed sweep keeps normal cornering bounded and steering changes continuous', () => {
-  for (const targetSpeed of [1, 3, 6, 10, 16, 24, 32]) {
+  for (const [targetSpeed, corneringCeiling] of [[1, 10.1], [3, 10.1], [6, 10.1], [10, 10.1], [16, 14], [24, 22.1], [32, 22.1]]) {
     const drive = new Driving(makeWorld());
     while (drive.state.speed < targetSpeed) drive.step(1 / 60, forward);
     drive.state.position.set(0, 0, 0);
@@ -84,8 +84,35 @@ test('speed sweep keeps normal cornering bounded and steering changes continuous
       assert.ok(Math.abs(drive.state.steering - beforeSteering) <= 2.8 / 60 + 1e-8);
       assert.ok(Number.isFinite(drive.state.speed));
     }
-    assert.ok(maxCornering <= 10.1, `cornering at ${targetSpeed}m/s: ${maxCornering}`);
+    assert.ok(maxCornering <= corneringCeiling, `cornering at ${targetSpeed}m/s: ${maxCornering}`);
     console.log(`  ${targetSpeed}m/s: ${maxCornering.toFixed(2)}m/s² peak cornering`);
+  }
+});
+
+test('city turning matches the established low-speed handling', () => {
+  const drive = new Driving(makeWorld());
+  while (drive.state.speed < 6) drive.step(1 / 60, forward);
+  run(drive, 0.5, { ...idle, left: true });
+  assert.ok(Math.abs(drive.state.heading * 180 / Math.PI - 26.825751) < 0.01);
+});
+
+test('high-speed steering has useful authority for holds, taps and reversals', () => {
+  for (const left of [true, false]) {
+    const drive = new Driving(makeWorld());
+    while (drive.state.speed < 32) drive.step(1 / 60, forward);
+    drive.state.position.set(0, 0, 0);
+    const turn = { ...idle, left, right: !left };
+    run(drive, 0.1, turn);
+    const tapAngle = Math.abs(drive.state.heading * 180 / Math.PI);
+    assert.ok(tapAngle > 0.6 && tapAngle < 2.5, `high-speed tap ${tapAngle}`);
+    run(drive, 0.4, turn);
+    const heldAngle = Math.abs(drive.state.heading * 180 / Math.PI);
+    assert.ok(heldAngle > 13 && heldAngle < 17, `high-speed turn ${heldAngle}`);
+    run(drive, 0.2, { ...idle, left: !left, right: left });
+    assert.ok(left ? drive.state.steering < 0 : drive.state.steering > 0);
+    run(drive, 0.7, idle);
+    assert.ok(Math.abs(drive.state.steering) < 0.001);
+    assert.ok(motionStep(drive, idle).lateral < 0.02);
   }
 });
 

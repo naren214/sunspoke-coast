@@ -1,5 +1,31 @@
 # Sunspoke Coast verification
 
+## High-speed arcade handling — 15 November 2026
+
+The previous model reduced both steering lock and turn-in response as speed increased. At an entry speed of 32 m/s, a half-second full-left coasting input produced only 5.23° of heading change and an average transient turn radius of 172 m. Its steering wheel angle reached only 1.46° in that time.
+
+The revised tuning smoothly blends in additional steering authority between 10 and 26 m/s. Normal lateral capacity rises from 10 to 22 m/s² for arcade cornering. Turn-in response, return-to-centre response and lateral stabilization increase together above city speeds. Low-speed tuning, front-wheel-angle integration, reverse and progressive handbrake recovery remain covered by regression tests.
+
+| Entry speed | Previous heading change | New heading change |
+| --- | --- | --- |
+| 21.9 km/h | 26.83° | 26.83° |
+| 36.1 km/h | 21.96° | 21.96° |
+| 72.0 km/h | 9.89° | 19.90° |
+| 108.0 km/h | 5.58° | 15.98° |
+| 115.2 km/h | 5.23° | 14.98° |
+
+Each comparison starts with the same straight-line acceleration sequence, followed by a 0.5-second full-left coasting input at 60 Hz, using the actual Driving class. At 115.2 km/h, the average transient turn radius fell from 172 m to 60 m. These measurements describe this game's input response.
+
+All 21 driving/camera checks, model geometry checks, both continuous loops and all 2,262 route probes passed. New checks bound a 0.1-second high-speed tap, verify useful authority for a 0.5-second hold, test countersteering/recentring, and preserve the measured low-speed baseline. Build and strict TypeScript checks passed.
+
+Browser inspection worked for this update. The production build rendered the Cayenne, actual browser route checks passed, and A/D keyboard inputs changed heading while travelling above 80 km/h. Reset and Escape pause worked. Console error capture was empty. The automated browser alternated between roughly 24 FPS and one animation callback per second, so continuous real-time handling remains only partially verified. The comparison table uses deterministic fixed-step simulation, independent of browser scheduling. A test-only highway entry uses the normal Driving.step acceleration to initialize velocity, then positions the car on the boulevard for input checks.
+
+### Mechanics reviewed
+
+Criterion's Vehicle Feel Masterclass describes separate input, simulation and assist layers, smoothly fading assists, and automated physics testing. This informed the decision to blend highway assistance continuously and verify input response at multiple speeds. [Matthew Harris, Criterion Games, GDC 2018, slides 38–48](https://media.gdcvault.com/gdc2018/presentations/Harris_Matthew_VehicleFeelMasterclass.pdf)
+
+SuperTuxKart's player controller handles digital steering with distinct steering-in and return-to-centre rates. Its kart API also exposes speed-dependent maximum steering. These support treating lock, response time and recentring as separate tuning parameters. The source was reviewed for design concepts. [Player controller](https://github.com/supertuxkart/stk-code/blob/master/src/karts/controller/player_controller.cpp) · [Kart API](https://doxygen.supertuxkart.net/classKart.html)
+
 ## Full steering review — 13 November 2026
 
 - Replaced the accumulated steering multipliers with one actual front-wheel angle shared by physics, wheel animation and route checks. Removed the sensitivity multiplier's coupling to grip and maximum cornering force.

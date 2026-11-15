@@ -173,19 +173,23 @@ export class Driving {
     state.braking = footBrake || input.handbrake;
 
     // Front-wheel angle is the actual bicycle-model angle. Low-speed lock
-    // remains generous, while available tire force bounds highway steering.
+    // remains generous. A blended arcade assist retains useful highway steering.
     const speedFactor = clamp(absSpeed / 28, 0, 1);
+    const highwayAssist = MathUtils.smoothstep(absSpeed, 10, 26);
+    const corneringGrip = CORNERING_GRIP + 12 * highwayAssist;
     const parkingLock = 0.68 / (1 + (absSpeed / 16) ** 2);
-    const gripLock = Math.atan(CORNERING_GRIP * VEHICLE.wheelbase / Math.max(speed * speed, 1));
+    const gripLock = Math.atan(corneringGrip * VEHICLE.wheelbase / Math.max(speed * speed, 1));
     const steerLimit = MathUtils.lerp(parkingLock, Math.min(parkingLock, gripLock), this.grip);
     const steer = (Number(input.left) - Number(input.right)) * steerLimit;
     const returning = steer === 0 || steer * state.steering < 0;
-    const response = returning ? MathUtils.lerp(12, 7, speedFactor) : MathUtils.lerp(10, 4, speedFactor);
+    const turnResponse = MathUtils.lerp(10, 4, speedFactor) + 3.5 * highwayAssist;
+    const returnResponse = MathUtils.lerp(12, 7, speedFactor) + 3 * highwayAssist;
+    const response = returning ? returnResponse : turnResponse;
     const change = (steer - state.steering) * damping(response, STEP);
-    const maxChange = (returning ? MathUtils.lerp(4, 1, speedFactor) : MathUtils.lerp(2.8, 0.65, speedFactor)) * STEP;
+    const maxChange = (returning ? MathUtils.lerp(4, 1, speedFactor) : MathUtils.lerp(2.8, 0.65, speedFactor) + 0.35 * highwayAssist) * STEP;
     state.steering += clamp(change, -maxChange, maxChange);
     const yawLimit = 0.35 + 9 / (4 + absSpeed);
-    const normalYawLimit = Math.min(1.8, CORNERING_GRIP / Math.max(absSpeed, 1));
+    const normalYawLimit = Math.min(1.8, corneringGrip / Math.max(absSpeed, 1));
     const requestedYaw = speed * Math.tan(state.steering) / VEHICLE.wheelbase;
     const normalYaw = clamp(requestedYaw, -normalYawLimit, normalYawLimit);
 
@@ -194,8 +198,8 @@ export class Driving {
     const lateralSpeed = this.vx * Math.cos(state.heading) - this.vz * Math.sin(state.heading);
     const slipRatio = Math.abs(lateralSpeed) / Math.max(absSpeed, 4);
     const excessSlip = clamp((slipRatio - 0.035) / 0.12, 0, 1);
-    const corneringLoad = Math.min(1, Math.abs(normalYaw * speed) / CORNERING_GRIP);
-    const availableAcceleration = CORNERING_GRIP * Math.sqrt(Math.max(0, 1 - corneringLoad * corneringLoad));
+    const corneringLoad = Math.min(1, Math.abs(normalYaw * speed) / corneringGrip);
+    const availableAcceleration = corneringGrip * Math.sqrt(Math.max(0, 1 - corneringLoad * corneringLoad));
     const acceleration = direction > 0 ? 6.3 : 3.6;
     const traction = Math.min(1, availableAcceleration / acceleration) * (1 - excessSlip * 0.8);
     const wantedThrottle = direction && !state.braking ? traction : 0;
@@ -220,7 +224,7 @@ export class Driving {
     // force, so steering cannot manufacture extra forward kinetic energy.
     nextSpeed += -this.vx * s - this.vz * c - speed;
     let lateral = this.vx * c - this.vz * s;
-    lateral *= Math.exp(-MathUtils.lerp(2.1, 17, this.grip) * STEP);
+    lateral *= Math.exp(-MathUtils.lerp(2.1, 17 + 13 * highwayAssist, this.grip) * STEP);
     this.vx = -s * nextSpeed + c * lateral;
     this.vz = -c * nextSpeed - s * lateral;
     // At maximum speed the footprint advances under 0.3m per collision pass.
