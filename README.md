@@ -2,6 +2,8 @@
 
 A desktop browser driving game set in a fictional seaside entertainment district. Drive one midnight-teal Porsche Cayenne SUV through the beach boulevard, hotel streets, and coastal overlook. Every road is available immediately.
 
+The city now covers **303,180 square metres**, exactly **1.5 times** the previous bounded footprint. Palm Quarter adds an inland boulevard, three connecting streets, garden residences, courtyards, shops, and fountains. The beach has 84 stylized adult holidaymakers in swimwear, including bikinis, thong swimsuits, and swim shorts, with walking and reclining poses.
+
 ## Play the included build
 
 1. Extract the ZIP into a folder.
@@ -26,6 +28,7 @@ Use `node scripts/serve.mjs --no-open` to start the server without opening a bro
 | W / Up arrow | Accelerate |
 | S / Down arrow | Brake, then reverse |
 | A and D / Left and right arrows | Steer |
+| Shift | Brake without selecting reverse |
 | Space | Handbrake |
 | R | Return to the last clear road position |
 | Esc | Pause or resume |
@@ -34,9 +37,9 @@ Use `node scripts/serve.mjs --no-open` to start the server without opening a bro
 
 The camera gently recentres after you stop orbiting. The small pause button also opens the settings. Choose golden hour, twilight, or night, adjust master volume, choose Low, Medium, or High rendering quality, and toggle the controls hint. Speed is displayed in kilometres per hour. The **×** in the driving hint hides it.
 
-Automatic traction assistance eases engine power in loaded corners and stabilizes sideways motion. Releasing the handbrake progressively restores grip.
+The rebuilt keyboard controls blend quick taps into small corrections and held keys into full turns. A single speed-based turning-radius curve keeps parking manoeuvres tight and highway turns responsive. Normal turns preserve forward power. Reverse engages only after braking to a stop and a short neutral dwell. Releasing the handbrake progressively restores grip. The camera gently widens its view as speed increases.
 
-Start with **Low** quality on integrated graphics. Medium and High add bloom and increase rendering resolution or shadow quality. Settings apply immediately. Volume, quality, and controls-hint preferences are saved in browser storage when it is available. Each new session begins at golden hour.
+Start with **Low** quality on integrated graphics. Low renders at up to 75% display resolution with dynamic shadows and bloom disabled. Medium and High enable shadows and bloom and increase rendering resolution or shadow quality. Settings apply immediately. Volume, quality, and controls-hint preferences are saved in browser storage when it is available. Each new session begins at golden hour.
 
 ## Rebuild or develop
 
@@ -71,6 +74,7 @@ See `TESTING.md` for the measured render timings, driving checks, screenshot rev
 ```sh
 node checks/driving-checks.ts
 node checks/car-checks.ts
+node checks/world-checks.mjs
 ```
 
 For browser diagnostics, append `?qa=1&routes=1` to the local URL. Route results are written to the hidden `qa-report` JSON element. Add `&view=beach&quality=low&benchmark=1` for a 60-frame completed-render timing sample. Diagnostic views run independently of browser focus so automated screenshots can be captured. The normal game pauses when focus is lost.

@@ -1,5 +1,7 @@
 import * as T from 'three';
 import type { Collider, Lighting, Road, World } from './types';
+import { CITY } from './city';
+import { createBeachgoers } from './beachgoers';
 
 const tau = Math.PI * 2;
 const clamp = T.MathUtils.clamp;
@@ -62,7 +64,8 @@ export function createWorld(): World {
   const buckets = new Map<string,{g:T.BufferGeometry,m:T.Material, matrices:T.Matrix4[], shadow:boolean}>();
   const dummy = new T.Object3D();
   function geom(g:T.BufferGeometry,m:T.Material,x:number,y:number,z:number,sx:number,sy:number,sz:number,ry=0,rz=0,rx=0,shadow=true) {
-    const key=g.uuid+m.uuid+(shadow?'1':'0');
+    // Spatial batches let the camera and shadow frusta discard distant blocks.
+    const key=g.uuid+m.uuid+(shadow?'1':'0')+':'+Math.floor(x/120)+','+Math.floor(z/120);
     let b=buckets.get(key); if (!b) { b={g,m,matrices:[],shadow}; buckets.set(key,b); }
     dummy.position.set(x,y,z); dummy.rotation.set(rx,ry,rz,'YXZ'); dummy.scale.set(sx,sy,sz); dummy.updateMatrix(); b.matrices.push(dummy.matrix.clone());
   }
@@ -82,7 +85,7 @@ export function createWorld(): World {
     const g=new T.BufferGeometry(); g.setAttribute('position',new T.Float32BufferAttribute(p,3)); g.setAttribute('uv',new T.Float32BufferAttribute(uv,2)); g.setIndex(idx);g.computeVertexNormals();
     const mesh=new T.Mesh(g,m); mesh.receiveShadow=true;group.add(mesh);
   }
-  grid(-88,350,-475,475,5,200,surface.land,-.018);
+  grid(-88,513,-475,475,8,200,surface.land,-.018);
   grid(-130,-86,-475,475,18,200,surface.sand,-.011);
   grid(-88,-75,-305,305,6,125,surface.walk,.014);
   for(let z=-303;z<305;z+=5) cube(surface.tile,-81.5,groundHeight(-81.5,z)+.034,z,12.1,.018,.045,0,false);
@@ -100,8 +103,16 @@ export function createWorld(): World {
   const arc=(cx:number,cz:number,start:number,end:number)=>{for(let i=1;i<=12;i++){const a=start+(end-start)*i/12;outer.push([cx+25*Math.cos(a),cz+25*Math.sin(a)]);}};
   arc(-40,-255,Math.PI,Math.PI*1.5);outer.push([155,-280]);arc(155,-255,Math.PI*1.5,tau);outer.push([180,255]);arc(155,255,0,Math.PI/2);outer.push([-40,280]);arc(-40,255,Math.PI/2,Math.PI);
   road(outer,18);for(const z of [-160,0,160]) road([[-65,z],[180,z]],15);road([[60,-160],[60,160]],15);
+  // Palm Quarter adds 163 metres inland, increasing the bounded city area by 50%.
+  const extension: number[][] = [[155,-280],[318,-280]];
+  for(let i=1;i<=12;i++){const a=-Math.PI/2+i*Math.PI/24;extension.push([318+25*Math.cos(a),-255+25*Math.sin(a)]);}
+  extension.push([343,255]);
+  for(let i=1;i<=12;i++){const a=i*Math.PI/24;extension.push([318+25*Math.cos(a),255+25*Math.sin(a)]);}
+  extension.push([155,280]);
+  road(extension,18);
+  for(const z of [-160,0,160])road([[180,z],[343,z]],15);
   function nearJoin(x:number,z:number) {
-    return [-160,0,160].some(j=>Math.abs(z-j)<11.3&&[-65,60,180].some(i=>Math.abs(x-i)<11.3));
+    return [-160,0,160].some(j=>Math.abs(z-j)<11.3&&[-65,60,180,343].some(i=>Math.abs(x-i)<11.3)) || (Math.abs(x-155)<11.3&&Math.abs(Math.abs(z)-280)<11.3);
   }
   function paintRoad(r:Road,n:number){
     function strip(width:number,m:T.Material,lift:number){
@@ -133,8 +144,8 @@ export function createWorld(): World {
     }
   }
   roads.forEach(paintRoad);
-  for(const z of [-160,0,160]) for(const x of [-65,60,180]) for(const side of [-1,1]) {
-    if((x===-65&&side<0)||(x===180&&side>0)) continue;
+  for(const z of [-160,0,160]) for(const x of [-65,60,180,343]) for(const side of [-1,1]) {
+    if((x===-65&&side<0)||(x===343&&side>0)) continue;
     for(let j=-3;j<=3;j++)cube(surface.white,x+side*11.4,groundHeight(x,z)+.078,z+j*1.55,2,.012,.67,0,false);
   }
 
@@ -212,8 +223,8 @@ export function createWorld(): World {
     if(Math.abs(z%56)>8)rail(-88,z,.34,5,0,.54);
   }
   // Low road-end walls and headland rocks ground the perimeter visually.
-  for(let z=-307;z<=306;z+=6)rail(209,z,.6,6.05,0,1.12);
-  for(const z of [-308,308])for(let x=-111;x<211;x+=6)rail(x,z,6.04,.65,0,1.06);
+  for(let z=-307;z<=306;z+=6)rail(372,z,.6,6.05,0,1.12);
+  for(const z of [-308,308])for(let x=-111;x<374;x+=6)rail(x,z,6.04,.65,0,1.06);
   collider(-116.9,0,.8,312,1.8);
 
   const fabrics=[mat('#df765e'),mat('#77a8a4'),mat('#e3ba64')];
@@ -410,6 +421,27 @@ export function createWorld(): World {
       }
     }
   }
+  // A lower garden district gives the expanded city its own skyline and streets.
+  const quarterNames=['PALM QUARTER','CITRUS COURT','THE ATELIER','SOL MARKET','GARDEN ARCADE','MESA HOUSE'];
+  for(let row=0;row<smallRows.length;row++){
+    const z=smallRows[row];
+    for(const [column,x] of [226,292].entries()){
+      const id=30+row*2+column,y=groundHeight(x,z),skin=facadeSkins[(row+column)%5];
+      const w=column?38:34,d=34,h=12+(row%3)*5;
+      podium(x,z,w,d,4.2,skin,neons[id%3]);
+      tower(x,z,y+4.9,w*.76,d*.75,h,skin,id);
+      collider(x,z,w*.5,d*.5,h+6);
+      lettering(quarterNames[row],column?'GARDEN RESIDENCES':'SHOPS & COURTYARDS','#f8e4b7','#385952',x-w/2-.13,y+5.3,z,20,2.7);
+      planter(x-w/2-3,z-11,1.3);planter(x-w/2-3,z+11,1.3);
+      bench(x-w/2-4,z,0);
+      for(const side of [-1,1])palm(x+side*(w/2-2),z+23,7+random());
+    }
+    fountain(260,z,3.3);
+  }
+  for(let z=-245;z<250;z+=25)if(clearOfCrossStreet(z)){palm(331,z,8+random());lamp(332.5,z,Math.PI/2);}
+  for(const z of [-160,0,160])for(let x=207;x<331;x+=28){lamp(x,z+9,Math.PI);palm(x,z-11,7.6);}
+  lettering('PALM QUARTER','GARDENS · MARKET · RESIDENCES','#ffe3a3','#37534c',263,9,170,21,3.7,0);
+  const beachgoers=createBeachgoers(groundHeight);group.add(beachgoers.group);
   // Pergolas overlooking the water, with unobstructed road-side sea views.
   for(const z of [-192,64,236]){
     const x=-83.5,y=groundHeight(x,z);
@@ -432,11 +464,11 @@ export function createWorld(): World {
 
   const backdropA=mat('#b8a798'),backdropB=mat('#9b9c98');
   for(let i=0;i<33;i++){
-    const z=-570+i*38,x=336+random()*96;
+    const z=-570+i*38,x=499+random()*96;
     geom(boulder,i%2?backdropA:backdropB,x,-.5,z,65+random()*28,19+random()*48,58+random()*25,random()*tau,0,0,false);
   }
   for(const baseZ of [-470,472])for(let i=0;i<15;i++) {
-    const x=-98+i*32,z=baseZ+random()*45*(baseZ>0?1:-1);
+    const x=-98+i*44,z=baseZ+random()*45*(baseZ>0?1:-1);
     geom(boulder,i%2?backdropB:backdropA,x,-1.4,z,48+random()*22,12+random()*27,54,random()*tau,0,0,false);
   }
   // Distant sails retain the ocean's scale even with a low camera.
@@ -514,6 +546,7 @@ export function createWorld(): World {
   });
   let last:Lighting|undefined, nextLightUpdate=0;
   function update(time:number,lighting:Lighting,carPosition:T.Vector3){
+    beachgoers.update(time);
     oceanUniforms.clock.value=time;
     for(const [i,r] of ripples.entries()){
       const phase=(time*.36+i*.27)%1;
@@ -538,7 +571,8 @@ export function createWorld(): World {
     [oceanUniforms.shallows,oceanUniforms.deep,oceanUniforms.fogColor,oceanUniforms.surf,oceanUniforms.glint].forEach((u,i)=>u.value.set(p[i]));
     oceanUniforms.power.value=lighting==='night'?.23:lighting==='twilight'?.6:1.1;
   }
-  return {group,roads,colliders,groundHeight,update};
+  group.userData.cityArea={original:CITY.originalArea,current:CITY.area,ratio:CITY.area/CITY.originalArea};
+  return {group,roads,colliders,groundHeight,update,bounds:CITY};
 }
 
 

@@ -8,6 +8,7 @@ export interface DriveInput {
   left: boolean;
   right: boolean;
   handbrake: boolean;
+  brake?: boolean;
 }
 
 const STEP = 1 / 60;
@@ -16,7 +17,6 @@ const HALF_LENGTH = VEHICLE.halfLength;
 const CAR_RADIUS = Math.hypot(HALF_WIDTH, HALF_LENGTH);
 const GRID = 24;
 
-const CORNERING_GRIP = 10;
 const clamp = MathUtils.clamp;
 const damping = (rate: number, dt: number) => 1 - Math.exp(-rate * dt);
 const approach = (value: number, target: number, increment: number) =>
@@ -132,6 +132,11 @@ export class Driving {
   private vz = 0;
   private accumulated = 0;
   private grip = 1;
+  private steeringInput = 0;
+  private yawRate = 0;
+  private gear = 1;
+  private shiftTime = 0;
+  private collisionGrace = 0;
   private safePosition: Vector3;
   private safeHeading = 0;
   private checkTime = 0;
@@ -153,6 +158,9 @@ export class Driving {
     state.braking = false;
     this.vx = this.vz = this.accumulated = 0;
     this.grip = 1;
+    this.steeringInput = this.yawRate = this.shiftTime = 0;
+    this.gear = 1;
+    this.collisionGrace = 0;
     this.checkTime = 0;
   }
 
@@ -168,65 +176,62 @@ export class Driving {
     const state = this.state, pos = state.position;
     const speed = state.speed, absSpeed = Math.abs(speed);
     const direction = Number(input.forward) - Number(input.backward);
-    const opposing = direction * speed < -0.12;
-    const footBrake = opposing || (input.forward && input.backward);
+    const bothPedals = input.forward && input.backward;
+    const opposing = direction * speed < -0.15;
+    // Brake to a stop before changing direction, with a brief neutral dwell.
+    const shifting = direction !== 0 && direction !== this.gear && absSpeed <= 0.15;
+    if (shifting) {
+      this.shiftTime += STEP;
+      if (this.shiftTime >= 0.18) { this.gear = direction; this.shiftTime = 0; }
+    } else this.shiftTime = 0;
+    const footBrake = Boolean(input.brake) || opposing || bothPedals || shifting;
     state.braking = footBrake || input.handbrake;
 
-    // Front-wheel angle is the actual bicycle-model angle. Low-speed lock
-    // remains generous. A blended arcade assist retains useful highway steering.
-    const speedFactor = clamp(absSpeed / 28, 0, 1);
-    const highwayAssist = MathUtils.smoothstep(absSpeed, 10, 26);
-    const corneringGrip = CORNERING_GRIP + 12 * highwayAssist;
-    const parkingLock = 0.68 / (1 + (absSpeed / 16) ** 2);
-    const gripLock = Math.atan(corneringGrip * VEHICLE.wheelbase / Math.max(speed * speed, 1));
-    const steerLimit = MathUtils.lerp(parkingLock, Math.min(parkingLock, gripLock), this.grip);
-    const steer = (Number(input.left) - Number(input.right)) * steerLimit;
-    const returning = steer === 0 || steer * state.steering < 0;
-    const turnResponse = MathUtils.lerp(10, 4, speedFactor) + 3.5 * highwayAssist;
-    const returnResponse = MathUtils.lerp(12, 7, speedFactor) + 3 * highwayAssist;
-    const response = returning ? returnResponse : turnResponse;
-    const change = (steer - state.steering) * damping(response, STEP);
-    const maxChange = (returning ? MathUtils.lerp(4, 1, speedFactor) : MathUtils.lerp(2.8, 0.65, speedFactor) + 0.35 * highwayAssist) * STEP;
-    state.steering += clamp(change, -maxChange, maxChange);
-    const yawLimit = 0.35 + 9 / (4 + absSpeed);
-    const normalYawLimit = Math.min(1.8, corneringGrip / Math.max(absSpeed, 1));
-    const requestedYaw = speed * Math.tan(state.steering) / VEHICLE.wheelbase;
-    const normalYaw = clamp(requestedYaw, -normalYawLimit, normalYawLimit);
+    // Digital keys act like a short-travel analog stick. A tap makes a small
+    // correction, a hold reaches full lock, and countersteering crosses quickly.
+    const wanted = Number(input.left) - Number(input.right);
+    const reversingSteer = wanted * this.steeringInput < 0;
+    this.steeringInput = approach(this.steeringInput, wanted,
+      (wanted === 0 ? 8 : reversingSteer ? 9 : 5.5) * STEP);
+    this.grip += ((input.handbrake ? 0 : 1) - this.grip) * damping(input.handbrake ? 6 : 3.3, STEP);
+    const curve = this.steeringInput * (0.6 + 0.4 * Math.abs(this.steeringInput));
+    // One continuous radius curve replaces stacked wheel-angle and yaw caps.
+    // Tight parking turns blend into useful, predictable highway cornering.
+    const radius = 5.5 + 0.027 * absSpeed * absSpeed;
+    const targetYaw = speed / radius * curve * (1 + 0.5 * (1 - this.grip));
+    this.yawRate += (targetYaw - this.yawRate) * damping(wanted === 0 ? 22 : 16, STEP);
+    if (absSpeed < 0.08) this.yawRate = 0;
+    const wheelAngle = Math.atan(VEHICLE.wheelbase / radius * curve * (1 + 0.5 * (1 - this.grip)));
+    state.steering += (wheelAngle - state.steering) * damping(18, STEP);
 
-    // Turning and acceleration share the tires' available grip. Ease power
-    // before a loaded corner or existing sideslip can grow into a slide.
     const lateralSpeed = this.vx * Math.cos(state.heading) - this.vz * Math.sin(state.heading);
     const slipRatio = Math.abs(lateralSpeed) / Math.max(absSpeed, 4);
-    const excessSlip = clamp((slipRatio - 0.035) / 0.12, 0, 1);
-    const corneringLoad = Math.min(1, Math.abs(normalYaw * speed) / corneringGrip);
-    const availableAcceleration = corneringGrip * Math.sqrt(Math.max(0, 1 - corneringLoad * corneringLoad));
-    const acceleration = direction > 0 ? 6.3 : 3.6;
-    const traction = Math.min(1, availableAcceleration / acceleration) * (1 - excessSlip * 0.8);
+    const traction = 1 - clamp((slipRatio - 0.08) / 0.3, 0, 0.7);
     const wantedThrottle = direction && !state.braking ? traction : 0;
-    state.throttle += (wantedThrottle - state.throttle) * damping(6, STEP);
-    this.grip += ((input.handbrake ? 0 : 1) - this.grip) * damping(input.handbrake ? 10 : 1.5, STEP);
+    state.throttle += (wantedThrottle - state.throttle) * damping(state.braking ? 20 : 8, STEP);
+    const rolling = 0.4 + absSpeed * 0.015 + absSpeed * absSpeed * 0.00065;
+    let nextSpeed = Math.sign(speed || this.gear) * Math.hypot(this.vx, this.vz);
+    if (state.braking) nextSpeed = approach(nextSpeed, 0, (footBrake ? 12.5 : 7.5) * STEP);
+    else if (direction && direction === this.gear) {
+      const topSpeed = direction > 0 ? 40 : 8;
+      const acceleration = direction > 0 ? 7.2 : 4.2;
+      nextSpeed += direction * acceleration * state.throttle * Math.max(0, 1 - (absSpeed / topSpeed) ** 2) * STEP;
+      nextSpeed = approach(nextSpeed, 0, rolling * STEP);
+    } else nextSpeed = approach(nextSpeed, 0, rolling * STEP);
+    if (shifting || (footBrake && Math.abs(nextSpeed) < 0.15)) nextSpeed = 0;
 
-    let nextSpeed = speed;
-    if (state.braking) {
-      nextSpeed = approach(speed, 0, (footBrake ? 11 : 6) * STEP);
-    } else if (direction) {
-      const limit = direction > 0 ? 34 : 8;
-      nextSpeed += direction * acceleration * state.throttle * (1 - (absSpeed / limit) ** 2) * STEP;
-    } else {
-      nextSpeed = approach(speed, 0, (0.63 + absSpeed * 0.025 + absSpeed * absSpeed * 0.0007) * STEP);
-    }
-
-    const assistedYawLimit = MathUtils.lerp(yawLimit * 1.38, normalYawLimit, this.grip);
-    const yawRate = clamp(nextSpeed * Math.tan(state.steering) / VEHICLE.wheelbase, -assistedYawLimit, assistedYawLimit);
-    state.heading = Math.atan2(Math.sin(state.heading + yawRate * STEP), Math.cos(state.heading + yawRate * STEP));
+    const oldHeading = state.heading;
+    state.heading = Math.atan2(Math.sin(oldHeading + this.yawRate * STEP), Math.cos(oldHeading + this.yawRate * STEP));
     const c = Math.cos(state.heading), s = Math.sin(state.heading);
-    // Project existing momentum into the new heading before applying drive
-    // force, so steering cannot manufacture extra forward kinetic energy.
-    nextSpeed += -this.vx * s - this.vz * c - speed;
     let lateral = this.vx * c - this.vz * s;
-    lateral *= Math.exp(-MathUtils.lerp(2.1, 17 + 13 * highwayAssist, this.grip) * STEP);
-    this.vx = -s * nextSpeed + c * lateral;
-    this.vz = -c * nextSpeed - s * lateral;
+    this.collisionGrace = Math.max(0, this.collisionGrace - STEP);
+    lateral *= Math.exp(-(this.collisionGrace > 0 ? 2.5 : MathUtils.lerp(1.8, 42, this.grip)) * STEP);
+    lateral = clamp(lateral, -Math.abs(nextSpeed) * 0.75, Math.abs(nextSpeed) * 0.75);
+    // Conserve the intended kinetic speed while redistributing grip and slip.
+    // Steering cannot generate energy or repeatedly scrub away forward power.
+    const longitudinal = Math.sign(nextSpeed) * Math.sqrt(Math.max(0, nextSpeed * nextSpeed - lateral * lateral));
+    this.vx = -s * longitudinal + c * lateral;
+    this.vz = -c * longitudinal - s * lateral;
     // At maximum speed the footprint advances under 0.3m per collision pass.
     for (let part = 0; part < 2; part++) {
       pos.x += this.vx * STEP * 0.5;
@@ -254,13 +259,14 @@ export class Driving {
       pos.x += n.x * (n.depth + 0.002);
       pos.z += n.z * (n.depth + 0.002);
       const inward = this.vx * n.x + this.vz * n.z;
-      if (inward < 0) { this.vx -= inward * n.x; this.vz -= inward * n.z; }
+      if (inward < 0) { this.vx -= inward * n.x; this.vz -= inward * n.z; this.collisionGrace = 0.2; }
     }
     // A final bound backs up shoreline, cliff and city-edge geometry.
     const rx = Math.abs(c) * HALF_WIDTH + Math.abs(s) * HALF_LENGTH;
     const rz = Math.abs(s) * HALF_WIDTH + Math.abs(c) * HALF_LENGTH;
-    const x = clamp(pos.x, -116 + rx, 210 - rx);
-    const z = clamp(pos.z, -310 + rz, 310 - rz);
+    const bounds = this.world.bounds ?? { minX: -116, maxX: 210, minZ: -310, maxZ: 310 };
+    const x = clamp(pos.x, bounds.minX + rx, bounds.maxX - rx);
+    const z = clamp(pos.z, bounds.minZ + rz, bounds.maxZ - rz);
     if (x !== pos.x) this.vx = 0;
     if (z !== pos.z) this.vz = 0;
     pos.x = x; pos.z = z;

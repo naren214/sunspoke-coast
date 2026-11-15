@@ -37,22 +37,26 @@ test('city steering turns promptly and recentres after releasing the key', () =>
   const drive = new Driving(makeWorld());
   run(drive, 1, forward);
   run(drive, 0.2, { ...idle, left: true });
-  assert.ok(drive.state.steering > 0.4, `steering response ${drive.state.steering}`);
+  assert.ok(drive.state.steering > 0.3, `steering response ${drive.state.steering}`);
   run(drive, 0.8, { ...idle, left: true });
   assert.ok(drive.state.heading > 0.65, `city turn angle ${drive.state.heading}`);
   run(drive, 0.3, idle);
   assert.ok(Math.abs(drive.state.steering) < 0.03);
 });
 
-test('left and right inputs use the actual front-wheel angle', () => {
+test('turn-in ramps smoothly and visual wheels follow the requested direction', () => {
   for (const left of [true, false]) {
-    const drive = new Driving(makeWorld());
-    run(drive, 0.8, forward);
-    const before = drive.state.heading;
-    drive.step(1 / 60, { ...forward, left, right: !left });
-    const rate = (drive.state.heading - before) * 60;
-    const baseline = drive.state.speed * Math.tan(drive.state.steering) / VEHICLE.wheelbase;
-    assert.ok(Math.abs(rate / baseline - 1) < 0.02);
+    const drive = new Driving(makeWorld()); run(drive, 2, forward);
+    let previousYaw = 0;
+    for(let i=0;i<12;i++) {
+      const heading = drive.state.heading;
+      drive.step(1/60, {...forward,left,right:!left});
+      const yaw = (drive.state.heading-heading)*60;
+      assert.ok((left ? yaw : -yaw) > 0);
+      assert.ok(Math.abs(yaw-previousYaw) < 0.22);
+      assert.ok(left ? drive.state.steering>0 : drive.state.steering<0);
+      previousYaw = yaw;
+    }
   }
 });
 
@@ -71,9 +75,10 @@ test('steering at rest does not rotate the car and launch turns are symmetric', 
 });
 
 test('speed sweep keeps normal cornering bounded and steering changes continuous', () => {
-  for (const [targetSpeed, corneringCeiling] of [[1, 10.1], [3, 10.1], [6, 10.1], [10, 10.1], [16, 14], [24, 22.1], [32, 22.1]]) {
+  for (const [targetSpeed, corneringCeiling] of [[1, 1], [3, 2], [6, 7], [10, 14], [16, 24], [24, 32], [32, 37]]) {
     const drive = new Driving(makeWorld());
-    while (drive.state.speed < targetSpeed) drive.step(1 / 60, forward);
+    for(let i=0;drive.state.speed<targetSpeed && i<3600;i++)drive.step(1/60,forward);
+    assert.ok(drive.state.speed>=targetSpeed);
     drive.state.position.set(0, 0, 0);
     let maxCornering = 0;
     for (let frame = 0; frame < 60; frame++) {
@@ -89,11 +94,19 @@ test('speed sweep keeps normal cornering bounded and steering changes continuous
   }
 });
 
-test('city turning matches the established low-speed handling', () => {
-  const drive = new Driving(makeWorld());
-  while (drive.state.speed < 6) drive.step(1 / 60, forward);
-  run(drive, 0.5, { ...idle, left: true });
-  assert.ok(Math.abs(drive.state.heading * 180 / Math.PI - 26.825751) < 0.01);
+test('short taps make smaller corrections than held inputs across city and highway speeds', () => {
+  for(const speed of [3,6,12,24,32]) {
+    const drive = new Driving(makeWorld());
+    let ticks=0; while(drive.state.speed<speed && ticks++<3600)drive.step(1/60,forward);
+    assert.ok(ticks<3600, 'target speed must be reachable');
+    drive.state.position.set(0,0,0);
+    run(drive,0.1,{...idle,left:true});
+    const tap=drive.state.heading;
+    run(drive,0.4,{...idle,left:true});
+    const hold=drive.state.heading;
+    assert.ok(tap>0 && hold>tap*4);
+    assert.ok(hold>0.12 && hold<0.6, `turn angle at ${speed}: ${hold}`);
+  }
 });
 
 test('high-speed steering has useful authority for holds, taps and reversals', () => {
@@ -107,7 +120,7 @@ test('high-speed steering has useful authority for holds, taps and reversals', (
     assert.ok(tapAngle > 0.6 && tapAngle < 2.5, `high-speed tap ${tapAngle}`);
     run(drive, 0.4, turn);
     const heldAngle = Math.abs(drive.state.heading * 180 / Math.PI);
-    assert.ok(heldAngle > 13 && heldAngle < 17, `high-speed turn ${heldAngle}`);
+    assert.ok(heldAngle > 18 && heldAngle < 23, `high-speed turn ${heldAngle}`);
     run(drive, 0.2, { ...idle, left: !left, right: left });
     assert.ok(left ? drive.state.steering < 0 : drive.state.steering > 0);
     run(drive, 0.7, idle);
@@ -144,7 +157,7 @@ test('braking through a bend reduces speed without an abrupt steering jump', () 
   assert.ok(drive.state.speed > 0);
 });
 
-test('traction limits drift and eases throttle in medium and high-speed corners', () => {
+test('grip holds normal turns while preserving throttle and forward momentum', () => {
   for (const accelerationSeconds of [3, 8]) {
     const drive = new Driving(makeWorld());
     run(drive, accelerationSeconds, forward);
@@ -156,7 +169,7 @@ test('traction limits drift and eases throttle in medium and high-speed corners'
     }
     assert.ok(peakAngle < (accelerationSeconds === 8 ? 1.5 : 2), `sideslip ${peakAngle}`);
     assert.ok(peakLateral < 0.8, `lateral speed ${peakLateral}`);
-    assert.ok(drive.state.throttle < 0.35, `corner throttle ${drive.state.throttle}`);
+    assert.ok(drive.state.throttle > 0.85, `corner throttle ${drive.state.throttle}`);
     console.log(`  ${accelerationSeconds}s launch: ${peakAngle.toFixed(3)} degrees, ${peakLateral.toFixed(3)} m/s lateral`);
   }
 });
@@ -310,3 +323,20 @@ test('free orbit keeps the camera above terrain across a crest', () => {
 });
 
 
+
+test('dedicated brake overrides throttle without selecting reverse', () => {
+  const drive=new Driving(makeWorld()); run(drive,4,forward);
+  const before=drive.state.speed;
+  run(drive,0.8,{...forward,brake:true});
+  assert.ok(drive.state.braking && drive.state.speed<before-8);
+  run(drive,3,{...forward,brake:true}); assert.equal(drive.state.speed,0);
+  run(drive,0.5,forward); assert.ok(drive.state.speed>1);
+});
+
+test('direction changes dwell at rest and opposing pedals cannot accelerate', () => {
+  const drive=new Driving(makeWorld()); run(drive,1,forward);
+  while(drive.state.speed>0.15)drive.step(1/60,backward);
+  run(drive,0.1,backward); assert.equal(drive.state.speed,0);
+  run(drive,0.5,backward); assert.ok(drive.state.speed < -0.5);
+  run(drive,1,{...forward,backward:true}); assert.equal(drive.state.speed,0);
+});

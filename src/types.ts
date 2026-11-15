@@ -4,6 +4,7 @@ export type Quality = 'low' | 'medium' | 'high';
 export interface Collider { x: number; z: number; halfX: number; halfZ: number; rotation?: number; height: number; }
 export interface Road { points: THREE.Vector3[]; width: number; }
 export interface World {
+  bounds?: { minX: number; maxX: number; minZ: number; maxZ: number };
   group: THREE.Group;
   colliders: Collider[];
   roads: Road[];

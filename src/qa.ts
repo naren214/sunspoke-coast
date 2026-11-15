@@ -58,13 +58,13 @@ function driveClosedRoad(world: World, road: Road) {
 
 // Join the two farthest cross streets to the beachfront and the inland spine.
 // Rounded turns follow ordinary cornering lines through the real intersections.
-function driveInnerLoop(world: World) {
+function driveInnerLoop(world: World, expansion = false) {
   const open = world.roads.filter(r => r.points.length > 1 && r.points[0].distanceTo(r.points.at(-1)!) > 1);
   const cross = open.filter(r => Math.abs(r.points[0].z - r.points.at(-1)!.z) < 0.1);
   const spine = open.find(r => Math.abs(r.points[0].x - r.points.at(-1)!.x) < 0.1);
   if (cross.length < 2 || !spine) return null;
-  const x0 = Math.min(...cross.flatMap(r => [r.points[0].x, r.points.at(-1)!.x]));
-  const x1 = spine.points[0].x;
+  const x0 = expansion ? 180 : Math.min(...cross.flatMap(r => [r.points[0].x, r.points.at(-1)!.x]));
+  const x1 = expansion ? Math.max(...cross.flatMap(r => [r.points[0].x, r.points.at(-1)!.x])) : spine.points[0].x;
   const z0 = Math.min(...cross.map(r => r.points[0].z)), z1 = Math.max(...cross.map(r => r.points[0].z));
   const radius = Math.min(10, (x1 - x0) / 4, (z1 - z0) / 4);
   const points: Vector3[] = [];
@@ -150,10 +150,18 @@ export function validateRoads(world: World) {
   });
   const roadCount = routes.length;
   const innerLap = driveInnerLoop(world);
-  return { passed: roadCount > 0 && total > 0 && !failed && Boolean(innerLap?.passed) && routes.every(r => r.samples && (!r.continuousLap || r.continuousLap.passed)),
+  const districtLap = world.bounds && world.bounds.maxX > 300 ? driveInnerLoop(world,true) : undefined;
+  const original = world.roads[0], extension = world.roads[5];
+  let expandedLap;
+  if(districtLap && original && extension){
+    const first=extension.points[0],last=extension.points.at(-1)!;
+    const start=original.points.findIndex(p=>p.distanceTo(first)<0.1),end=original.points.findIndex(p=>p.distanceTo(last)<0.1);
+    if(start>=0&&end>start)expandedLap=driveClosedRoad(world,{width:18,points:[...original.points.slice(0,start+1),...extension.points.slice(1),...original.points.slice(end+1)]});
+  }
+  return { passed: roadCount > 0 && total > 0 && !failed && Boolean(innerLap?.passed) && (!districtLap || districtLap.passed) && (!districtLap || Boolean(expandedLap?.passed)) && routes.every(r => r.samples && (!r.continuousLap || r.continuousLap.passed)),
     roadCount, probes: total, failedProbes: failed, probeSeconds: frames / 60,
     nominalTravelM: round(free), worstTravelM: total ? Math.min(...routes.map(r => r.minTravelM ?? Infinity)) : null,
-    routes, innerLap, failures };
+    routes, innerLap, districtLap, expandedLap, failures };
 }
 
 

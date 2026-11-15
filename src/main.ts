@@ -21,14 +21,13 @@ let lighting: Lighting = 'golden';
 let quality: Quality = 'medium';
 let volume = .45;
 let showControls = true;
-let accumulator = 0;
 let lastFrame = performance.now();
 let elapsed = 0;
 let orbitLast = 0;
 let dragging = false;
 const orbit = { yaw: 0, pitch: .34, distance: 9.5 };
 const frameTimes: number[] = [];
-const presets = { low: { pixel: 1, shadow: 1024, bloom: false }, medium: { pixel: 1, shadow: 2048, bloom: true }, high: { pixel: 1.5, shadow: 2048, bloom: true } };
+const presets = { low: { pixel: .75, shadow: 1024, bloom: false }, medium: { pixel: 1, shadow: 2048, bloom: true }, high: { pixel: 1.5, shadow: 2048, bloom: true } };
 
 async function boot() {
   const renderer = new THREE.WebGLRenderer({ canvas: $('scene') as HTMLCanvasElement, antialias: true, powerPreference: 'high-performance' });
@@ -97,6 +96,7 @@ async function boot() {
   }
   function applyQuality(next: Quality) {
     quality = next;
+    renderer.shadowMap.enabled = next !== 'low';
     bloom.enabled = presets[next].bloom;
     sun.shadow.mapSize.setScalar(presets[next].shadow);
     sun.shadow.map?.dispose();
@@ -128,7 +128,7 @@ async function boot() {
   ($('controls-toggle') as HTMLInputElement).checked = showControls;
   document.querySelectorAll('#quality button').forEach(b => b.classList.toggle('selected', (b as HTMLElement).dataset.value === quality));
   function setPaused(next: boolean) {
-    paused = next; keys.clear(); dragging = false; accumulator = 0; lastFrame = performance.now();
+    paused = next; keys.clear(); dragging = false; lastFrame = performance.now();
     $('pause').hidden = !next || !started;
     $('hud').hidden = next || !started;
     $('hint').hidden = !showControls;
@@ -152,7 +152,7 @@ async function boot() {
   $('volume').oninput = e => { volume = Number((e.target as HTMLInputElement).value) / 100; audio.setVolume(volume); persist(); };
   document.querySelectorAll('#lighting button').forEach(button => button.addEventListener('click', () => { applyLighting((button as HTMLElement).dataset.value as Lighting); persist(); }));
   document.querySelectorAll('#quality button').forEach(button => button.addEventListener('click', () => { applyQuality((button as HTMLElement).dataset.value as Quality); document.querySelectorAll('#quality button').forEach(b => b.classList.toggle('selected', b === button)); persist(); }));
-  const drivingKeys = ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight','Space','KeyR','Escape'];
+  const drivingKeys = ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight','Space','ShiftLeft','ShiftRight','KeyR','Escape'];
   window.addEventListener('keydown', e => {
     if (!drivingKeys.includes(e.code)) return;
     if ((e.target as HTMLElement)?.matches('input,button') && e.code !== 'Escape' && paused) return;
@@ -177,7 +177,7 @@ async function boot() {
   window.addEventListener('resize', resize);
   let toastTimer = 0;
   function toast(text: string) { $('toast').textContent = text; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = window.setTimeout(()=>$('toast').hidden=true,2400); }
-  const input = { forward:false,backward:false,left:false,right:false,handbrake:false };
+  const input = { forward:false,backward:false,left:false,right:false,handbrake:false,brake:false };
   const sunDirection = new THREE.Vector3(-.9,.24,-.36).normalize();
   let fpsStart = performance.now();
   let fpsFrames = 0;
@@ -194,8 +194,8 @@ async function boot() {
     }
     if (!paused) {
       input.forward=keys.has('KeyW')||keys.has('ArrowUp'); input.backward=keys.has('KeyS')||keys.has('ArrowDown'); input.left=keys.has('KeyA')||keys.has('ArrowLeft'); input.right=keys.has('KeyD')||keys.has('ArrowRight'); input.handbrake=keys.has('Space');
-      accumulator+=dt;
-      while (accumulator>=1/60) { drive.step(1/60,input);accumulator-=1/60; }
+      input.brake=keys.has('ShiftLeft')||keys.has('ShiftRight');
+      drive.step(dt,input);
       if (!dragging && elapsed-orbitLast>2.5) { orbit.yaw=THREE.MathUtils.damp(orbit.yaw,0,1.5,dt);orbit.pitch=THREE.MathUtils.damp(orbit.pitch,.34,1,dt); }
     }
     const state = drive.state;
@@ -209,6 +209,8 @@ async function boot() {
       camera.position.set(-72+Math.sin(a)*3,3.5,217);
       camera.lookAt(-61,1.1,202);
     } else chase.update(dt,state,orbit);
+    const targetFov=55+7*THREE.MathUtils.smoothstep(Math.abs(state.speed),12,34);
+    camera.fov=THREE.MathUtils.damp(camera.fov,targetFov,3,dt);camera.updateProjectionMatrix();
     sky.position.copy(camera.position);
     stars.position.copy(camera.position);
     sun.target.position.copy(state.position);
@@ -236,13 +238,13 @@ async function boot() {
       drive, world, car, camera, renderer, audio, input,
       pause: setPaused, light: applyLighting, quality: applyQuality,
       teleport(x:number,z:number,heading=0) { stateTeleport(x,z,heading); },
-      stats() { const sorted=[...frameTimes].sort((a,b)=>a-b);return {fps:measuredFps,medianMs:sorted[Math.floor(sorted.length*.5)],p95Ms:sorted[Math.floor(sorted.length*.95)],frames:sorted.length,width:innerWidth,height:innerHeight,renderWidth:canvas.width,renderHeight:canvas.height,quality,lighting,paused,renderer:ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER),drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,speed:drive.state.speed,heading:drive.state.heading,steering:drive.state.steering,position:drive.state.position.toArray(),audioState:(audio as any).ctx?.state,audioGain:(audio as any).master?.gain.value}; },
+      stats() { const sorted=[...frameTimes].sort((a,b)=>a-b);return {fps:measuredFps,medianMs:sorted[Math.floor(sorted.length*.5)],p95Ms:sorted[Math.floor(sorted.length*.95)],frames:sorted.length,width:innerWidth,height:innerHeight,renderWidth:canvas.width,renderHeight:canvas.height,quality,lighting,paused,renderer:ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER),cityArea:world.group.userData.cityArea,beachgoers:world.group.getObjectByName('Adult beachgoers')?.userData,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,speed:drive.state.speed,heading:drive.state.heading,steering:drive.state.steering,position:drive.state.position.toArray(),audioState:(audio as any).ctx?.state,audioGain:(audio as any).master?.gain.value}; },
       clearStats() { frameTimes.length=0;fpsFrames=0;fpsStart=performance.now(); }
     };
     function stateTeleport(x:number,z:number,heading:number) { drive.state.position.set(x,world.groundHeight(x,z),z);drive.state.heading=heading;drive.state.speed=0;drive.state.steering=0; }
     if (params.get('quality') && params.get('quality')! in presets) applyQuality(params.get('quality') as Quality);
     const view = params.get('view');
-    if (view) { const poses:Record<string,number[]>={beach:[-65,110,0],highway:[-65,110,0],casino:[-65,145,0],headland:[-65,-252,Math.PI],inland:[180,-85,Math.PI]};const p=poses[view]||poses.beach;stateTeleport(p[0],p[1],p[2]);if(view==='highway'){for(let i=0;i<480;i++)drive.step(1/60,{forward:true,backward:false,left:false,right:false,handbrake:false});drive.state.position.set(p[0],world.groundHeight(p[0],p[1]),p[1]);}started=true;$('opening').hidden=true;setPaused(false); }
+    if (view) { const poses:Record<string,number[]>={beach:[-65,110,0],crowd:[-99,100,Math.PI/2],quarter:[263,160,Math.PI/2],highway:[-65,110,0],casino:[-65,145,0],headland:[-65,-252,Math.PI],inland:[180,-85,Math.PI]};const p=poses[view]||poses.beach;stateTeleport(p[0],p[1],p[2]);if(view==='highway'){for(let i=0;i<480;i++)drive.step(1/60,{forward:true,backward:false,left:false,right:false,handbrake:false});drive.state.position.set(p[0],world.groundHeight(p[0],p[1]),p[1]);}started=true;$('opening').hidden=true;setPaused(false); }
     const time = params.get('time');if (time==='night'||time==='twilight')applyLighting(time);
     window.setInterval(()=>{report.textContent=JSON.stringify({...((window as any).__SUNSPOKE__.stats()),visibility:document.visibilityState,benchmark,routeChecks});},500);
     if(params.has('routes')) import('./qa').then(({validateRoads})=>{routeChecks=validateRoads(world);});

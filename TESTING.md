@@ -1,5 +1,21 @@
 # Sunspoke Coast verification
 
+## Expanded city and rebuilt controls — 15 November 2026
+
+The bounded city footprint grows from 202,120 to 303,180 m², exactly 1.5×. The original coastline and landmarks remain at their authored positions. Palm Quarter adds an inland boulevard, three connectors, twelve buildings, six fountain courts, palms, lamps, and a moved eastern perimeter. Nine authored roads total approximately 4,025 m of centerline. Adult beachgoers use instanced geometry: 84 adults, including 21 walkers, with bikinis, thong swimsuits, swim shorts, sunglasses, and reclining poses.
+
+The driving model has been rebuilt. Digital steering ramps into an analog input, short taps remain small, countersteering crosses centre quickly, and one continuous radius curve governs city and highway turns. Yaw responds with damping. Acceleration retains power in ordinary turns, momentum is conserved during coasting, direction changes brake to a stop with a 0.18-second neutral dwell, and handbrake grip recovers progressively. Shift is a dedicated service brake. Collision recovery temporarily preserves tangent motion for glancing contact. The chase camera widens from 55° to 62° at speed. The main loop now delegates fixed-step accumulation to Driving rather than accumulating twice.
+
+All **23 driving/camera checks**, car geometry checks, and world checks passed. **3,477 lane probes across all nine roads** passed with no blocked probes. Continuous keyboard-input test drivers completed the original outer loop (1,566 m), original inner loop (871 m), Palm Quarter loop (947 m), and expanded outer loop (1,892 m). These are deterministic simulation checks, rather than claims of manual laps. The new world check is included in the source ZIP and runs with `node checks/world-checks.mjs`.
+
+Chrome browser checks confirmed high-speed A input changes heading, Escape pauses with W held, resume clears input, and R returns the car to its last clear road position. Beachfront, casino approach, headland, and Palm Quarter were inspected in golden hour, twilight, and night. Beach crowd placement was inspected in a close beach view. Console error capture was empty. The existing audio synthesis is unchanged.
+
+### Performance measurement and limit
+
+Measured in Chrome on Intel Iris Xe (ANGLE / Direct3D 11), at a **1920×1080 display viewport on Low**, with **1440×810 internal rendering**. Low now disables dynamic shadows and bloom. Static scenery is split into spatial instance batches so camera and shadow frusta can discard distant blocks. After these changes, a 60-frame completed-render sample at the beachfront/highway entry measured **6.4 ms median, 7.0 ms mean, 9.8 ms p95**. The new inland boulevard sample measured **7.3 ms median, 7.1 ms mean, 13.5 ms p95**. These synchronous render samples include GPU completion but omit normal per-frame animation work.
+
+The automated browser intermittently delivered animation callbacks at approximately 1.9 Hz, while other intervals ran around 30 FPS. A stable, sustained **30 FPS gameplay result at 1080p remains unverified**. Do not interpret the render-only timings as gameplay FPS. The captured browser diagnostic JSON is supplied with the downloadable verification artifacts. Earlier performance and tuning sections below describe previous builds.
+
 ## Rear signature — 15 November 2026
 
 Added gold NAREN calligraphy to the rear hatch with a locally bundled, OFL-licensed Explora font. The font loads before the car's canvas texture is created. Chrome inspection of the production build confirmed the lettering is legible from the close chase camera, with the Porsche badge above and Cayenne badge to the right. Driving physics are unchanged.
