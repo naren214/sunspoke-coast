@@ -10,7 +10,7 @@ const outfile = join(temporary, 'world-check.mjs');
 try {
   await build({ stdin: { contents: `
     import assert from 'node:assert/strict';
-    import { InstancedMesh, Vector3 } from 'three';
+    import { InstancedMesh, Vector3, Raycaster } from 'three';
     import { createWorld } from './src/world.ts';
     import { validateRoads } from './src/qa.ts';
     import { Driving } from './src/driving.ts';
@@ -19,6 +19,13 @@ try {
         {get:(target,key)=>key in target ? target[key] : ()=>{}});
     } }; } };
     const world=createWorld(), b=world.bounds;
+    world.group.updateMatrixWorld(true);
+    const terrain=world.group.children.filter(o=>o.name==='Base terrain'||o.name==='Road underlay');
+    for(const z of [-90,-45,0,45,90]){
+      const ray=new Raycaster(new Vector3(-65,20,z),new Vector3(0,-1,0));
+      const hits=ray.intersectObjects(terrain,false);
+      assert.ok(hits.length&&hits.every(hit=>hit.point.y<=world.groundHeight(-65,z)+0.03), 'Compound terrain and sidewalk underlay must stay below the beachfront asphalt');
+    }
     assert.equal((b.maxX-b.minX)*(b.maxZ-b.minZ)/202120,1.5);
     assert.equal(world.roads.length,9);
     assert.ok(world.roads.some(r=>r.points.some(p=>p.x>340)));

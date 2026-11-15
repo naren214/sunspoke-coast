@@ -7,10 +7,11 @@ import { createStuntArena, insideStunt, stuntGround, stuntSurface } from './stun
 const tau = Math.PI * 2;
 const clamp = T.MathUtils.clamp;
 const smooth = (v: number) => { v = clamp(v, 0, 1); return v * v * (3 - 2 * v); };
-const groundHeight = (x: number, z: number) => {
+const baseGroundHeight = (x: number, z: number) => {
   const upland = 6 * smooth((-z - 200) / 78);
-  return stuntGround(x,z,T.MathUtils.lerp(-0.55, upland, smooth((x + 122) / 36)));
+  return T.MathUtils.lerp(-0.55, upland, smooth((x + 122) / 36));
 };
+const groundHeight=(x:number,z:number)=>stuntGround(x,z,baseGroundHeight(x,z));
 function noiseGenerator(seed: number) {
   return () => { seed = (Math.imul(1664525, seed) + 1013904223) >>> 0; return seed / 4294967296; };
 }
@@ -81,11 +82,13 @@ export function createWorld(): World {
   function grid(x1:number,x2:number,z1:number,z2:number,nx:number,nz:number,m:T.Material,yOffset=0) {
     const p:number[]=[],uv:number[]=[], idx:number[]=[];
     for(let j=0;j<=nz;j++) for(let i=0;i<=nx;i++) {
-      const x=x1+(x2-x1)*i/nx, z=z1+(z2-z1)*j/nz; p.push(x,groundHeight(x,z)+yOffset,z); uv.push(x,z);
+      // The arena has its own floor and ramps. Sampling its raised collision
+      // surface on this coarse grid would slope adjacent terrain over the road.
+      const x=x1+(x2-x1)*i/nx, z=z1+(z2-z1)*j/nz; p.push(x,baseGroundHeight(x,z)+yOffset,z); uv.push(x,z);
       if(i<nx&&j<nz&&!insideStunt(x+(x2-x1)/nx/2,z+(z2-z1)/nz/2)) { const a=j*(nx+1)+i; idx.push(a,a+nx+1,a+1,a+1,a+nx+1,a+nx+2); }
     }
     const g=new T.BufferGeometry(); g.setAttribute('position',new T.Float32BufferAttribute(p,3)); g.setAttribute('uv',new T.Float32BufferAttribute(uv,2)); g.setIndex(idx);g.computeVertexNormals();
-    const mesh=new T.Mesh(g,m); mesh.receiveShadow=true;group.add(mesh);
+    const mesh=new T.Mesh(g,m);mesh.name='Base terrain';mesh.receiveShadow=true;group.add(mesh);
   }
   grid(-88,513,-475,475,8,200,surface.land,-.018);
   grid(-130,-86,-475,475,18,200,surface.sand,-.011);
@@ -122,11 +125,11 @@ export function createWorld(): World {
       for(let i=0;i<pts.length;i++){
         const here=pts[i],before=pts[Math.max(i-1,0)],after=pts[Math.min(i+1,pts.length-1)];
         const dx=after.x-before.x,dz=after.z-before.z,len=Math.hypot(dx,dz);
-        for(const s of [-.5,.5]) {const x=here.x+s*width*dz/len,z=here.z-s*width*dx/len;p.push(x,groundHeight(x,z)+lift,z);uv.push(x,z);}
+        for(const s of [-.5,.5]) {const x=here.x+s*width*dz/len,z=here.z-s*width*dx/len;p.push(x,baseGroundHeight(x,z)+lift,z);uv.push(x,z);}
         if(i<pts.length-1){const a=i*2;indices.push(a,a+2,a+1,a+1,a+2,a+3);}
       }
       const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();
-      const mesh=new T.Mesh(g,m);mesh.receiveShadow=true;group.add(mesh);
+      const mesh=new T.Mesh(g,m);mesh.name=m===surface.asphalt?'Road asphalt':'Road underlay';mesh.receiveShadow=true;group.add(mesh);
     }
     strip(r.width+2.6,surface.walk,.023+n*.001);strip(r.width,surface.asphalt,.039+n*.002);
     let length=0;
