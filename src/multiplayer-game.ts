@@ -12,7 +12,7 @@ const colorCar=(car:Car,color:number)=>car.group.traverse(o=>{if(o instanceof T.
 export class MultiplayerGame {
   session:RoomSession;remote:RemoteVehicle;private epoch=0;private initialGuest=false;private stageAck='';private checkpoint=new T.Group();private trackLine?:T.Line;
   private trackId='';private stoppedRace='';private shadow:ReturnType<typeof createContactShadows>;private lastConnected=false;
-  constructor(private opts:{world:World;scene:T.Scene;drive:Driving;car:Car;atlas:CountyAtlas;paused:()=>boolean;lighting:()=>Lighting;light:(value:Lighting)=>void;teleported:()=>void;toast:(text:string)=>void}){
+  constructor(private opts:{world:World;scene:T.Scene;drive:Driving;car:Car;atlas:CountyAtlas;paused:()=>boolean;lighting:()=>Lighting;light:(value:Lighting)=>void;beginRace:()=>boolean;teleported:()=>void;toast:(text:string)=>void}){
     const {scene,world}=opts;this.remote=new RemoteVehicle(scene,world);this.shadow=createContactShadows(scene,world,false);this.shadow.shadow.visible=false;
     this.session=new RoomSession(()=>this.pose(),()=>{const remote=this.session.remote();world.remotePositions?.splice(0,world.remotePositions.length,...(remote?[new T.Vector3(remote.x,remote.y,remote.z)]:[]));if(opts.paused()||!this.canDrive())world.stepEnvironment?.(.05,opts.drive.state.position);},opts.lighting);
     this.session.onChange=()=>this.changed();this.session.onError=text=>{$('room-status').textContent=text;opts.toast(text);};
@@ -57,7 +57,7 @@ export class MultiplayerGame {
       $('race-ready').hidden=race?.phase!=='ready';($('race-ready') as HTMLButtonElement).disabled=view.players.filter(p=>p.connected).length<2||Boolean(race?.ready.includes(mine.id));
       $('race-ready').textContent=race?.ready.includes(mine.id)?'Ready · waiting':'Ready to race';
       $('race-rematch').hidden=!(host&&race?.phase==='results');$('race-free').hidden=!(host&&race);
-      if(race?.phase==='staging'&&this.stageAck!==race.track+':'+mine.pose.epoch){this.stageAck=race.track+':'+mine.pose.epoch;session.send({type:'spawned'});}
+      if(race?.phase==='staging'&&this.stageAck!==race.track+':'+mine.pose.epoch&&this.opts.beginRace()){this.stageAck=race.track+':'+mine.pose.epoch;session.send({type:'spawned'});}
     }else if(!c){this.epoch=0;this.initialGuest=false;this.lastConnected=false;this.opts.world.remotePositions?.splice(0);this.remote.root.visible=false;this.shadow.shadow.visible=false;colorCar(this.opts.car,0x143c40);}
     this.lastConnected=session.connected;
   }

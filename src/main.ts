@@ -68,7 +68,7 @@ async function boot() {
   const drive = new Driving(world);
   const chase = new ChaseCamera(camera, world);
   const audio = new GameAudio();
-  const multiplayer=new MultiplayerGame({world,scene,drive,car,atlas,paused:()=>paused,lighting:()=>lighting,light:applyLighting,teleported:()=>{keys.clear();orbit.yaw=0;orbitLast=elapsed;},toast});
+  const multiplayer=new MultiplayerGame({world,scene,drive,car,atlas,paused:()=>paused,lighting:()=>lighting,light:applyLighting,beginRace:()=>{if(!started)return false;if(atlasOpen){atlasOpen=false;atlas.close();}if(photoMode){photoMode=false;$('photo-mode').hidden=true;}setPaused(false);return true;},teleported:()=>{keys.clear();orbit.yaw=0;orbitLast=elapsed;},toast});
   const hemi = new THREE.HemisphereLight('#a9d9e1', '#a38a63', 2);
   scene.add(hemi);
   const sun = new THREE.DirectionalLight('#ffd0a0', 3.5);
