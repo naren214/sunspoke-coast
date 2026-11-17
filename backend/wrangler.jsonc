@@ -6,5 +6,5 @@
   "workers_dev": true,
   "durable_objects": {"bindings": [{"name":"ROOMS","class_name":"CoastRoom"}]},
   "migrations": [{"tag":"v1","new_sqlite_classes":["CoastRoom"]}],
-  "vars": {"ALLOWED_ORIGINS":"https://sunspoke-coast-naren.coolbream8192.chatgpt.site"}
+  "vars": {"ALLOWED_ORIGINS":"https://sunspoke-coast-naren.coolbream8192.chatgpt.site,https://suncoast.coolbream8192.chatgpt.site"}
 }
