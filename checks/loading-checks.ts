@@ -28,6 +28,10 @@ const request:typeof fetch=(url,options)=>fetch(base+url,options);
 const manifest=(paths:string[],bytes=payload.length):BootManifest=>({version:'test-version',totalBytes:bytes*paths.length,assets:paths.map(url=>({url,bytes,label:'Test coast file',type:'application/json'}))});
 
 try{
+  const nativeFetch=globalThis.fetch;
+  globalThis.fetch=function(url,options){assert.equal(this,globalThis,'Browser fetch requires its Window/global receiver');return nativeFetch(base+url,options);};
+  const browserReceiver=new GameDownloads(()=>{});
+  try{await browserReceiver.preload(manifest(['/receiver']));}finally{browserReceiver.release();globalThis.fetch=nativeFetch;}
   const states:DownloadState[]=[],downloads=new GameDownloads(s=>states.push({...s}),request);
   await downloads.preload(manifest(['/chunked','/encoded']));
   assert.ok(states.some(s=>s.loaded>0&&s.loaded<s.total),'Real streamed intermediate progress');

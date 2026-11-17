@@ -8,7 +8,7 @@ type RecordEntry={asset:DownloadAsset;loaded:number;complete:boolean;bytes?:Arra
 export class GameDownloads {
   private entries=new Map<string,RecordEntry>();private aborter=new AbortController();private stopped=false;
   private timer?:ReturnType<typeof setTimeout>;private timeoutError?:Error;
-  constructor(private changed:(state:DownloadState)=>void,private request:typeof fetch=fetch,private idleMs=45000){}
+  constructor(private changed:(state:DownloadState)=>void,private request:typeof fetch=(url,options)=>globalThis.fetch(url,options),private idleMs=45000){}
   private touch(){clearTimeout(this.timer);this.timer=setTimeout(()=>{this.timeoutError=Error('The download stopped responding. Check your connection and retry.');this.aborter.abort(this.timeoutError);},this.idleMs);}
   private key(url:string){return url.split(/[?#]/,1)[0];}
   state(label='Loading game data'):DownloadState{
