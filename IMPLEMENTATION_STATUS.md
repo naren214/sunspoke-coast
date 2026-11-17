@@ -1,6 +1,6 @@
 # Sunspoke Coast visual upgrade status
 
-Review build: 17 November 2026. The visual systems below are implemented in source and included in the production build. Browser acceptance and publication remain pending. The current live Site and GitHub main still contain the preceding release.
+Review build: 17 November 2026. The visual systems below are implemented in source and included in the production build. The owner authorized GitHub main and Site publication on 17 November 2026 despite the pending browser acceptance checks. Publication does not establish that those checks passed.
 
 | Area | Implemented | Evidence and remaining review |
 | --- | --- | --- |
@@ -16,12 +16,12 @@ Review build: 17 November 2026. The visual systems below are implemented in sour
 | Camera and UI | Retained interpolated chase camera, indoor profile, district label, staged loading, map export, F2 photo mode and performance export | Camera stability passes at 60–165 Hz. Browser interactions, screenshots and exports still need click-through verification. |
 | Loading and delivery | Prebaked static world, local models/maps/HDRs, background detail loads, credits and full source/build ZIP | TypeScript, production build, asset decoding and static download-budget checks pass. No external asset service is needed to play. |
 
-## Acceptance gate still open
+## Browser acceptance still open
 
 - Capture beachfront, casino approach, headland, downtown, canals, port, airport, island, Sierra Verde, Silver Lake, bridge and gallery at golden hour, twilight and night. Inspect road visibility, horizon, lighting, signs, car/cabin detail, prop placement and LOD transitions.
 - Drive the principal loops and all connectors in the browser. Exercise braking/reverse, handbrake, glancing contact, reset, ramp jump, façade orbit and gallery entry/exit. Pause/resume with a driving key held; verify map/photo export, volume and audio response.
 - On the available Intel Iris Xe laptop, complete three five-minute foreground Low-quality drives at a 1920 × 1080 browser viewport. Record browser/GPU, the 1440 × 810 internal render size, median and p95 frame times, average FPS, console errors and missing requests. The target is 30 FPS; no current-build measurement establishes that target yet.
-- Fix any observed failures, rerun affected checks, then publish the exact verified commit to GitHub main and the existing Site. Refresh the ZIP if code changes during acceptance.
+- The owner's 17 November publication request supersedes the earlier requirement to complete browser acceptance before release. Keep these checks marked unverified. Fix any later observed failures, rerun affected checks and publish the corrected commit; refresh the ZIP when code changes.
 
 Browser control failed with Windows cursor-access denial. The native retry was then stopped because the browser URL could not be determined reliably enough to enforce browser access policy. That prevents current-build browser inspection; headless geometry tests and earlier screenshots cannot replace it.
 

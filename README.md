@@ -14,7 +14,7 @@ The current source and included build add 29 imported CC0 model designs with thr
 
 The county now has textured grass meadows, imported palms and trees, roadside furniture, additional homes and lakefront towers, terrain foundations, riverbank reeds, district signs, boats, birds and flags. Road improvements include continuous curved asphalt, curbs, shoulders, turn arrows, crossings and reflectors. The gallery has fitted image displays, glass sensor doors and entrance status lights. Static scenery is prebaked locally to avoid rebuilding the entire county during browser startup.
 
-**Release status:** code, build and automated checks pass. This visual upgrade has not been published to the live Site or GitHub main: current-build browser screenshots, interaction/audio checks and three five-minute Intel Iris Xe performance drives remain pending because native browser access was stopped. Earlier screenshots and timings in `TESTING.md` describe older builds. See `IMPLEMENTATION_STATUS.md` for the exact completion boundary.
+**Release status:** code, build and automated checks pass. The owner authorized GitHub main and Site publication on 17 November 2026 with browser acceptance still pending. Current-build browser screenshots, interaction/audio checks and three five-minute Intel Iris Xe performance drives remain unverified because native browser access was stopped. Earlier screenshots and timings in `TESTING.md` describe older builds. See `IMPLEMENTATION_STATUS.md` for the exact verification boundary.
 
 ## Sierra Verde and Silver Lake
 

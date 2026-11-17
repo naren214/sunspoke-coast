@@ -2,7 +2,7 @@
 
 ## Visual upgrade review build — 17 November 2026
 
-**Publication is pending browser acceptance.** The current source and downloadable build include the visual upgrade. They have not replaced the preceding Site/GitHub release. All browser screenshots and render timings in older sections below are historical evidence for those builds.
+**Browser acceptance remains pending.** The current source and downloadable build include the visual upgrade. The owner authorized GitHub main and Site publication on 17 November 2026 before completing browser acceptance. All browser screenshots and render timings in older sections below are historical evidence for those builds.
 
 The final TypeScript/production build passes. The following current-build checks pass:
 
@@ -20,7 +20,7 @@ Run the commands in `README.md` to reproduce the checks. `checks/release-checks.
 
 Current-build browser visual inspection, console capture, audio response, map/photo click-through and sustained FPS remain **unverified**. Windows browser control returned `GetCursorPos failed: Access is denied. (0x80070005)`. The native retry was then stopped because the current browser URL could not be determined reliably enough to enforce policy. No alternative browser automation was used to bypass that stop.
 
-The release gate is the screenshot/interaction checklist and three five-minute foreground Low-quality drives specified in `IMPLEMENTATION_STATUS.md`. Target viewport: 1920 × 1080 on Intel Iris Xe; expected Low internal size: 1440 × 810. No current-build median/p95 frame time, measured FPS or console-error result is available yet. Use **Save performance report** in the pause menu during acceptance and retain the reports with screenshots.
+The outstanding browser review is the screenshot/interaction checklist and three five-minute foreground Low-quality drives specified in `IMPLEMENTATION_STATUS.md`. Target viewport: 1920 × 1080 on Intel Iris Xe; expected Low internal size: 1440 × 810. No current-build median/p95 frame time, measured FPS or console-error result is available yet. Use **Save performance report** in the pause menu during acceptance and retain the reports with screenshots.
 
 ## Sierra Verde, modern Silver Lake and drive-in gallery - 15 November 2026
 
