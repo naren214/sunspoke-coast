@@ -294,10 +294,11 @@ export class Driving {
     let nextSpeed = Math.sign(speed || this.gear) * Math.hypot(this.vx, this.vz);
     if (state.braking) nextSpeed = approach(nextSpeed, 0, (footBrake ? 12.5 : 7.5) * STEP);
     else if (direction && direction === this.gear) {
-      const topSpeed = direction > 0 ? 40 : 8;
+      const topSpeed = direction > 0 ? 250 / 3.6 : 8;
       const acceleration = direction > 0 ? 7.2 : 4.2;
-      nextSpeed += direction * acceleration * state.throttle * Math.max(0, 1 - (absSpeed / topSpeed) ** 2) * STEP;
-      nextSpeed = approach(nextSpeed, 0, rolling * STEP);
+      nextSpeed += direction * acceleration * state.throttle * Math.max(0, 1 - (Math.min(absSpeed,direction>0?30:8) / (direction>0?40:topSpeed)) ** 2) * STEP;
+      nextSpeed = approach(nextSpeed, 0, rolling * (1-(direction>0?MathUtils.smoothstep(absSpeed,30,50):0)*state.throttle) * STEP);
+      nextSpeed = clamp(nextSpeed, -8, 250 / 3.6);
     } else nextSpeed = approach(nextSpeed, 0, rolling * STEP);
     if (shifting || (footBrake && Math.abs(nextSpeed) < 0.15)) nextSpeed = 0;
 
@@ -314,9 +315,10 @@ export class Driving {
     this.vx = -s * longitudinal + c * lateral;
     this.vz = -c * longitudinal - s * lateral;
     // At maximum speed the footprint advances under 0.3m per collision pass.
-    for (let part = 0; part < 2; part++) {
-      pos.x += this.vx * STEP * 0.5;
-      pos.z += this.vz * STEP * 0.5;
+    const collisionSteps=Math.max(2,Math.ceil(Math.abs(nextSpeed)*STEP/.3));
+    for (let part = 0; part < collisionSteps; part++) {
+      pos.x += this.vx * STEP / collisionSteps;
+      pos.z += this.vz * STEP / collisionSteps;
       this.collide(c, s);
     }
     const surface=this.surfaceHeight(pos.x,pos.z);
