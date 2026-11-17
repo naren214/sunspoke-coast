@@ -1,0 +1,23 @@
+import {build} from 'esbuild';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+const root=fileURLToPath(new URL('../',import.meta.url)),output=fileURLToPath(new URL('../.cache/multiplayer-ui.mjs',import.meta.url));
+await build({stdin:{resolveDir:root,loader:'ts',contents:`
+import assert from 'node:assert/strict';import{createCanvas}from'@napi-rs/canvas';import{Scene,Group,Vector3}from'three';
+import{MultiplayerGame}from'./src/multiplayer-game';import{Driving}from'./src/driving';import{createCar}from'./src/car';import{RoomEngine}from'./shared/room';import catalog from'./shared/tracks.json';
+const nodes=new Map();globalThis.document={createElement:()=>createCanvas(1,1),getElementById:id=>{if(!nodes.has(id))nodes.set(id,{id,addEventListener(){},select(){},hidden:false,value:'',textContent:''});return nodes.get(id);},querySelectorAll:()=>[]};
+const world={group:new Group(),colliders:[],roads:[],groundHeight:()=>0,surfaceHeight:()=>0,update(){},remotePositions:[]};
+let started=false,paused=true,resumes=0;const drive=new Driving(world),car=createCar(),scene=new Scene();scene.add(car.group);
+const game=new MultiplayerGame({scene,world,drive,car,atlas:{updatePlayers(){},setRaceRoute(){}},paused:()=>paused,lighting:()=> 'golden',light(){},toast(){},teleported(){},beginRace:()=>{if(!started)return false;resumes++;paused=false;return true;}});
+const engine=RoomEngine.create('007',catalog.mapVersion,catalog.tracks),host=engine.credentials(engine.data.players[0]),guest=engine.add('guest',Date.now());engine.connect(host,Date.now());engine.connect(guest,Date.now());
+engine.receive(host.id,{type:'select',track:'beachfront'},Date.now());engine.receive(host.id,{type:'ready'},Date.now());engine.receive(guest.id,{type:'ready'},Date.now());
+game.session.credentials=host;game.session.connected=true;game.session.view=engine.view(Date.now());const sent=[];game.session.send=m=>sent.push(m);
+game.changed();assert.equal(sent.length,0,'Do not acknowledge race staging before Drive has started');
+started=true;game.changed();assert.equal(resumes,1);assert.equal(paused,false);assert.equal(sent.filter(m=>m.type==='spawned').length,1);assert.equal(drive.state.speed,0);assert.equal(game.canDrive(),false);
+game.changed();assert.equal(resumes,1,'Do not repeatedly close menus for the same starting grid');
+game.session.view.race.phase='countdown';game.session.view.race.startAt=Date.now()+3000;game.update(0);assert.match(nodes.get('race-hud').textContent,/3.*Beachfront/);
+game.session.view.race.phase='racing';assert.equal(game.canDrive(),true);game.update(1);assert.ok(game.checkpoint.visible);
+game.session.view.race.racers[host.id].finished=12000;game.changed();assert.equal(game.canDrive(),false);assert.equal(drive.state.speed,0);game.update(2);assert.match(nodes.get('race-hud').textContent,/Finished/);
+console.log('PASS actual multiplayer UI/controller: wait for Drive, resume before staging acknowledgement, visible countdown, checkpoint gate and finish freeze (headless DOM/geometry check)');
+`},bundle:true,platform:'node',format:'esm',packages:'external',define:{'import.meta.env':'{}'},outfile:output});
+const result=spawnSync(process.execPath,[output],{cwd:root,encoding:'utf8',timeout:30000});process.stdout.write(result.stdout??'');process.stderr.write(result.stderr??'');if(result.error)throw result.error;process.exit(result.status??1);
