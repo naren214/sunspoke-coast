@@ -14,7 +14,7 @@ try{
  const a=await connect(h),b=await connect(g);await until(()=>a.room.players.filter(p=>p.connected).length===2);
  a.send(JSON.stringify({type:'lighting',value:'night'}));await until(()=>b.room.lighting==='night');
  const p=a.room.players.find(p=>p.id===h.id).pose;a.send(JSON.stringify({type:'snapshot',pose:{...p,x:-64,z:209,seq:p.seq+1}}));await until(()=>b.room.players.find(p=>p.id===h.id).pose.x===-64);
- a.send(JSON.stringify({type:'select',track:'airport'}));await until(()=>b.room.race?.phase==='ready');a.send(JSON.stringify({type:'ready'}));b.send(JSON.stringify({type:'ready'}));await until(()=>b.room.race?.phase==='staging');a.send(JSON.stringify({type:'spawned'}));b.send(JSON.stringify({type:'spawned'}));await until(()=>b.room.race?.phase==='countdown');
+ a.send(JSON.stringify({type:'select',track:process.argv[4]??'airport'}));await until(()=>b.room.race?.phase==='ready');a.send(JSON.stringify({type:'ready'}));b.send(JSON.stringify({type:'ready'}));await until(()=>b.room.race?.phase==='staging');a.send(JSON.stringify({type:'spawned'}));b.send(JSON.stringify({type:'spawned'}));await until(()=>b.room.race?.phase==='countdown');
  a.send(JSON.stringify({type:'free'}));await until(()=>!b.room.race);
  b.close();await until(()=>a.room.players.some(p=>p.id===g.id&&!p.connected));const resumed=await connect(g);await until(()=>a.room.players.filter(p=>p.connected).length===2);assert.equal(a.room.players.length,2);
  a.send(JSON.stringify({type:'leave'}));await until(()=>resumed.room.closed);
