@@ -9,6 +9,7 @@ export interface World {
   colliders: Collider[];
   dynamicColliders?: Collider[];
   stepEnvironment?: (dt: number, carPosition: THREE.Vector3) => void;
+  remotePositions?: THREE.Vector3[];
   loadAssets?: () => Promise<void>;
   setQuality?: (quality: Quality) => void;
   roads: Road[];

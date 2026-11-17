@@ -699,6 +699,7 @@ export function createWorld(prebuilt?:T.Group): World {
     night:['#38636b','#233f56','#384e64','#9aaeb4','#99b7ce']
   };
   const nearbyLighting=createNearbyLighting(group,lightSources);
+  const remotePositions:T.Vector3[]=[];
   let last:Lighting|undefined;
   function update(time:number,lighting:Lighting,carPosition:T.Vector3){
     meadow.update(time,carPosition);ambientLife.update(time,lighting);
@@ -721,7 +722,7 @@ export function createWorld(prebuilt?:T.Group): World {
   group.userData.cityArea={original:CITY.originalArea,current:CITY.area,ratio:CITY.area/CITY.originalArea};
   group.userData.districts=DISTRICTS;
   group.userData.lightSources=lightSources.length;group.userData.placements=placements;
-  return {group,roads,colliders,visualHeight:(x,z)=>{if(insideGallery(x,z))return GALLERY.floor+.08;const p=roadIndex!.nearest(x,z);return stuntSurface(x,z,p.distance<=p.width/2+.3?p.height+.06:groundHeight(x,z));},setQuality:(quality)=>{meadow.setQuality(quality);nearbyLighting.setQuality(quality);ambientLife.setQuality(quality);},dynamicColliders:gallery.dynamicColliders,stepEnvironment:gallery.step,loadAssets:gallery.loadAssets,groundHeight,surfaceHeight:(x,z)=>{if(insideGallery(x,z))return GALLERY.floor+.08;const p=roadIndex!.nearest(x,z);return stuntSurface(x,z,p.distance<=p.width/2+0.3?p.height:groundHeight(x,z));},update,bounds:CITY};
+  return {group,roads,colliders,visualHeight:(x,z)=>{if(insideGallery(x,z))return GALLERY.floor+.08;const p=roadIndex!.nearest(x,z);return stuntSurface(x,z,p.distance<=p.width/2+.3?p.height+.06:groundHeight(x,z));},setQuality:(quality)=>{meadow.setQuality(quality);nearbyLighting.setQuality(quality);ambientLife.setQuality(quality);},dynamicColliders:gallery.dynamicColliders,remotePositions,stepEnvironment:(dt,p)=>gallery.step(dt,p,remotePositions),loadAssets:gallery.loadAssets,groundHeight,surfaceHeight:(x,z)=>{if(insideGallery(x,z))return GALLERY.floor+.08;const p=roadIndex!.nearest(x,z);return stuntSurface(x,z,p.distance<=p.width/2+0.3?p.height:groundHeight(x,z));},update,bounds:CITY};
 }
 
 

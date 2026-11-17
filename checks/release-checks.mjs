@@ -6,7 +6,7 @@ import {resolve} from 'node:path';
 const root=fileURLToPath(new URL('../',import.meta.url)),dist=resolve(root,'dist');
 const read=path=>readFile(resolve(root,path),'utf8');
 async function walk(path){const files=[];for(const entry of await readdir(path,{withFileTypes:true})){const next=resolve(path,entry.name);files.push(...(entry.isDirectory()?await walk(next):[next]));}return files;}
-const html=await read('index.html'),main=await read('src/main.ts');
+const html=await read('index.html'),main=(await Promise.all(['src/main.ts','src/multiplayer-game.ts'].map(read))).join('\n');
 const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);assert.equal(new Set(ids).size,ids.length,'Unique UI identifiers');
 for(const match of main.matchAll(/\$\(\s*['"]([^'"]+)['"]/g))assert.ok(ids.includes(match[1]),'UI element '+match[1]);
 const manifest=JSON.parse(await read('public/assets/manifest.json')),urls=new Set(['/assets/manifest.json','/world/metadata.json','/world/county.json.gz','/assets/car/cayenne-low.glb','/assets/car/cayenne-high.glb']);

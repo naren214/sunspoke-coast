@@ -7,3 +7,8 @@ dist/
 
 source/assets/cache/
 **/__pycache__/
+
+.wrangler/
+.env.local
+.env.*.local
+.dev.vars*

@@ -193,6 +193,24 @@ export class Driving {
     this.snapPresentation();
   }
 
+  teleport(position:Vector3,heading:number,rememberSafe=false){
+    this.reset();this.state.position.copy(position);this.state.heading=heading;
+    if(rememberSafe){this.safePosition.copy(position);this.safeHeading=heading;}
+    this.snapPresentation();
+  }
+
+  findRoadSpawn(anchor:Vector3){
+    const candidates:{point:Vector3;heading:number;distance:number}[]=[];
+    for(const road of this.world.roads)for(let i=1;i<road.points.length;i++){
+      const a=road.points[i-1],b=road.points[i],dx=b.x-a.x,dz=b.z-a.z,len=Math.hypot(dx,dz);if(len<.01||road.width<12)continue;
+      const t=clamp(((anchor.x-a.x)*dx+(anchor.z-a.z)*dz)/(len*len),0,1),x=a.x+dx*t,z=a.z+dz*t;
+      for(const side of [3,-3,0]){const point=new Vector3(x-dz/len*side,0,z+dx/len*side);point.y=(this.world.surfaceHeight??this.world.groundHeight)(point.x,point.z);candidates.push({point,heading:Math.atan2(-dx,-dz),distance:point.distanceToSquared(anchor)});}
+    }
+    candidates.sort((a,b)=>a.distance-b.distance);
+    for(const candidate of candidates){const p=candidate.point,neighbors=this.index.query(p.x-4,p.z-4,p.x+4,p.z+4);if([...neighbors].every(b=>p.y>b.top+.1||p.y+VEHICLE.height<b.bottom||!contact(p.x,p.z,Math.cos(candidate.heading),Math.sin(candidate.heading),b,{x:0,z:0,depth:0})))return candidate;}
+    return {point:new Vector3(-62,(this.world.surfaceHeight??this.world.groundHeight)(-62,210),210),heading:0,distance:0};
+  }
+
   step(dt: number, input: DriveInput) {
     this.syncExternalPose();
     this.accumulated += clamp(dt, 0, 0.12);

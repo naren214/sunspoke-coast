@@ -8,15 +8,23 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "prebuild": "node scripts/bake-world.mjs",
-    "predev": "node scripts/bake-world.mjs"
+    "predev": "node scripts/bake-world.mjs",
+    "multiplayer:dev": "wrangler dev --config backend/wrangler.jsonc --local --port 8787",
+    "multiplayer:deploy": "wrangler deploy --config backend/wrangler.jsonc",
+    "multiplayer:check": "tsc --project tsconfig.backend.json --noEmit && node checks/multiplayer-checks.ts",
+    "multiplayer:network": "node checks/multiplayer-network.mjs"
   },
   "dependencies": {
     "three": "^0.181.1"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261117.1",
     "@napi-rs/canvas": "^1.1.1",
     "@types/three": "^0.181.0",
+    "@types/ws": "^8.18.2",
     "typescript": "^5.9.3",
-    "vite": "^7.2.2"
+    "vite": "^7.2.2",
+    "wrangler": "^4.164.0",
+    "ws": "^8.23.0"
   }
 }

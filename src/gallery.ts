@@ -112,9 +112,9 @@ export function createGrandGallery(){
   }
   const status=()=>doors.map(d=>({z:d.z,open:d.open,hold:d.hold}));
   group.userData={floor,clearance,artworks:GALLERY_ART.length,doors:status(),inside:false};
-  function step(dt:number,position:T.Vector3){
+  function step(dt:number,position:T.Vector3,others:readonly T.Vector3[]=[]){
     for(const door of doors){
-      const sensor=Math.abs(position.x-x)<32&&Math.abs(position.z-door.z)<62&&Math.abs(position.y-floor)<9;
+      const sensor=[position,...others].some(p=>Math.abs(p.x-x)<32&&Math.abs(p.z-door.z)<62&&Math.abs(p.y-floor)<9);
       if(sensor)door.hold=2.5;else door.hold=Math.max(0,door.hold-dt);
       // Constant-speed sliding doors fully clear the 28m opening in 0.9s.
       door.open=T.MathUtils.clamp(door.open+(door.hold>0?1:-1)*dt/0.9,0,1);

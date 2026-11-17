@@ -44,5 +44,11 @@ try{
   car.group.traverse(object=>{assert.ok(object.position.toArray().every(Number.isFinite));assert.ok([object.rotation.x,object.rotation.y,object.rotation.z].every(Number.isFinite));});
   const wheels=car.group.children.filter(object=>object.name.startsWith('wheel_'));assert.equal(wheels.length,4);
   assert.ok(wheels.some(wheel=>Math.abs(wheel.rotation.y)>.1));
+  const friend=createCar({color:0xc9684d,label:'Friend Cayenne'});await friend.loadAssets();friend.setQuality('low');
+  const localMeshes:Mesh[]=[],friendMeshes:Mesh[]=[];car.group.traverse(o=>{if(o instanceof Mesh)localMeshes.push(o);});friend.group.traverse(o=>{if(o instanceof Mesh)friendMeshes.push(o);});
+  assert.equal(localMeshes.length,friendMeshes.length);for(let i=0;i<localMeshes.length;i++){assert.equal(localMeshes[i].geometry,friendMeshes[i].geometry,'Cars share cached immutable GLB geometry');assert.notEqual(localMeshes[i].material,friendMeshes[i].material,'Each car keeps its own materials');}
+  const paint=friendMeshes.flatMap(o=>Array.isArray(o.material)?o.material:[o.material]).find(m=>m.name==='paint') as any;assert.equal(paint.color.getHex(),0xc9684d);
+  const hostSteer=wheels[0].rotation.y;friend.update(12,-.5,.5,true,2,1);assert.equal(wheels[0].rotation.y,hostSteer,'Remote animation must not change local pivots');
+  console.log('PASS two differently colored Cayennes share geometry with independent materials and wheel animation');
   console.log('PASS real car GLB loading, preserved bounds/materials, animated pivots and Low/High geometry budgets',JSON.stringify(counts));
 }finally{globalThis.Request=OriginalRequest;server.close();}

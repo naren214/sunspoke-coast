@@ -1,5 +1,15 @@
 # Sunspoke Coast verification
 
+## Two-player rooms and races — 17 November 2026
+
+TypeScript checks for the frontend and Worker pass. The production frontend build and Worker dry-run build pass. Domain checks cover three-digit codes, leading zeros, room capacity, private tokens, roles, version mismatch, stale snapshots, reconnect/expiry, all three races, readiness/grid/countdown, checkpoint order, reverse/elevated crossings, reset penalties, results, DNF and rematches. Interpolation checks cover reordered/missing frames, heading wrap, reset epochs and bounded extrapolation.
+
+Two actual WebSocket clients passed against both the local Worker and the deployed Cloudflare endpoint: create/join/full, movement, shared lighting, readiness/countdown, free roam, reconnect and host departure. The production RoomSession implementation also passed two-client tests without any rendering loop, exercising 20 Hz background snapshots, pause/map-independent timers, reconnection and leave cleanup. These are protocol/client integration checks, not two-browser driving sessions.
+
+Both Cayennes share immutable optimized geometry while retaining separate paint, materials and wheel animations. Gallery regression checks verify that a remote car opens a sensor door while the local car is elsewhere, and that doors close after the remote car leaves. Existing driving, camera stability, 53-road route checks, bridge/gallery traversal and asset decoding checks pass.
+
+Native two-browser visual interaction, cross-network human driving, audio response and Intel Iris Xe FPS remain unverified because browser automation remains unavailable. The permanent backend is deployed in the owner's verified Cloudflare account; it does not depend on the temporary test account. `MULTIPLAYER.md` records setup and ownership requirements; credentials and account claim links are excluded from source and ZIPs.
+
 ## Visual upgrade review build — 17 November 2026
 
 **Browser acceptance remains pending.** The current source and downloadable build include the visual upgrade. The owner authorized GitHub main and Site publication on 17 November 2026 before completing browser acceptance. All browser screenshots and render timings in older sections below are historical evidence for those builds.

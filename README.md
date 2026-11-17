@@ -8,7 +8,13 @@ Press **M** to open the county atlas. It draws the actual road geometry, coast, 
 
 This is original procedural geography inspired by the city, coast, islands and countryside mix in [Rockstar's official location overview](https://www.rockstargames.com/VI/only-in-leonida). All buildings and scenery are bundled/generated locally.
 
-## Visual upgrade — local review build
+## Play with a friend
+
+Press **Esc** and use **Play with a friend**, above Visual quality. Choose **Create room**, copy its three-digit code, and let your friend paste it and choose **Join**. You drive the teal Cayenne; your friend drives the coral Cayenne. Both players can explore or enter the beachfront circuit, Silver Lake circuit and airport sprint. Cars are ghosts to each other. The host chooses a race; both players click **Ready** before the shared countdown.
+
+Multiplayer requires internet access and the online room server. Solo driving remains available offline. See `MULTIPLAYER.md` for race rules, local development and server ownership. The multiplayer server is deployed permanently in the owner's verified Cloudflare account.
+
+## Visual upgrade
 
 The current source and included build add 29 imported CC0 model designs with three detail levels, seven PBR surface sets and three bundled HDR lighting environments. The Cayenne has sculpted body panels, clearer cabin details, brushed wheels, animated steering and brake lights, and the gold **NAREN** hatch signature. Low and higher-detail car GLBs preserve the same dimensions and handling.
 

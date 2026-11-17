@@ -5,15 +5,18 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import type { Car, Quality } from "./types";
 import { VEHICLE } from "./vehicle.ts";
 
+const sharedCarGeometry=new Map<string,Promise<Map<string,THREE.BufferGeometry>>>();
+
 /** Procedural Cayenne SUV, in metres, facing local -Z. */
-export function createCar(): Car & { setQuality: (quality: Quality) => void; loadAssets: (progress?: (loaded:number,total:number)=>void, essentialOnly?:boolean) => Promise<void> } {
+export interface CarAppearance {color?:number;label?:string;}
+export function createCar(appearance:CarAppearance={}): Car & { setQuality: (quality: Quality) => void; loadAssets: (progress?: (loaded:number,total:number)=>void, essentialOnly?:boolean) => Promise<void> } {
   const group = new THREE.Group();
-  group.name = "Porsche Cayenne";
+  group.name = appearance.label??"Porsche Cayenne";
   const body = new THREE.Group();
   body.name="cayenne_body";
   group.add(body);
   const paint = new THREE.MeshPhysicalMaterial({
-    color: 0x143c40,
+    color: appearance.color??0x143c40,
     metalness: 0.64,
     roughness: 0.22,
     clearcoat: 1,
@@ -732,6 +735,8 @@ export function createCar(): Car & { setQuality: (quality: Quality) => void; loa
       try{
         const levels=(essentialOnly?['low']:['low','high']).filter(level=>!loadedAssets.has(level));
         await Promise.all(levels.map(async level=>{
+          if(!sharedCarGeometry.has(level))sharedCarGeometry.set(level,(async()=>{
+          const geometries=new Map<string,THREE.BufferGeometry>();
           const asset=await loader.loadAsync('/assets/car/cayenne-'+level+'.glb');asset.scene.updateMatrixWorld(true);
           for(const [id,part] of parts){
             const incoming=asset.scene.getObjectByName(id);
@@ -740,10 +745,13 @@ export function createCar(): Car & { setQuality: (quality: Quality) => void; loa
             // Blender exports glTF image UVs with a flipped V axis. The game
             // deliberately retains its existing CanvasTextures (flipY=true).
             const uv=geometry.getAttribute('uv');if(uv){for(let i=0;i<uv.count;i++)uv.setY(i,1-uv.getY(i));uv.needsUpdate=true;}
-            geometry.computeBoundingSphere();if(level==='low')part.low=geometry;else part.high=geometry;
+            geometry.computeBoundingSphere();geometries.set(id,geometry);
           }
           const retired=new Set<THREE.BufferGeometry>();
           asset.scene.traverse(object=>{if(object instanceof THREE.Mesh&&!retired.has(object.geometry)){retired.add(object.geometry);object.geometry.dispose();}});
+          return geometries;})().catch(error=>{sharedCarGeometry.delete(level);throw error;}));
+          const geometries=await sharedCarGeometry.get(level)!;
+          for(const[id,part]of parts){const geometry=geometries.get(id);if(geometry){if(level==='low')part.low=geometry;else part.high=geometry;}}
           loadedAssets.add(level);progress?.(++completed,levels.length);
         }));
         setQuality(currentQuality);group.userData.assetStatus='optimized-local-glb';

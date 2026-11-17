@@ -18,6 +18,7 @@ import {loadBakedWorld} from './world-cache';
 import {VISUAL_QUALITY,createContactShadows,createOutdoorEnvironment} from './visuals';
 import {insideGallery,WATERS} from './geography';
 import {districtAt} from './districts';
+import {MultiplayerGame} from './multiplayer-game';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const clamp = THREE.MathUtils.clamp;
@@ -67,6 +68,7 @@ async function boot() {
   const drive = new Driving(world);
   const chase = new ChaseCamera(camera, world);
   const audio = new GameAudio();
+  const multiplayer=new MultiplayerGame({world,scene,drive,car,atlas,paused:()=>paused,lighting:()=>lighting,light:applyLighting,teleported:()=>{keys.clear();orbit.yaw=0;orbitLast=elapsed;},toast});
   const hemi = new THREE.HemisphereLight('#a9d9e1', '#a38a63', 2);
   scene.add(hemi);
   const sun = new THREE.DirectionalLight('#ffd0a0', 3.5);
@@ -121,7 +123,7 @@ async function boot() {
   }
   function applyQuality(next: Quality) {
     quality = next;
-    world.setQuality?.(next);car.setQuality(next);scenery.setQuality(next);library.setQuality(next);
+    world.setQuality?.(next);car.setQuality(next);multiplayer.quality(next);scenery.setQuality(next);library.setQuality(next);
     ao.enabled=presets[next].ao;lakeReflection.visible=presets[next].reflection;
     $('quality-description').textContent={low:'Lighter detail · contact shadows · 75% resolution',medium:'Full resolution · sun shadows · soft bloom',high:'Rich detail · ambient shading · lake reflections'}[next];
     renderer.shadowMap.enabled = next !== 'low';
@@ -195,12 +197,12 @@ async function boot() {
   $('close-map').onclick=toggleAtlas;$('open-map').onclick=toggleAtlas;
   $('pause-button').onclick = () => setPaused(true);
   $('resume').onclick = () => setPaused(false);
-  function reset() { drive.reset(); orbit.yaw = 0; orbit.pitch = .34; orbit.distance = 8.2; toast('Back on the coast road'); }
+  function reset() { if(!multiplayer.reset())drive.reset(); orbit.yaw = 0; orbit.pitch = .34; orbit.distance = 8.2; toast('Back on the coast road'); }
   $('reset').onclick = () => { reset(); setPaused(false); };
   $('hide-hint').onclick = () => { showControls = false; $('hint').hidden = true; ($('controls-toggle') as HTMLInputElement).checked = false; persist(); };
   $('controls-toggle').onchange = e => { showControls = (e.target as HTMLInputElement).checked; persist(); };
   $('volume').oninput = e => { volume = Number((e.target as HTMLInputElement).value) / 100; audio.setVolume(volume); persist(); };
-  document.querySelectorAll('#lighting button').forEach(button => button.addEventListener('click', () => { applyLighting((button as HTMLElement).dataset.value as Lighting); persist(); }));
+  document.querySelectorAll('#lighting button').forEach(button => button.addEventListener('click', () => { applyLighting((button as HTMLElement).dataset.value as Lighting); multiplayer.setLighting(lighting); persist(); }));
   document.querySelectorAll('#quality button').forEach(button => button.addEventListener('click', () => { applyQuality((button as HTMLElement).dataset.value as Quality); document.querySelectorAll('#quality button').forEach(b => b.classList.toggle('selected', b === button)); persist(); }));
   const drivingKeys = ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight','Space','ShiftLeft','ShiftRight','KeyR','KeyM','F2','Escape'];
   window.addEventListener('keydown', e => {
@@ -249,11 +251,12 @@ async function boot() {
       if(!paused&&rawDt>0)frameTimes.push(rawDt*1000); if (frameTimes.length>60000) frameTimes.shift();
       fpsFrames++; if (now-fpsStart>1000) { measuredFps=fpsFrames*1000/(now-fpsStart);fpsStart=now;fpsFrames=0; }
     }
+    multiplayer.update(elapsed);
     if(atlasOpen){canvas.dataset.ready='true';return;}
     if (!paused) {
       input.forward=keys.has('KeyW')||keys.has('ArrowUp'); input.backward=keys.has('KeyS')||keys.has('ArrowDown'); input.left=keys.has('KeyA')||keys.has('ArrowLeft'); input.right=keys.has('KeyD')||keys.has('ArrowRight'); input.handbrake=keys.has('Space');
       input.brake=keys.has('ShiftLeft')||keys.has('ShiftRight');
-      if(!captureJump)drive.step(dt,input);
+      if(!captureJump&&multiplayer.canDrive())drive.step(dt,input);
       if (!dragging && elapsed-orbitLast>2.5) { orbit.yaw=THREE.MathUtils.damp(orbit.yaw,0,1.5,dt);orbit.pitch=THREE.MathUtils.damp(orbit.pitch,.34,1,dt); }
     }
     const state = drive.renderState(captureJump);
@@ -291,7 +294,7 @@ async function boot() {
   progress(1,'Ready when you are');$('loading-progress').hidden=true;
   $('drive').innerHTML = 'Drive <span>↗</span>';
   ($('drive') as HTMLButtonElement).disabled = false;
-  requestAnimationFrame(animate);void scenery.remaining();
+  requestAnimationFrame(animate);void scenery.remaining();void multiplayer.init();
   if (new URLSearchParams(location.search).has('qa')) {
     const params = new URLSearchParams(location.search);
     const report = document.createElement('script'); report.id='qa-report'; report.type='application/json'; document.body.append(report);
@@ -300,7 +303,7 @@ async function boot() {
     const gl = renderer.getContext();
     const ext = gl.getExtension('WEBGL_debug_renderer_info');
     (window as any).__SUNSPOKE__ = {
-      drive, world, car, camera, renderer, audio, input,
+      drive, world, car, camera, renderer, audio, input, multiplayer,
       pause: setPaused, light: applyLighting, quality: applyQuality,
       teleport(x:number,z:number,heading=0) { stateTeleport(x,z,heading); },
       stats() { const sorted=[...frameTimes].sort((a,b)=>a-b);return {fps:measuredFps,medianMs:sorted[Math.floor(sorted.length*.5)],p95Ms:sorted[Math.floor(sorted.length*.95)],frames:sorted.length,width:innerWidth,height:innerHeight,renderWidth:canvas.width,renderHeight:canvas.height,quality,lighting,paused,renderer:ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER),airborne:drive.state.airborne,verticalSpeed:drive.state.verticalSpeed,pitch:drive.state.pitch,captureJump,stunt:world.group.getObjectByName('RAMP TIME stunt compound')?.userData,cityArea:world.group.userData.cityArea,beachgoers:world.group.getObjectByName('Adult beachgoers')?.userData,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,speed:drive.state.speed,heading:drive.state.heading,steering:drive.state.steering,position:drive.state.position.toArray(),audioState:(audio as any).ctx?.state,audioGain:(audio as any).master?.gain.value}; },

@@ -6,6 +6,10 @@ export class CountyAtlas {
   private root=document.getElementById('atlas')!;
   private canvas=document.getElementById('atlas-map') as HTMLCanvasElement;
   private ctx=this.canvas.getContext('2d')!;
+  private friend?:{x:number;z:number;heading:number};
+  private raceRoute?:number[][];
+  updatePlayers(state:DriveState,friend?:{x:number;z:number;heading:number}){this.pose={x:state.position.x,z:state.position.z,heading:state.heading};this.friend=friend;if(!this.root.hidden)this.draw();}
+  setRaceRoute(points?:number[][]){this.raceRoute=points;}
   private zoom=1;
   private panX=0;
   private panY=0;
@@ -57,6 +61,8 @@ export class CountyAtlas {
     const stunt=point(-101,0);c.fillStyle='#f6b861';c.beginPath();c.arc(stunt[0],stunt[1],4,0,Math.PI*2);c.fill();
     c.font='10px Barlow,Arial';c.textAlign='right';c.fillText('RAMP TIME',stunt[0]-9,stunt[1]);
     const p=point(this.pose.x,this.pose.z);c.save();c.translate(p[0],p[1]);c.rotate(-this.pose.heading);c.beginPath();c.moveTo(0,-10);c.lineTo(6,7);c.lineTo(0,4);c.lineTo(-6,7);c.closePath();c.fillStyle='#ffcf71';c.shadowColor='#10222c';c.shadowBlur=7;c.fill();c.restore();
+    if(this.raceRoute){c.beginPath();this.raceRoute.forEach(([x,y,z],i)=>{const p=point(x,z);i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]);});c.strokeStyle='#edb977';c.lineWidth=3;c.stroke();}
+    if(this.friend){const p=point(this.friend.x,this.friend.z);c.fillStyle='#ed8d72';c.beginPath();c.arc(p[0],p[1],6,0,Math.PI*2);c.fill();c.font='12px Barlow,Arial';c.textAlign='left';c.fillText('Friend',p[0]+10,p[1]);}
     c.fillStyle='#f1e4bd';c.textAlign='left';c.font='600 12px Barlow,Arial';c.fillText('N ↑',22,25);
     c.strokeStyle='#e4d6b6';c.lineWidth=2;c.beginPath();c.moveTo(22,h-23);c.lineTo(22+200*scale,h-23);c.stroke();c.font='10px Barlow,Arial';c.fillText('200 m',22,h-36);
   }
