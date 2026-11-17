@@ -1,5 +1,13 @@
 # Sunspoke Coast verification
 
+## Downtown Switchbacks and turn guidance — 17 November 2026
+
+The fourth race follows existing Crown Street/Downtown Avenue geometry for a 2,258 m closed lap with 12 rounded corners. A continuous keyboard-input test driver completed all 827 waypoints in 226.083 simulated seconds. All 828 route points remain inside existing road clearance with vehicle-footprint allowance. These are deterministic geometry/driving checks, not a manual browser lap.
+
+The race has 44 ordered checkpoint gates, including turn-exit gates. Domain checks pass for readiness, countdown, completion, reset penalties, DNF and rematch on all four races. Navigation checks verify left/right classification, approach distance, off-route guidance and correct turn selection on both passes through the repeated central street. Chevron tests verify only the next two signs remain active and that sign resources are disposed when switching races.
+
+The actual headless UI/controller check verifies the visible turn card, 12 chevron markers, early braking guidance at 250 km/h, and cleanup when returning to free roam. Native browser visuals, human laps and GPU/FPS remain unverified. Reproduce the focused route check with `node checks/switchbacks-checks.mjs`.
+
 ## Two-player rooms and races â€” 17 November 2026
 
 TypeScript checks for the frontend and Worker pass. The production frontend build and Worker dry-run build pass. Domain checks cover three-digit codes, leading zeros, room capacity, private tokens, roles, version mismatch, stale snapshots, reconnect/expiry, all three races, readiness/grid/countdown, checkpoint order, reverse/elevated crossings, reset penalties, results, DNF and rematches. Interpolation checks cover reordered/missing frames, heading wrap, reset epochs and bounded extrapolation.

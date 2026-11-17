@@ -13,7 +13,9 @@ The room code is a short invitation code, not a password or an account system. S
 
 ## Race together
 
-The host chooses **Beachfront Circuit**, **Silver Lake Circuit**, or **Airport Sprint**. Both players choose **Ready to race**. The game places both cars on the starting grid and begins a shared three-second countdown after both acknowledge their positions.
+The host chooses **Beachfront Circuit**, **Silver Lake Circuit**, **Airport Sprint**, or **Downtown Switchbacks**. Both players choose **Ready to race**. The game places both cars on the starting grid and begins a shared three-second countdown after both acknowledge their positions.
+
+Downtown Switchbacks runs for approximately 2.26 km through the existing downtown streets, with 12 rounded right/left turns. Glowing roadside chevrons mark the next two corners. The turn card shows direction, distance and corner number; braking guidance appears earlier at higher speeds. The 45 km/h indication is cornering advice, not a speed limiter.
 
 Follow the highlighted route and pass checkpoint gates in order. The server records progress, finishing time, penalties and results. **R** returns to the last checkpoint with a five-second penalty. Outside a race, normal road recovery remains available. Your race clock continues while you pause. A finished player waits for the other player for up to 120 seconds; an unfinished player then receives DNF. The host can choose **Rematch** or **Free roam**.
 

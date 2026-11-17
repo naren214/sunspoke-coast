@@ -8,6 +8,7 @@ const root=fileURLToPath(new URL('../',import.meta.url));
 const inputs=['world','grass','roads','geography','county-roads','road-grading','highlands','stunt','beachgoers','gallery','gallery-catalog','visuals','districts'];
 const hash=createHash('sha256').update(await readFile(new URL(import.meta.url)));
 for(const file of inputs)hash.update(await readFile(new URL('../src/'+file+'.ts',import.meta.url)));
+for(const file of ['switchback-route','protocol'])hash.update(await readFile(new URL('../shared/'+file+'.ts',import.meta.url)));
 const fingerprint=hash.digest('hex'),out=new URL('../public/world/',import.meta.url);
 try{const existing=JSON.parse(await readFile(new URL('metadata.json',out),'utf8'));if(existing.fingerprint===fingerprint){await stat(new URL('county.json.gz',out));await stat(new URL('../shared/tracks.json',import.meta.url));console.log('County bake is current');process.exit(0);}}catch{}
 await mkdir(new URL('../.cache/',import.meta.url),{recursive:true});await mkdir(out,{recursive:true});
@@ -15,6 +16,7 @@ const runner=new URL('../.cache/bake-world-runner.mjs',import.meta.url);
 await build({stdin:{contents:`
 import{createCanvas,GlobalFonts,ImageData}from'@napi-rs/canvas';
 import{Group,InstancedMesh}from'three';import{createWorld}from'./src/world.ts';
+import{buildSwitchbacks}from'./shared/switchback-route.ts';
 import{writeFileSync}from'node:fs';import{gzipSync}from'node:zlib';
 const canvas=createCanvas(1,1);globalThis.HTMLCanvasElement=canvas.constructor;globalThis.ImageData=ImageData;
 globalThis.document={createElement(){return createCanvas(1,1);},createElementNS(){return createCanvas(1,1);}};
@@ -23,6 +25,7 @@ const start=performance.now(),world=createWorld(),baked=new Group();baked.name='
 const coast=world.roads[0].points;let nearest=0;coast.forEach((p,i)=>{if(Math.hypot(p.x+65,p.z-210)<Math.hypot(coast[nearest].x+65,coast[nearest].z-210))nearest=i;});
 const loop=[...coast.slice(nearest),...coast.slice(1,nearest+1)];
 const tracks=[{id:'beachfront',name:'Beachfront Circuit',closed:true,width:18,points:loop},{id:'silver-lake',name:'Silver Lake Circuit',closed:true,width:17,points:world.roads.find(r=>r.name==='Silver Lake Circuit').points},{id:'airport',name:'Airport Sprint',closed:false,width:34,points:[{x:110,z:520,y:world.surfaceHeight(110,520)},{x:410,z:520,y:world.surfaceHeight(410,520)}]}].map(track=>({...track,points:track.points.filter((p,i)=>i===0||i===track.points.length-1||i%3===0).map(p=>[p.x,p.y,p.z].map(n=>Math.round(n*1000)/1000))}));
+tracks.push(buildSwitchbacks((x,z)=>world.surfaceHeight(x,z)));
 writeFileSync('shared/tracks.json',JSON.stringify({mapVersion:'${fingerprint}:rooms-v1',tracks}));
 baked.userData={roadImprovements:world.group.userData.roadImprovements};
 for(const child of world.group.children.slice())if(child instanceof InstancedMesh||child.name==='Base terrain'||child.name.startsWith('Road ')||child.name==='Raised road curbs'||child.name==='County grass meadows')baked.add(child);

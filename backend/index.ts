@@ -1,7 +1,8 @@
 import {DurableObject} from 'cloudflare:workers';
 import {RoomEngine,RoomError} from '../shared/room.ts';
-import {PROTOCOL,validCode} from '../shared/protocol.ts';
+import {PROTOCOL,validCode,type Track} from '../shared/protocol.ts';
 import catalog from '../shared/tracks.json';
+const tracks=catalog.tracks as Track[];
 interface Env {ROOMS:DurableObjectNamespace<CoastRoom>;ALLOWED_ORIGINS:string;}
 const json=(value:unknown,status=200)=>Response.json(value,{status});
 export default {
@@ -41,7 +42,7 @@ export default {
 export class CoastRoom extends DurableObject<Env>{
   engine?:RoomEngine;
   ready:Promise<void>;
-  constructor(ctx:DurableObjectState,env:Env){super(ctx,env);this.ready=ctx.blockConcurrencyWhile(async()=>{const data=await ctx.storage.get<any>('room');if(data)this.engine=new RoomEngine(data,catalog.tracks);});}
+  constructor(ctx:DurableObjectState,env:Env){super(ctx,env);this.ready=ctx.blockConcurrencyWhile(async()=>{const data=await ctx.storage.get<any>('room');if(data)this.engine=new RoomEngine(data,tracks);});}
   async save(){if(this.engine)await this.ctx.storage.put('room',this.engine.data);}
   broadcast(){if(!this.engine)return;const message=JSON.stringify({type:'room',room:this.engine.view(Date.now())});for(const ws of this.ctx.getWebSockets()){if(ws.deserializeAttachment()?.id)try{ws.send(message);}catch{}}}
   async fetch(request:Request){
@@ -56,7 +57,7 @@ export class CoastRoom extends DurableObject<Env>{
         if(body.protocol!==PROTOCOL||body.mapVersion!==catalog.mapVersion)throw new RoomError('Game versions differ. Both players must refresh.',412);
         if(url.pathname==='/create'){
           if(this.engine&&!this.engine.data.closed){await this.save();return json({error:'Code occupied.'},409);}
-          this.engine=RoomEngine.create(url.searchParams.get('code')!,catalog.mapVersion,catalog.tracks,now,body.pose);
+          this.engine=RoomEngine.create(url.searchParams.get('code')!,catalog.mapVersion,tracks,now,body.pose);
           if(['golden','twilight','night'].includes(body.lighting))this.engine.data.lighting=body.lighting;
         }else if(!this.engine||this.engine.data.closed)throw new RoomError('Room expired or code not found.',404);
         const credentials=url.pathname==='/create'?this.engine!.credentials(this.engine!.data.players[0]):this.engine!.add('guest',now);

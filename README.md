@@ -10,7 +10,7 @@ This is original procedural geography inspired by the city, coast, islands and c
 
 ## Play with a friend
 
-Press **Esc** and use **Play with a friend**, above Visual quality. Choose **Create room**, copy its three-digit code, and let your friend paste it and choose **Join**. You drive the teal Cayenne; your friend drives the coral Cayenne. Both players can explore or enter the beachfront circuit, Silver Lake circuit and airport sprint. Cars are ghosts to each other. The host chooses a race; both players click **Ready** before the shared countdown.
+Press **Esc** and use **Play with a friend**, above Visual quality. Choose **Create room**, copy its three-digit code, and let your friend paste it and choose **Join**. You drive the teal Cayenne; your friend drives the coral Cayenne. Both players can explore or enter the beachfront circuit, Silver Lake circuit, airport sprint and Downtown Switchbacks. Downtown Switchbacks adds a 2.26 km lap with 12 rounded corners, roadside chevrons and next-turn/braking guidance. Cars are ghosts to each other. The host chooses a race; both players click **Ready** before the shared countdown.
 
 Multiplayer requires internet access and the online room server. Solo driving remains available offline. See `MULTIPLAYER.md` for race rules, local development and server ownership. The multiplayer server is deployed permanently in the owner's verified Cloudflare account.
 

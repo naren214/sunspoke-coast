@@ -7,11 +7,15 @@ import type {World,Lighting,Quality,Car} from './types';
 import {Driving} from './driving';
 import {CountyAtlas} from './atlas';
 import {createContactShadows} from './visuals';
+import {turnGuidance} from '../shared/navigation';
+import {createTurnMarkers} from './turn-markers';
 const $=<E extends HTMLElement>(id:string)=>document.getElementById(id) as E;
+const label=(id:string,text:string)=>{const node=$(id);if(node.textContent!==text)node.textContent=text;};
 const colorCar=(car:Car,color:number)=>car.group.traverse(o=>{if(o instanceof T.Mesh)for(const m of Array.isArray(o.material)?o.material:[o.material])if((m.name==='paint'||m.name==='side_paint')&&m instanceof T.MeshStandardMaterial)m.color.setHex(color);});
 export class MultiplayerGame {
   session:RoomSession;remote:RemoteVehicle;private epoch=0;private initialGuest=false;private stageAck='';private checkpoint=new T.Group();private trackLine?:T.Line;
   private trackId='';private stoppedRace='';private shadow:ReturnType<typeof createContactShadows>;private lastConnected=false;
+  private turnMarkers?:ReturnType<typeof createTurnMarkers>;
   constructor(private opts:{world:World;scene:T.Scene;drive:Driving;car:Car;atlas:CountyAtlas;paused:()=>boolean;lighting:()=>Lighting;light:(value:Lighting)=>void;beginRace:()=>boolean;teleported:()=>void;toast:(text:string)=>void}){
     const {scene,world}=opts;this.remote=new RemoteVehicle(scene,world);this.shadow=createContactShadows(scene,world,false);this.shadow.shadow.visible=false;
     this.session=new RoomSession(()=>this.pose(),()=>{const remote=this.session.remote();world.remotePositions?.splice(0,world.remotePositions.length,...(remote?[new T.Vector3(remote.x,remote.y,remote.z)]:[]));if(opts.paused()||!this.canDrive())world.stepEnvironment?.(.05,opts.drive.state.position);},opts.lighting);
@@ -76,12 +80,26 @@ export class MultiplayerGame {
     this.opts.atlas.updatePlayers(this.opts.drive.renderState(),remote);
     const track=catalog.tracks.find(t=>t.id===race?.track) as Track|undefined;
     if(this.trackId!==(track?.id??'')){
+      this.turnMarkers?.dispose();this.turnMarkers=undefined;
       this.trackId=track?.id??'';if(this.trackLine){this.opts.scene.remove(this.trackLine);this.trackLine.geometry.dispose();(this.trackLine.material as T.Material).dispose();this.trackLine=undefined;}
       if(track){const geometry=new T.BufferGeometry().setFromPoints(track.points.map(([x,y,z])=>new T.Vector3(x,y+.2,z)));this.trackLine=new T.Line(geometry,new T.LineBasicMaterial({color:'#e3bd79',transparent:true,opacity:.6}));this.opts.scene.add(this.trackLine);}
       this.opts.atlas.setRaceRoute(track?.points);
+      if(track?.turns?.length)this.turnMarkers=createTurnMarkers(this.opts.scene,track);
     }
+    $('turn-hud').hidden=true;
     this.checkpoint.visible=false;let text='';
     if(race&&track&&id){const racer=race.racers[id],gates=gatesFor(track);
+      if(track.turns?.length){
+        const active=['countdown','racing'].includes(race.phase),hint=racer&&racer.finished===null&&!racer.dnf?turnGuidance(track,this.opts.drive.state.position,racer.next):undefined;
+        this.turnMarkers!.root.visible=race.phase!=='results'&&(!active||Boolean(hint));this.turnMarkers!.setCurrent(hint?.index??0,active);
+        if(active&&hint){
+          const speed=Math.abs(this.opts.drive.state.speed),close=hint.distance<=Math.max(90,(speed*speed-(45/3.6)**2)/16+20),fast=speed*3.6>55;
+          $('turn-hud').hidden=false;$('turn-hud').dataset.warning=String(close&&fast||hint.offRoute);
+          $('turn-arrow').textContent=hint.offRoute?'!':hint.turn.direction==='left'?'↰':'↱';
+          $('turn-direction').textContent=hint.offRoute?'Return to the route':`${close&&fast?'Brake · ':''}${hint.turn.direction==='left'?'Left':'Right'} turn`;
+          $('turn-distance').textContent=hint.offRoute?'Follow the next checkpoint':`${hint.distance<=12?'Turn now':hint.distance+' m'} · Corner ${hint.index+1}/${track.turns.length} · 45 km/h`;
+        }
+      }
       if(race.phase==='ready')text='Ready for '+track.name;
       else if(race.phase==='staging')text='Moving to the starting grid…';
       else if(race.phase==='countdown')text=String(Math.max(1,Math.ceil((race.startAt-session.now())/1000)))+' · '+track.name;

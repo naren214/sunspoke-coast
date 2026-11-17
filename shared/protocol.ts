@@ -1,7 +1,8 @@
 export const PROTOCOL = 1;
 export type Pose = {x:number;y:number;z:number;heading:number;speed:number;steering:number;throttle:number;braking:boolean;airborne:boolean;pitch:number;verticalSpeed:number;seq:number;epoch:number};
-export type Track = {id:string;name:string;closed:boolean;points:number[][];width:number};
-export type Gate = {x:number;y:number;z:number;dx:number;dz:number;width:number};
+export type Turn = {direction:'left'|'right';distance:number;x:number;y:number;z:number;heading:number;signX:number;signY:number;signZ:number};
+export type Track = {id:string;name:string;closed:boolean;points:number[][];width:number;turns?:Turn[];checkpointSpacing?:number};
+export type Gate = {x:number;y:number;z:number;dx:number;dz:number;width:number;distance?:number};
 export type Racer = {next:number;penalty:number;finished:number|null;dnf:boolean;spawned:boolean};
 export type Race = {track:string;phase:'ready'|'staging'|'countdown'|'racing'|'results';ready:string[];startAt:number;deadline:number;racers:Record<string,Racer>};
 export type Member = {id:string;role:'host'|'guest';pose:Pose;connected:boolean};
@@ -12,7 +13,19 @@ export function validCode(code:unknown):code is string{return typeof code==='str
 export function validPose(p:any):p is Pose {
   return p&&['x','y','z','heading','speed','steering','throttle','pitch','verticalSpeed','seq','epoch'].every(k=>typeof p[k]==='number'&&Number.isFinite(p[k]))&&p.x>=-150&&p.x<=1450&&p.z>=-1320&&p.z<=1120&&p.y>=-30&&p.y<=250&&Math.abs(p.speed)<=70&&Math.abs(p.verticalSpeed)<=100&&Math.abs(p.heading)<=Math.PI*2&&Math.abs(p.steering)<=2&&p.throttle>=0&&p.throttle<=1&&Math.abs(p.pitch)<=Math.PI&&Number.isSafeInteger(p.seq)&&p.seq>=0&&Number.isSafeInteger(p.epoch)&&p.epoch>=0&&typeof p.braking==='boolean'&&typeof p.airborne==='boolean';
 }
-export function gatesFor(track:Track):Gate[]{
+const gateCache=new WeakMap<Track,Gate[]>();
+export function gatesFor(track:Track):Gate[]{let gates=gateCache.get(track);if(!gates){gates=buildGates(track);gateCache.set(track,gates);}return gates;}
+function buildGates(track:Track):Gate[]{
+  if(track.turns?.length){
+    const lengths=[0];for(let i=1;i<track.points.length;i++){const a=track.points[i-1],b=track.points[i];lengths.push(lengths.at(-1)!+Math.hypot(b[0]-a[0],b[2]-a[2]));}
+    const total=lengths.at(-1)!,spacing=track.checkpointSpacing??80,targets:number[]=[];
+    for(let s=spacing;s<total-12;s+=spacing)targets.push(s);
+    for(const turn of track.turns)if(turn.distance+22<total-12)targets.push(turn.distance+22);
+    targets.sort((a,b)=>a-b);
+    // Keep gates far enough apart for high-speed network snapshots.
+    const spaced:number[]=[];for(const s of targets)if(!spaced.length||s-spaced.at(-1)!>=12)spaced.push(s);while(spaced.length&&total-spaced.at(-1)!<12)spaced.pop();spaced.push(total);
+    return spaced.map(distance=>{let i=1;while(i<lengths.length-1&&lengths[i]<distance)i++;const a=track.points[i-1],b=track.points[i],length=lengths[i]-lengths[i-1],t=(distance-lengths[i-1])/length;return {x:a[0]+(b[0]-a[0])*t,y:a[1]+(b[1]-a[1])*t,z:a[2]+(b[2]-a[2])*t,dx:(b[0]-a[0])/length,dz:(b[2]-a[2])/length,width:track.width,distance};});
+  }
   const points=track.points,result:Gate[]=[];let distance=0,target=80;
   for(let i=1;i<points.length;i++){
     const a=points[i-1],b=points[i],length=Math.hypot(b[0]-a[0],b[2]-a[2]);if(length<.001)continue;
