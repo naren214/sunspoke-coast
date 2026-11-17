@@ -1,4 +1,3 @@
-import './style.css';
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -19,6 +18,8 @@ import {VISUAL_QUALITY,createContactShadows,createOutdoorEnvironment} from './vi
 import {insideGallery,WATERS} from './geography';
 import {districtAt} from './districts';
 import {MultiplayerGame} from './multiplayer-game';
+import type {GameDownloads} from './downloads';
+import type {OpeningScreen} from './opening';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const clamp = THREE.MathUtils.clamp;
@@ -40,7 +41,8 @@ const frameTimes: number[] = [];
 
 const presets=VISUAL_QUALITY;
 
-async function boot() {
+export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
+  THREE.DefaultLoadingManager.setURLModifier(url=>downloads.resource(url));
   const renderer = new THREE.WebGLRenderer({ canvas: $('scene') as HTMLCanvasElement, antialias: true, powerPreference: 'high-performance' });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -50,12 +52,11 @@ async function boot() {
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2('#e9be94', .00145);
   const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, .2, 1800);
-  let loadingFraction=0;
-  const progress=(fraction:number,label:string)=>{if(fraction<loadingFraction)return;loadingFraction=fraction;$('loading-status').textContent=label;$('loading-fill').style.width=`${Math.round(fraction*100)}%`;};
+  const progress=(_fraction:number,label:string)=>opening.stage(label);
   progress(.02,'Loading Sunspoke Coast');await new Promise(resolve=>requestAnimationFrame(resolve));
-  const library=new AssetLibrary();
+  const library=new AssetLibrary(downloads);
   await Promise.all([document.fonts.load('190px CoastSignature'),document.fonts.load('900 245px Barlow'),library.init()]);
-  const baked=await loadBakedWorld(progress);
+  const baked=await loadBakedWorld(progress,downloads);
   const world = createWorld(baked);
   const scenery=createImportedScenery(world.group,library,world.group.userData.placements??[]);
   const atlas=new CountyAtlas(world);
@@ -206,6 +207,7 @@ async function boot() {
   document.querySelectorAll('#quality button').forEach(button => button.addEventListener('click', () => { applyQuality((button as HTMLElement).dataset.value as Quality); document.querySelectorAll('#quality button').forEach(b => b.classList.toggle('selected', b === button)); persist(); }));
   const drivingKeys = ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight','Space','ShiftLeft','ShiftRight','KeyR','KeyM','F2','Escape'];
   window.addEventListener('keydown', e => {
+    if(!started)return;
     if (!drivingKeys.includes(e.code)) return;
     if(e.code==='F2'&&started&&!e.repeat){e.preventDefault();togglePhoto();return;}
     if(e.code==='Escape'&&photoMode&&!e.repeat){e.preventDefault();togglePhoto();return;}
@@ -242,7 +244,6 @@ async function boot() {
   let fpsFrames = 0;
   let measuredFps = 0;
   function animate(now: number) {
-    requestAnimationFrame(animate);
     const rawDt = (now-lastFrame)/1000;
     const dt = Math.min(rawDt,.05);
     lastFrame = now;
@@ -252,7 +253,7 @@ async function boot() {
       fpsFrames++; if (now-fpsStart>1000) { measuredFps=fpsFrames*1000/(now-fpsStart);fpsStart=now;fpsFrames=0; }
     }
     multiplayer.update(elapsed);
-    if(atlasOpen){canvas.dataset.ready='true';return;}
+    if(atlasOpen){canvas.dataset.ready='true';requestAnimationFrame(animate);return;}
     if (!paused) {
       input.forward=keys.has('KeyW')||keys.has('ArrowUp'); input.backward=keys.has('KeyS')||keys.has('ArrowDown'); input.left=keys.has('KeyA')||keys.has('ArrowLeft'); input.right=keys.has('KeyD')||keys.has('ArrowRight'); input.handbrake=keys.has('Space');
       input.brake=keys.has('ShiftLeft')||keys.has('ShiftRight');
@@ -266,8 +267,8 @@ async function boot() {
     car.update(paused?0:state.speed,state.steering,paused?0:state.throttle,state.braking,elapsed,lighting==='golden'?0:lighting==='night'?1:.5);
     if (!started) {
       const a = Math.sin(elapsed*.06)*.07;
-      camera.position.set(-72+Math.sin(a)*3,3.5,217);
-      camera.lookAt(-61,1.1,202);
+      camera.position.set(-72.8+Math.sin(a)*1.2,3.6,216.8);
+      camera.lookAt(-67,2.6,207.7);
     } else if(captureJump){camera.position.set(-81,17,24);camera.lookAt(-101,3,0);} else {
       interiorBlend=THREE.MathUtils.damp(interiorBlend,insideGallery(state.position.x,state.position.z)?1:0,2.5,dt);
       chase.update(dt,state,photoMode?orbit:{...orbit,distance:THREE.MathUtils.lerp(orbit.distance,Math.min(orbit.distance,6.8),interiorBlend),pitch:THREE.MathUtils.lerp(orbit.pitch,.25,interiorBlend*.55)});
@@ -288,13 +289,16 @@ async function boot() {
     $('speed-fill').style.width = `${Math.min(100,Math.abs(state.speed)/32*100)}%`;
     if (bloom.enabled||ao.enabled) composer.render(); else renderer.render(scene,camera);
     canvas.dataset.ready = 'true';
+    requestAnimationFrame(animate);
   }
   progress(.82,'Lighting the evening');await library.environment(renderer,'golden').then(e=>scene.environment=e.texture).catch(()=>{});
   progress(.92,'Preparing the first view');await renderer.compileAsync(scene,camera);
-  progress(1,'Ready when you are');$('loading-progress').hidden=true;
-  $('drive').innerHTML = 'Drive <span>↗</span>';
-  ($('drive') as HTMLButtonElement).disabled = false;
-  requestAnimationFrame(animate);void scenery.remaining();void multiplayer.init();
+  await new Promise(resolve=>requestAnimationFrame(resolve));
+  animate(performance.now());
+  opening.ready();
+  THREE.DefaultLoadingManager.setURLModifier(url=>url);
+  downloads.release();
+  void scenery.remaining();void multiplayer.init();
   if (new URLSearchParams(location.search).has('qa')) {
     const params = new URLSearchParams(location.search);
     const report = document.createElement('script'); report.id='qa-report'; report.type='application/json'; document.body.append(report);
@@ -326,4 +330,3 @@ async function boot() {
     },1500);
   }
 }
-boot().catch(error => { console.error(error); $('opening').hidden=true; $('error').hidden=false; $('error-message').textContent = `The 3D scene could not start. ${error instanceof Error ? error.message : String(error)}. Try an up-to-date desktop browser with hardware acceleration enabled.`; });

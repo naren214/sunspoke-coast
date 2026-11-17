@@ -12,3 +12,4 @@ source/assets/cache/
 .env.local
 .env.*.local
 .dev.vars*
+public/boot-manifest.json

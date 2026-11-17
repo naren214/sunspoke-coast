@@ -1,6 +1,8 @@
 # Sunspoke Coast visual upgrade status
 
-Review build: 17 November 2026. The visual systems below are implemented in source and included in the production build. The owner authorized GitHub main and Site publication on 17 November 2026 despite the pending browser acceptance checks. Publication does not establish that those checks passed.
+Review build: 18 November 2026. The homepage refresh and visual systems below are implemented in source and included in the production build. The owner authorized GitHub main and Site publication on 17 November 2026 despite the pending browser acceptance checks. Publication does not establish that those checks passed.
+
+The new opening has locally bundled cinematic artwork, a live car preview, a controls guide and a download panel showing percentage, megabytes, completed files and preparation state. Drive is gated on completed startup assets, shader preparation and the first successful render. Real HTTP and headless-controller checks cover streaming, compressed responses, cache reuse, failures, stalls, retry, cancellation and accessibility state. The gallery portrait and caption remain intact. Current native browser inspection failed before rendering because its runtime could not write kernel assets; visual layout and interaction checks remain open. See the 18 November entry in `TESTING.md`.
 
 | Area | Implemented | Evidence and remaining review |
 | --- | --- | --- |

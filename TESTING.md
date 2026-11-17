@@ -1,6 +1,18 @@
 # Sunspoke Coast verification
 
-## Downtown Switchbacks and turn guidance � 17 November 2026
+## Cinematic opening and download progress — 18 November 2026
+
+The redesigned opening adds local coastal artwork, a responsive layout, a native keyboard-controls disclosure, a live Cayenne preview and download/preparation/ready states. The production build passes. `predev` and `postbuild` generate the same content-versioned startup manifest: 37 files, 21,540,491 bytes. The lightweight opening entry loads independently of the Three.js/game chunk. The progress panel counts startup asset bytes; it excludes the separately loaded engine, CSS, fonts and key art. For HTTP-encoded responses, the panel credits the catalogued file size only on completion because Fetch can deliver decoded chunks. It does not claim to measure wire transfer or connection speed.
+
+`node checks/loading-checks.mjs --http=http://127.0.0.1:4173/` passes real HTTP tests for streamed and encoded responses, monotonic progress, completion accounting, four concurrent workers, missing/empty/truncated files, stalled connections, cancellation and invalid manifests. It downloads every built startup asset and verifies byte counts. The actual Three.js FileLoader consumes a prefetched car GLB through the Blob URL resolver without another server request, and the asset library reads its cached manifest. Object URLs are revoked after use.
+
+The actual opening controller passes headless DOM checks for disabled Drive during both downloading and preparation, ready/live-preview state, ARIA values, error/retry handling, reload and Escape closing the controls guide. The renderer performs its first frame before enabling Drive. These checks do not establish actual browser rendering, layout or click-through behavior. Frontend/backend TypeScript, the production build, existing multiplayer UI/controller checks and imported model/image/hydration checks pass. The gallery portrait and its "World famous" caption remain intact.
+
+Browser inspection was attempted using both the browser-control tool and Windows native browser tooling. Both failed before inspection with `failed to write kernel assets: The system cannot find the path specified. (os error 3)`. The local production page serves successfully and the preview handoff was queued, but no screenshot, browser console, native gameplay/audio check or new GPU/FPS result is claimed. Desktop/compact layout, reduced-motion behavior and the artwork-to-live-preview transition still require visual review in a working browser session.
+
+Manual review: reload with the network cache disabled or a slow connection; confirm actual percentage, MB and file count progress; disconnect and retry; wait through preparation; open/close How to play with mouse and keyboard; start driving; pause/resume; inspect the opening at 1920 × 1080, 1366 × 720 and compact widths. Reproduce asset-serving and static budgets with `node checks/release-checks.mjs --http=http://127.0.0.1:4173/`.
+
+## Downtown Switchbacks and turn guidance — 17 November 2026
 
 The fourth race follows existing Crown Street/Downtown Avenue geometry for a 2,258 m closed lap with 12 rounded corners. A continuous keyboard-input test driver completed all 827 waypoints in 226.083 simulated seconds. All 828 route points remain inside existing road clearance with vehicle-footprint allowance. These are deterministic geometry/driving checks, not a manual browser lap.
 

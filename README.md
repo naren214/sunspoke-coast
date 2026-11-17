@@ -8,6 +8,10 @@ Press **M** to open the county atlas. It draws the actual road geometry, coast, 
 
 This is original procedural geography inspired by the city, coast, islands and countryside mix in [Rockstar's official location overview](https://www.rockstargames.com/VI/only-in-leonida). All buildings and scenery are bundled/generated locally.
 
+## Opening screen
+
+The opening uses locally bundled coastal artwork, a live Cayenne preview, a keyboard-controls guide and an explicit loading panel. Its percentage, received megabytes and completed-file count come from the 37 startup game files (about 21.5 MB), rather than a timed animation. The artwork, fonts and engine code load separately. Download completion is followed by a preparation stage; **Drive the coast** becomes available after shader preparation and the first successful game render. A stalled, missing or incomplete download offers **Retry download**. Cached downloads can finish quickly, and additional scenery/detail levels still load in the background.
+
 ## Play with a friend
 
 Press **Esc** and use **Play with a friend**, above Visual quality. Choose **Create room**, copy its three-digit code, and let your friend paste it and choose **Join**. You drive the teal Cayenne; your friend drives the coral Cayenne. Both players can explore or enter the beachfront circuit, Silver Lake circuit, airport sprint and Downtown Switchbacks. Downtown Switchbacks adds a 2.26 km lap with 12 rounded corners, roadside chevrons and next-turn/braking guidance. Cars are ghosts to each other. The host chooses a race; both players click **Ready** before the shared countdown.
@@ -122,6 +126,7 @@ node checks/world-checks.mjs
 node checks/northern-checks.mjs
 node checks/landscape-checks.mjs
 node checks/visual-checks.mjs
+node checks/loading-checks.mjs
 node checks/release-checks.mjs
 ```
 

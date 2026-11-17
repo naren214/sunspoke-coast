@@ -3,6 +3,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {HDRLoader} from 'three/addons/loaders/HDRLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import type {Lighting,Quality} from './types';
+import type {GameDownloads} from './downloads';
 
 export interface ModelAsset{id:string;url:string;source:string;author:string;license:string;category:string;dimensions?:number[];lods?:Partial<Record<Quality,string>>;}
 export interface MaterialAsset{id:string;baseColor:string;normal?:string;roughness?:string;source:string;author:string;license:string;repeat?:number;}
@@ -10,6 +11,7 @@ export interface AssetManifest{models:ModelAsset[];materials:MaterialAsset[];env
 export type Placement={id:string;x:number;y:number;z:number;height:number;rotation?:number;size?:number[];animate?:boolean;};
 
 export class AssetLibrary{
+  constructor(private downloads?:GameDownloads){}
   manifest:AssetManifest={models:[],materials:[],environments:[]};
   private models=new Map<string,Promise<T.Group>>();
   private environments=new Map<Lighting,Promise<T.WebGLRenderTarget>>();
@@ -18,7 +20,7 @@ export class AssetLibrary{
   private quality:Quality='low';
   private textures:{texture:T.Texture;original:CanvasImageSource&{width:number;height:number}}[]=[];
   errors:string[]=[];
-  async init(){try{const response=await fetch('/assets/manifest.json');if(!response.ok)throw new Error('No asset manifest');this.manifest=await response.json();}catch(e){this.errors.push(String(e));}}
+  async init(){try{if(this.downloads)this.manifest=this.downloads.json<AssetManifest>('/assets/manifest.json');else{const response=await fetch('/assets/manifest.json');if(!response.ok)throw new Error('No asset manifest');this.manifest=await response.json();}}catch(e){this.errors.push(String(e));}}
   async model(id:string,quality:Quality='low'){
     const key=id+':'+quality;
     if(!this.models.has(key)){const asset=this.manifest.models.find(m=>m.id===id);if(!asset)throw new Error('Unknown model '+id);
