@@ -17,7 +17,7 @@ try {
     import { CITY } from './src/city.ts';
     import { COUNTY_ROADS } from './src/county-roads.ts';
     globalThis.document = { createElement() { return { width:0, height:0, getContext() {
-      return new Proxy({createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)})},
+      return new Proxy({createLinearGradient:()=>({addColorStop(){}}),createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)})},
         {get:(target,key)=>key in target ? target[key] : ()=>{}});
     } }; } };
     const world=createWorld(), b=world.bounds;

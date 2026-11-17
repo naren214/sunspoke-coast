@@ -65,6 +65,38 @@ export function createGrandGallery(){
     base+=h;
   }
   box(gold,x,base+13,z,1.4,26,1.4);box(warm,x,base+26,z,2,2,2);
+  // A two-sided rooftop landmark, supported above the highest planted terrace.
+  const boardY=base+18,boardZ=z+17,boardWidth=72,boardHeight=22;
+  for(const side of [-1,1]){
+    box(dark,x+side*10,base+4.5,boardZ,1.5,9,2);
+    box(gold,x+side*10,base+.5,z+7,3,1,22);
+  }
+  box(gold,x,base+7.3,boardZ,74,1.2,2.4);
+  box(dark,x,boardY,boardZ,boardWidth,boardHeight,1.4);
+  for(const side of [-1,1]){
+    box(gold,x,boardY+side*(boardHeight/2+.4),boardZ,boardWidth+1.6,.8,2);
+    box(gold,x+side*(boardWidth/2+.4),boardY,boardZ,.8,boardHeight,2);
+    box(warm,x,boardY+side*(boardHeight/2+.85),boardZ+.95,boardWidth+2,.13,.16);
+  }
+  const boardCanvas=document.createElement('canvas');boardCanvas.width=2048;boardCanvas.height=640;
+  const boardCtx=boardCanvas.getContext('2d')!,boardGradient=boardCtx.createLinearGradient(0,0,2048,640);
+  boardGradient.addColorStop(0,'#102a32');boardGradient.addColorStop(.5,'#245057');boardGradient.addColorStop(1,'#0c222d');
+  boardCtx.fillStyle=boardGradient;boardCtx.fillRect(0,0,2048,640);
+  boardCtx.strokeStyle='#be9b5e';boardCtx.lineWidth=5;boardCtx.strokeRect(30,30,1988,580);
+  boardCtx.strokeStyle='#8b784e';boardCtx.lineWidth=2;boardCtx.strokeRect(43,43,1962,554);
+  boardCtx.textAlign='center';boardCtx.textBaseline='middle';boardCtx.fillStyle='#ffe3a5';
+  boardCtx.font='900 334px Barlow,Arial';boardCtx.fillText('GRAND',1024,280,1780);
+  boardCtx.fillStyle='#c4e3d8';boardCtx.font='600 62px Barlow,Arial';boardCtx.fillText('NAREN GRAND GALLERY',1024,505,1750);
+  boardCtx.fillStyle='#c2a36c';boardCtx.fillRect(230,425,1588,3);
+  const boardTexture=new T.CanvasTexture(boardCanvas);boardTexture.colorSpace=T.SRGBColorSpace;
+  const boardMaterial=new T.MeshStandardMaterial({map:boardTexture,emissiveMap:boardTexture,emissive:'#ffffff',emissiveIntensity:.45,roughness:.65,metalness:.08});
+  const billboard=new T.Group();billboard.name='GRAND rooftop billboard';
+  billboard.userData={text:'GRAND',width:boardWidth,height:boardHeight,roofY:base,bottomY:boardY-boardHeight/2};
+  for(const side of [-1,1]){
+    const face=new T.Mesh(new T.PlaneGeometry(boardWidth,boardHeight),boardMaterial);
+    face.position.set(x,boardY,boardZ+side*.76);face.rotation.y=side>0?0:Math.PI;billboard.add(face);
+  }
+  group.add(billboard);
   // Coherent lighting and a tiled floor, with open circulation on either side.
   for(let xx=x-width/2+8;xx<x+width/2;xx+=12)box(gold,xx,floor+.08,z,.055,.015,depth-3);
   for(let zz=z-depth/2+8;zz<z+depth/2;zz+=12)box(gold,x,floor+.08,zz,width-3,.015,.055);
@@ -124,7 +156,7 @@ export function createGrandGallery(){
     }
     group.userData.doors=status();group.userData.inside=insideGallery(position.x,position.z);
   }
-  function lighting(setting:Lighting){warm.emissiveIntensity=setting==='night'?2:1.3;aqua.emissiveIntensity=setting==='night'?2.3:1.4;}
+  function lighting(setting:Lighting){warm.emissiveIntensity=setting==='night'?2:1.3;aqua.emissiveIntensity=setting==='night'?2.3:1.4;boardMaterial.emissiveIntensity=setting==='night'?1.15:setting==='twilight'?.8:.45;}
   async function loadAssets(){
     const loader=new T.TextureLoader();
     await Promise.all(panels.map(async({material,art})=>{

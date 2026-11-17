@@ -16,7 +16,7 @@ try{
     import {Driving,ChaseCamera} from './src/driving.ts';
     import {driveRoad} from './src/qa.ts';
     import {GALLERY,RIVER,riverAt,isLand,waterLevel} from './src/geography.ts';
-    globalThis.document={createElement(){return {width:0,height:0,getContext(){return new Proxy({createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)})},{get:(o,k)=>k in o?o[k]:()=>{}});}};}};
+    globalThis.document={createElement(){return {width:0,height:0,getContext(){return new Proxy({createLinearGradient:()=>({addColorStop(){}}),createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)})},{get:(o,k)=>k in o?o[k]:()=>{}});}};}};
     const world=createWorld(),gallery=world.group.getObjectByName('NAREN Grand Drive-in Gallery');
     const stats=world.group.userData.northernDevelopment;
     assert.ok(stats.homes>=16&&stats.shops>=8&&stats.lakeTowers>=10&&stats.addedStreetlights>=600);

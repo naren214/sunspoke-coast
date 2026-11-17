@@ -14,7 +14,7 @@ try{
     import {createRoadIndex} from './src/road-grading.ts';
     import {landHeight,isLand,insideGallery} from './src/geography.ts';
     import {insideStunt} from './src/stunt.ts';
-    globalThis.document={createElement(){return {width:0,height:0,getContext(){return new Proxy({createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)})},{get:(o,k)=>k in o?o[k]:()=>{}});}};}};
+    globalThis.document={createElement(){return {width:0,height:0,getContext(){return new Proxy({createLinearGradient:()=>({addColorStop(){}}),createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)})},{get:(o,k)=>k in o?o[k]:()=>{}});}};}};
     const start=performance.now(),world=createWorld(),constructionMs=performance.now()-start;
     const index=createRoadIndex(world.roads,landHeight),grass=world.group.getObjectByName('County grass meadows'),stats=world.group.userData.roadImprovements;
     console.log('Landscape',JSON.stringify({constructionMs:Math.round(constructionMs),grass:grass.userData,roads:stats}));
