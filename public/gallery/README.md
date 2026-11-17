@@ -2,11 +2,11 @@
 
 These are actual internet images, bundled locally. The game needs no external image host while driving. Each asset retains its own license. No endorsement by the photographers, depicted people, NASA or Wikimedia is implied. Portraits are displayed as photographs, without altered faces.
 
-Files were retrieved on 15 November 2026. Only resizing, image-orientation correction and compression were performed; the GIF is represented by its first frame.
+Internet images were retrieved on 15 November 2026. The first gallery image was replaced with the user-provided `mk.jpeg`; its license and permission to publish were not specified. Other images remain unchanged.
 
 | File | Work / creator | License | Source |
 | --- | --- | --- | --- |
-| lolcat.jpg | INTERNET CAT - Oven Fresh; meme derivative uploaded by Gurch | [Public domain](https://creativecommons.org/publicdomain/mark/1.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Lolcat1.jpg) |
+| lolcat.jpg | FEATURED PORTRAIT - user-provided image | License/permission not specified | Supplied locally as `C:/Users/naren/Pictures/mk.jpeg` |
 | maine-coon.jpg | CAT LOGIC - Whjayg; meme by Mizu onna sango15 | [Public domain](https://creativecommons.org/publicdomain/mark/1.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Coon_LolCat.jpg) |
 | grumpy-cat.png | GRUMPY CAT - Topher McCulloch | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Grumpy_Cat.png) |
 | open-access.jpg | THE LIBRARIAN - Georg Reimer; Thomas Shafee | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Open_access_meme.gif) |

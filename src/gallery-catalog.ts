@@ -1,15 +1,15 @@
-// Real internet photographs and memes; full provenance: public/gallery/credits.json.
+// Locally bundled gallery art; full provenance: public/gallery/credits.json.
 export const GALLERY_ART = [
   {
     "src": "/gallery/lolcat.jpg",
-    "title": "INTERNET CAT",
-    "category": "MEME",
-    "author": "Oven Fresh; meme derivative uploaded by Gurch",
-    "license": "Public domain",
-    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
-    "source": "https://commons.wikimedia.org/wiki/File:Lolcat1.jpg",
-    "width": 800,
-    "height": 600
+    "title": "FEATURED PORTRAIT",
+    "category": "USER PHOTO",
+    "author": "User-provided image",
+    "license": "Not specified",
+    "licenseUrl": "",
+    "source": "User-provided file",
+    "width": 554,
+    "height": 554
   },
   {
     "src": "/gallery/maine-coon.jpg",
