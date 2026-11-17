@@ -1,0 +1,54 @@
+{
+  "type": 0,
+  "name": "Qwantani Dusk 2 (Pure Sky)",
+  "categories": [
+    "outdoor",
+    "natural light",
+    "nature",
+    "skies",
+    "clear",
+    "low contrast",
+    "sunrise-sunset",
+    "partly cloudy",
+    "pure skies"
+  ],
+  "tags": [
+    "pure skies"
+  ],
+  "authors": {
+    "Greg Zaal": "Photography",
+    "Jarod Guest": "Processing"
+  },
+  "info": "Edited sky-only version of [Qwantani Dusk 2](https://polyhaven.com/a/qwantani_dusk_2).",
+  "whitebalance": 5303,
+  "date_taken": 1724349960,
+  "coords": [
+    -28.48533209827116,
+    29.012639559934758
+  ],
+  "evs_cap": 12,
+  "max_resolution": [
+    24576,
+    12288
+  ],
+  "files_hash": "e7a26fbf92c52195321e54f09991aa9be837cdd9",
+  "date_published": 1752192000,
+  "staging": null,
+  "sponsors": [
+    "84390067"
+  ],
+  "description": "Free 24K unclipped HDRI - soft, low-contrast dusk with pure sky and warm sunset glow, thin clouds and calm horizon reflection for gentle outdoor lighting.",
+  "category_id": "61ac0f4c-0977-548f-b345-f34c2d9eff35",
+  "attributes": {
+    "time_of_day": "dusk",
+    "weather": "partly_cloudy",
+    "light_type": "natural",
+    "contrast": "low",
+    "environment": "outdoor",
+    "sky_view": "open"
+  },
+  "category": "Pure Skies",
+  "img_version": "7fca2fa1",
+  "download_count": 156423,
+  "thumbnail_url": "https://cdn.polyhaven.com/asset_img/thumbs/qwantani_dusk_2_puresky.png?width=256&height=256&format=webp&v=7fca2fa1"
+}

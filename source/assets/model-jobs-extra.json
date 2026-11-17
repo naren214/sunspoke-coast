@@ -1,0 +1,50 @@
+[
+  {
+    "id": "adult-man",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\adult-man\\source.glb",
+    "targetTriangles": 12000,
+    "source": "https://poly.pizza/m/kZ3DmIoGip",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "category": "person",
+    "height": 1.8
+  },
+  {
+    "id": "adult-beach",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\adult-beach\\source.glb",
+    "targetTriangles": 12000,
+    "source": "https://poly.pizza/m/DojKLcO34E",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "category": "person",
+    "height": 1.8
+  },
+  {
+    "id": "adult-woman",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\adult-woman\\source.glb",
+    "targetTriangles": 12000,
+    "source": "https://poly.pizza/m/jpKRgGDxhk",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "category": "person",
+    "height": 1.7
+  },
+  {
+    "id": "broadleaf",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\public\\assets\\models\\broadleaf.glb",
+    "targetTriangles": 16000,
+    "source": "https://polyhaven.com/a/tree_small_02",
+    "author": "Rico Cilliers",
+    "license": "CC0-1.0",
+    "category": "vegetation"
+  },
+  {
+    "id": "barrel",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\barrel\\source.gltf",
+    "targetTriangles": 1800,
+    "source": "https://polyhaven.com/a/barrel_03",
+    "author": "Serhii Khromov",
+    "license": "CC0-1.0",
+    "category": "prop"
+  }
+]

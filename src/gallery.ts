@@ -11,6 +11,8 @@ export function createGrandGallery(){
   const standard=(color:string,metalness=0)=>new T.MeshStandardMaterial({color,metalness,roughness:.4});
   const ivory=standard('#d9d6cc'),gold=standard('#b59a62',.7),dark=standard('#253740',.25);
   const glass=standard('#386775',.5),floorMat=standard('#344e59',.5);
+  const doorGlass=new T.MeshPhysicalMaterial({color:'#b4dbdf',metalness:.08,roughness:.12,transparent:true,opacity:.28,depthWrite:false});
+  const waiting=new T.MeshStandardMaterial({color:'#ffd6a0',emissive:'#ffc077',emissiveIntensity:1.2});
   const warm=new T.MeshStandardMaterial({color:'#fff1cf',emissive:'#ffdfa0',emissiveIntensity:1.3});
   const aqua=new T.MeshStandardMaterial({color:'#a8fff0',emissive:'#5ef3d4',emissiveIntensity:1.4});
   const unit=new T.BoxGeometry(1,1,1),batches=new Map<T.Material,T.Matrix4[]>(),dummy=new T.Object3D();
@@ -83,18 +85,19 @@ export function createGrandGallery(){
     const side=i%2===0?-1:1,xx=x+side*47,zz=z-46+Math.floor(i/2)*31,yaw=side<0?Math.PI/2:-Math.PI/2;
     wall(xx,zz,1.2,23,14);
     box(gold,xx-side*.67,floor+8,zz,.16,12,21);
-    const aspect=art.width/art.height,w=aspect>1?19:Math.min(15,10*aspect),h=w/aspect;
-    const material=new T.MeshBasicMaterial({color:'#f0eee3'});
+    const aspect=art.width/art.height,w=Math.min(18,10*aspect),h=w/aspect;
+    const material=new T.MeshBasicMaterial({color:'#dbd8cf',toneMapped:true});
     const frame=new T.Mesh(new T.PlaneGeometry(w,h),material);
     frame.position.set(xx-side*.78,floor+8,zz);frame.rotation.y=yaw;group.add(frame);panels.push({material,art});
-    text(art.title,xx-side*.81,floor+1.3,zz,21,1.5,yaw);
-    text(`${art.author} / ${art.license}`,xx-side*.82,floor+.55,zz,20,.6,yaw);
+    frame.userData={display:true,title:art.title,width:w,height:h};
+    text(art.title,xx-side*.81,floor+2,zz,20,.8,yaw);
+    text(`${art.author} / ${art.license}`,xx-side*.82,floor+1,zz,20,.55,yaw);
   });
   const doors=[-1,1].map(side=>{
     const zz=z+side*depth/2;
     const parts=[-1,1].map(direction=>{
       const root=new T.Group();root.position.set(x+direction*7,floor,zz);group.add(root);
-      const pane=new T.Mesh(new T.BoxGeometry(13.9,9.2,.42),glass);pane.position.y=4.6;root.add(pane);
+      const pane=new T.Mesh(new T.BoxGeometry(13.9,9.2,.42),doorGlass);pane.position.y=4.6;root.add(pane);
       const strip=new T.Mesh(new T.BoxGeometry(.18,9.2,.5),aqua);strip.position.set(-direction*6.7,4.6,0);root.add(strip);
       const rail=new T.Mesh(new T.BoxGeometry(13.9,.2,.52),gold);rail.position.y=4.6;root.add(rail);
       const volume:Collider={x:root.position.x,z:zz,halfX:6.95,halfZ:.24,height:9.2,baseY:floor};dynamicColliders.push(volume);
@@ -117,6 +120,7 @@ export function createGrandGallery(){
       door.open=T.MathUtils.clamp(door.open+(door.hold>0?1:-1)*dt/0.9,0,1);
       for(const part of door.parts){part.root.position.x=x+part.direction*(7+15*door.open);part.volume.x=part.root.position.x;}
       door.indicator.scale.setScalar(door.hold>0?1:.65);
+      door.indicator.material=door.hold>0?aqua:waiting;
     }
     group.userData.doors=status();group.userData.inside=insideGallery(position.x,position.z);
   }
@@ -125,7 +129,7 @@ export function createGrandGallery(){
     const loader=new T.TextureLoader();
     await Promise.all(panels.map(async({material,art})=>{
       const texture=await loader.loadAsync(art.src);texture.colorSpace=T.SRGBColorSpace;texture.anisotropy=4;
-      material.map=texture;material.color.set('#ffffff');material.needsUpdate=true;
+      material.map=texture;material.color.set('#e8e5dd');material.needsUpdate=true;
     }));
     group.userData.assetsLoaded=panels.length;
   }

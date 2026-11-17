@@ -1,23 +1,28 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
-import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import type { Car } from "./types";
+import { mergeGeometries, mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import type { Car, Quality } from "./types";
 import { VEHICLE } from "./vehicle.ts";
 
 /** Procedural Cayenne SUV, in metres, facing local -Z. */
-export function createCar(): Car {
+export function createCar(): Car & { setQuality: (quality: Quality) => void; loadAssets: (progress?: (loaded:number,total:number)=>void, essentialOnly?:boolean) => Promise<void> } {
   const group = new THREE.Group();
   group.name = "Porsche Cayenne";
   const body = new THREE.Group();
+  body.name="cayenne_body";
   group.add(body);
   const paint = new THREE.MeshPhysicalMaterial({
     color: 0x143c40,
-    metalness: 0.78,
-    roughness: 0.24,
+    metalness: 0.64,
+    roughness: 0.22,
     clearcoat: 1,
     clearcoatRoughness: 0.15,
-    side: THREE.DoubleSide,
   });
+  paint.name = "Cayenne midnight-teal clearcoat";
+  const sidePaint = paint.clone();
+  sidePaint.side = THREE.DoubleSide;
+  sidePaint.name = "Sculpted side panels";
   const trim = new THREE.MeshStandardMaterial({
     color: 0x101719,
     roughness: 0.52,
@@ -25,21 +30,26 @@ export function createCar(): Car {
   const chrome = new THREE.MeshStandardMaterial({
     color: 0xaab5b8,
     metalness: 0.92,
-    roughness: 0.24,
+    roughness: 0.29,
   });
   const rubber = new THREE.MeshStandardMaterial({
     color: 0x15191b,
     roughness: 0.94,
   });
   const glass = new THREE.MeshPhysicalMaterial({
-    color: 0x203b49,
-    metalness: 0.25,
-    roughness: 0.12,
+    color: 0x75959b,
+    metalness: 0.06,
+    roughness: 0.09,
     transparent: true,
-    opacity: 0.77,
+    opacity: 0.36,
     side: THREE.DoubleSide,
     depthWrite: false,
   });
+  glass.name = "Neutral solar-control glazing";
+  const panorama = glass.clone();
+  panorama.color.set(0x2e4b50);
+  panorama.opacity = 0.72;
+  panorama.name = "Panoramic roof glass";
   const leather = new THREE.MeshStandardMaterial({
     color: 0x855737,
     roughness: 0.83,
@@ -66,6 +76,19 @@ export function createCar(): Car {
     metalness: 0.35,
     roughness: 0.4,
   });
+  const rotor = new THREE.MeshStandardMaterial({color:0x747e81,metalness:.78,roughness:.52});
+  rotor.name = "Brushed brake rotors";
+  // One small local texture adds tread cuts without hundreds of extra meshes.
+  const treadCanvas=document.createElement("canvas");treadCanvas.width=256;treadCanvas.height=128;
+  const treadContext=treadCanvas.getContext("2d")!;
+  treadContext.fillStyle="#c5c7c4";treadContext.fillRect(0,0,256,128);
+  treadContext.strokeStyle="#555b58";treadContext.lineWidth=2.2;
+  for(let i=-2;i<34;i++){
+    const x=i*9;treadContext.beginPath();treadContext.moveTo(x,0);treadContext.lineTo(x+9,42);treadContext.lineTo(x-1,84);treadContext.lineTo(x+8,128);treadContext.stroke();
+  }
+  for(const y of [23,45,82,105]){treadContext.fillStyle="#59605c";treadContext.fillRect(0,y,256,2);}
+  const treadTexture=new THREE.CanvasTexture(treadCanvas);treadTexture.wrapS=treadTexture.wrapT=THREE.RepeatWrapping;treadTexture.repeat.set(4,1);treadTexture.anisotropy=4;
+  rubber.bumpMap=treadTexture;rubber.bumpScale=.008;
   const mesh = (
     geometry: THREE.BufferGeometry,
     material: THREE.Material,
@@ -91,7 +114,7 @@ export function createCar(): Car {
     y = 0,
     z = 0,
     parent: THREE.Object3D = body,
-  ) => mesh(new RoundedBoxGeometry(w, h, d, 3, r), m, x, y, z, parent);
+  ) => mesh(new RoundedBoxGeometry(w, h, d, Math.max(w,h,d)>.9&&r>.04?3:1, r), m, x, y, z, parent);
   const tube = (
     points: number[][],
     radius: number,
@@ -129,28 +152,24 @@ export function createCar(): Car {
     return mesh(geometry, material);
   }
   function loft(sections: number[][], material: THREE.Material) {
-    // z, half-width, lower edge, crown. Rounded shoulders taper into the hood.
+    // Smooth longitudinal sections and curved shoulders catch broad outdoor
+    // reflections instead of reading as flat stacked plates.
     const vertices: number[] = [],
       indices: number[] = [];
-    for (const [z, w, low, high] of sections) {
-      for (const [x, y] of [
-        [-1, 0],
-        [-1, 0.55],
-        [-0.9, 0.9],
-        [-0.58, 1],
-        [0, 1.025],
-        [0.58, 1],
-        [0.9, 0.9],
-        [1, 0.55],
-        [1, 0],
-      ])
-        vertices.push(x * w, low + (high - low) * y, z);
+    const profile=new THREE.CatmullRomCurve3([[-1,0],[-1,.55],[-.9,.9],[-.58,1],[0,1.025],[.58,1],[.9,.9],[1,.55],[1,0]].map(([x,y])=>new THREE.Vector3(x,y,0)),false,"centripetal");
+    const outline=profile.getPoints(24);
+    const widths=new THREE.CatmullRomCurve3(sections.map(([z,w,low])=>new THREE.Vector3(z,w,low)),false,"centripetal");
+    const crowns=new THREE.CatmullRomCurve3(sections.map(([z,,,high])=>new THREE.Vector3(z,high,0)),false,"centripetal");
+    const rows=(sections.length-1)*7,columns=outline.length;
+    for(let row=0;row<=rows;row++){
+      const p=widths.getPoint(row/rows),c=crowns.getPoint(row/rows);
+      for(const cross of outline)vertices.push(cross.x*p.y,p.z+(c.y-p.z)*cross.y,p.x);
     }
-    for (let j = 0; j < sections.length - 1; j++)
-      for (let i = 0; i < 8; i++) {
-        const a = j * 9 + i,
+    for (let j = 0; j < rows; j++)
+      for (let i = 0; i < columns-1; i++) {
+        const a = j * columns + i,
           b = a + 1,
-          c = a + 9,
+          c = a + columns,
           d = c + 1;
         indices.push(a, c, b, b, c, d);
       }
@@ -162,6 +181,21 @@ export function createCar(): Car {
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
     mesh(geometry, material);
+  }
+  function sculptedSide(side:number){
+    const source=new THREE.ShapeGeometry(sideShape,24),flat=source.toNonIndexed(),p=flat.getAttribute("position"),vertices:number[]=[];
+    const vertex=(u:number,y:number)=>{
+      const height=THREE.MathUtils.clamp((y-.39)/.75,0,1);
+      const width=.957+.024*Math.sin(height*Math.PI)+.012*Math.exp(-(((u+1.45)/.62)**2))+.010*Math.exp(-(((u-1.445)/.68)**2));
+      vertices.push(u,y,-side*(width-.965));
+    };
+    for(let i=0;i<p.count;i+=3){
+      const a=[p.getX(i),p.getY(i)],b=[p.getX(i+1),p.getY(i+1)],c=[p.getX(i+2),p.getY(i+2)];
+      const ab=[(a[0]+b[0])/2,(a[1]+b[1])/2],bc=[(b[0]+c[0])/2,(b[1]+c[1])/2],ca=[(c[0]+a[0])/2,(c[1]+a[1])/2];
+      for(const tri of [[a,ab,ca],[ab,b,bc],[ca,bc,c],[ab,bc,ca]])for(const v of tri)vertex(v[0],v[1]);
+    }
+    const geometry=new THREE.BufferGeometry();geometry.setAttribute("position",new THREE.Float32BufferAttribute(vertices,3));
+    const welded=mergeVertices(geometry,.00001);welded.computeVertexNormals();source.dispose();flat.dispose();geometry.dispose();return welded;
   }
   // Real wheel openings give the flared body its SUV stance.
   const sideShape = new THREE.Shape();
@@ -179,8 +213,8 @@ export function createCar(): Car {
   sideShape.lineTo(-2.39, 0.46);
   for (const side of [-1, 1]) {
     const panel = mesh(
-      new THREE.ShapeGeometry(sideShape, 24),
-      paint,
+      sculptedSide(side),
+      sidePaint,
       side * 0.965,
       0,
       0,
@@ -213,15 +247,15 @@ export function createCar(): Car {
     for (const z of [-0.91, 0.32, 1.13])
       tube(
         [
-          [side * 0.976, 1.06, z],
-          [side * 0.982, 0.77, z + 0.05],
-          [side * 0.963, 0.46, z + 0.08],
+          [side * 0.999, 1.06, z],
+          [side * 1.001, 0.77, z + 0.05],
+          [side * 0.981, 0.46, z + 0.08],
         ],
         0.006,
         trim,
       );
     for (const z of [0.12, 0.96])
-      rounded(0.018, 0.027, 0.17, 0.012, chrome, side * 0.987, 1.015, z);
+      rounded(0.018, 0.027, 0.17, 0.012, chrome, side * 1.003, 1.015, z);
     tube(
       [
         [side * 0.981, 0.52, -0.9],
@@ -413,8 +447,8 @@ export function createCar(): Car {
     seat.rotation.x = -0.12;
     rounded(0.29, 0.17, 0.14, 0.045, leather, s * 0.37, 1.27, 0.21);
   }
-  rounded(1.54, 0.085, 1.61, 0.065, paint, 0, 1.652, 0.39);
-  rounded(1.29, 0.015, 1.13, 0.045, glass, 0, 1.701, 0.33);
+  loft([[-.42,.72,1.59,1.64],[-.22,.75,1.62,1.672],[.28,.77,1.635,1.686],[.85,.77,1.61,1.68],[1.18,.73,1.58,1.635]],paint);
+  rounded(1.29, 0.015, 1.13, 0.045, panorama, 0, 1.701, 0.33);
   rounded(1.6, 0.065, 0.27, 0.025, paint, 0, 1.635, 1.29);
   rounded(1.43, 0.022, 0.03, 0.009, tail, 0, 1.606, 1.43);
   rounded(1.39, 0.16, 0.42, 0.06, leather, 0, 0.73, 1.0);
@@ -438,7 +472,10 @@ export function createCar(): Car {
     rounded(0.18, 0.022, 0.02, 0.006, chrome, x, 0, 0, steeringPivot);
   // Rear hatch, continuous light bar, diffuser, wiper and paired exhaust outlets.
   rounded(1.82, 0.1, 0.07, 0.035, trim, 0, 1.145, 2.35);
-  rounded(1.76, 0.39, 0.07, 0.055, paint, 0, 0.94, 2.375);
+  const rearHatch=rounded(1.76, 0.39, 0.07, 0.055, paint, 0, 0.94, 2.375);
+  const hatchVertices=rearHatch.geometry.getAttribute("position");
+  for(let i=0;i<hatchVertices.count;i++)hatchVertices.setZ(i,hatchVertices.getZ(i)-.023*(hatchVertices.getX(i)/.88)**2);
+  rearHatch.geometry.computeVertexNormals();
   rounded(1.79, 0.046, 0.075, 0.021, tail, 0, 1.15, 2.39);
   for (const side of [-1, 1]) {
     rounded(0.27, 0.08, 0.09, 0.035, tail, side * 0.8, 1.145, 2.35);
@@ -484,6 +521,8 @@ export function createCar(): Car {
       depthWrite: false,
     });
     const label = mesh(new THREE.PlaneGeometry(width, height), material, 0, y, z);
+    label.name=text;
+    material.name='badge_'+text;
     label.castShadow = false;
     return label;
   }
@@ -508,7 +547,7 @@ export function createCar(): Car {
     map: signatureTexture,
     emissiveMap: signatureTexture,
     emissive: "#b48a42",
-    emissiveIntensity: 0.2,
+    emissiveIntensity: 0.08,
     transparent: true,
     alphaTest: 0.03,
     metalness: 0.4,
@@ -548,8 +587,9 @@ export function createCar(): Car {
       group.add(pivot);
       const spin = new THREE.Group();
       pivot.add(spin);
+      const tireProfile=[new THREE.Vector2(.255,-.15),new THREE.Vector2(.33,-.15),new THREE.Vector2(.372,-.123),new THREE.Vector2(.388,-.075),new THREE.Vector2(.39,0),new THREE.Vector2(.388,.075),new THREE.Vector2(.372,.123),new THREE.Vector2(.33,.15),new THREE.Vector2(.255,.15)];
       const tire = mesh(
-        new THREE.CylinderGeometry(0.39, 0.39, 0.295, 40),
+        new THREE.LatheGeometry(tireProfile,36),
         rubber,
         0,
         0,
@@ -570,7 +610,7 @@ export function createCar(): Car {
         rim.rotation.y = Math.PI / 2;
         const disc = mesh(
           new THREE.CylinderGeometry(0.244, 0.244, 0.012, 28),
-          chrome,
+          rotor,
           face * 0.122,
           0,
           0,
@@ -617,7 +657,7 @@ export function createCar(): Car {
     }
   const headlights: THREE.SpotLight[] = [];
   for (const side of [-1, 1]) {
-    const light = new THREE.SpotLight(0xe8f1ff, 0, 48, 0.42, 0.65, 1.5);
+    const light = new THREE.SpotLight(0xe8f1ff, 0, 58, 0.40, 0.70, 2);
     light.position.set(side * 0.65, 0.98, -2.29);
     light.target.position.set(side * 0.7, 0.02, -25);
     body.add(light, light.target);
@@ -630,7 +670,9 @@ export function createCar(): Car {
       if (
         !(child instanceof THREE.Mesh) ||
         Array.isArray(child.material) ||
-        ("map" in child.material && child.material.map)
+        ("map" in child.material && child.material.map) ||
+        ("bumpMap" in child.material && child.material.bumpMap) ||
+        ("normalMap" in child.material && child.material.normalMap)
       )
         continue;
       child.updateMatrix();
@@ -659,8 +701,54 @@ export function createCar(): Car {
   });
   let wheelAngle = 0,
     previousTime = 0;
+  group.userData.visualRevision="sculpted-cayenne-v2";
+  wheels.forEach((w,i)=>{w.pivot.name=['wheel_fl','wheel_rl','wheel_fr','wheel_rr'][i];w.spin.name=w.pivot.name+'_spin';});
+  group.userData.wheelPivots=wheels.map(w=>w.pivot.name);
+  const roles=[paint,sidePaint,trim,chrome,rubber,glass,panorama,leather,lens,tail,lamps,caliper,rotor];
+  const names=['paint','side_paint','black_trim','brushed_alloy','tire_rubber','cabin_glass','panoramic_glass','saddle_leather','lamp_lenses','rear_lights','front_lights','brake_caliper','brake_rotors'];
+  roles.forEach((material,i)=>{material.name=names[i];});
+  signatureMaterial.name='NAREN_calligraphy';
+  group.updateMatrixWorld(true);
+  const parts=new Map<string,{mesh:THREE.Mesh;restInverse:THREE.Matrix4;low?:THREE.BufferGeometry;high?:THREE.BufferGeometry}>();
+  const loadedAssets=new Set<string>();
+  let partIndex=0,currentQuality:Quality='low';
+  group.traverse(object=>{if(object instanceof THREE.Mesh){parts.set('car_part_'+partIndex.toString().padStart(3,'0'),{mesh:object,restInverse:object.matrixWorld.clone().invert(),high:object.geometry});partIndex++;}});
+  const setQuality=(quality:Quality)=>{
+    currentQuality=quality;
+    paint.clearcoat=sidePaint.clearcoat=quality==='low'?.7:1;
+    rubber.bumpScale=quality==='low'?.005:.008;
+    glass.opacity=quality==='low'?.34:.36;
+    for(const part of parts.values()){const geometry=quality==='low'?part.low:part.high;if(geometry)part.mesh.geometry=geometry;}
+  };
   return {
     group,
+    setQuality,
+    async loadAssets(progress,essentialOnly=false){
+      const loader=new GLTFLoader();let completed=0;
+      // Keep the live paint, lamp and font materials. Only geometry is imported,
+      // so embedded preview textures never add decoding or GPU memory work.
+      const placeholder=new THREE.MeshBasicMaterial();
+      loader.register(()=>({name:'SUNSPOKE_GEOMETRY_ONLY',loadMaterial:()=>Promise.resolve(placeholder)}));
+      try{
+        const levels=(essentialOnly?['low']:['low','high']).filter(level=>!loadedAssets.has(level));
+        await Promise.all(levels.map(async level=>{
+          const asset=await loader.loadAsync('/assets/car/cayenne-'+level+'.glb');asset.scene.updateMatrixWorld(true);
+          for(const [id,part] of parts){
+            const incoming=asset.scene.getObjectByName(id);
+            if(!(incoming instanceof THREE.Mesh))continue;
+            const geometry=incoming.geometry.clone();geometry.applyMatrix4(incoming.matrixWorld);geometry.applyMatrix4(part.restInverse);
+            // Blender exports glTF image UVs with a flipped V axis. The game
+            // deliberately retains its existing CanvasTextures (flipY=true).
+            const uv=geometry.getAttribute('uv');if(uv){for(let i=0;i<uv.count;i++)uv.setY(i,1-uv.getY(i));uv.needsUpdate=true;}
+            geometry.computeBoundingSphere();if(level==='low')part.low=geometry;else part.high=geometry;
+          }
+          const retired=new Set<THREE.BufferGeometry>();
+          asset.scene.traverse(object=>{if(object instanceof THREE.Mesh&&!retired.has(object.geometry)){retired.add(object.geometry);object.geometry.dispose();}});
+          loadedAssets.add(level);progress?.(++completed,levels.length);
+        }));
+        setQuality(currentQuality);group.userData.assetStatus='optimized-local-glb';
+      }catch(error){group.userData.assetStatus='procedural-fallback';console.warn('Cayenne detail assets unavailable; keeping the complete procedural car.',error);}finally{placeholder.dispose();}
+    },
     update(speed, steering, throttle, braking, time, night) {
       const dt = Math.min(0.05, Math.max(0, time - previousTime));
       previousTime = time;
@@ -686,7 +774,7 @@ export function createCar(): Car {
       steeringPivot.rotation.z = steering * 2;
       tail.emissiveIntensity = braking ? 3 : 0.2 + night * 0.8;
       lamps.emissiveIntensity = 0.5 + night * 2.3;
-      headlights.forEach((light) => (light.intensity = night * 25));
+      headlights.forEach((light) => (light.intensity = night * 70));
     },
   };
 }

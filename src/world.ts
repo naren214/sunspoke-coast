@@ -6,6 +6,11 @@ import { createGrandGallery } from './gallery';
 import { developHighlands, reservedNorth } from './highlands';
 import { createRoadIndex } from './road-grading';
 import { COUNTY_ROADS } from './county-roads';
+import { renderRoadNetwork } from './roads';
+import { createGrassMaterial, createGrassField } from './grass';
+import { createNearbyLighting } from './visuals';
+import type { Placement } from './assets';
+import {dressDistricts,createAmbientLife} from './districts';
 import { createBeachgoers } from './beachgoers';
 import { createStuntArena, insideStunt, stuntGround, stuntSurface } from './stunt';
 
@@ -16,8 +21,9 @@ function noiseGenerator(seed: number) {
   return () => { seed = (Math.imul(1664525, seed) + 1013904223) >>> 0; return seed / 4294967296; };
 }
 
-export function createWorld(): World {
+export function createWorld(prebuilt?:T.Group): World {
   const group = new T.Group();
+  if(prebuilt){group.userData={...prebuilt.userData};group.add(...prebuilt.children.slice());}
   const roads: Road[] = [];
   const colliders: Collider[] = [];
   let roadIndex:ReturnType<typeof createRoadIndex>|undefined;
@@ -29,6 +35,7 @@ export function createWorld(): World {
     new T.MeshStandardMaterial({color, roughness, metalness});
   function glow(color: T.ColorRepresentation, intensity: number, night: number, base = color) {
     const m = new T.MeshStandardMaterial({color:base, emissive:color, emissiveIntensity:intensity, roughness:.47});
+    m.name=`glow:${String(color)}:${String(base)}:${intensity}:${night}`;
     dayGlow.push({material:m, day:intensity, night}); return m;
   }
   function grainMaterial(base: string, spread: number, repeat: number) {
@@ -48,7 +55,7 @@ export function createWorld(): World {
 
   const surface = {
     asphalt:grainMaterial('#343a40',9,.13), sand:grainMaterial('#e6ce9d',23,.21),
-    land:grainMaterial('#889a79',19,.2), stone:mat('#d1bda0'), curb:mat('#dfd1b4'),
+    land:createGrassMaterial(), stone:mat('#d1bda0'), curb:mat('#dfd1b4'),
     walk:grainMaterial('#cfb8a4',14,.18), tile:mat('#b3a697'), white:mat('#f5dfaf'), yellow:mat('#d8ab52'),
     brass:mat('#bc8b44',.42,.35), black:mat('#343c42',.62,.23), dark:mat('#3c4c53'),
     cream:mat('#f5e1b9'), ivory:mat('#ede1cf'), shell:mat('#edbaa3'), terra:mat('#bc7c64'),
@@ -60,6 +67,7 @@ export function createWorld(): World {
     window:glow('#ffcd8a',.05,.84,'#95a29c'), lamp:glow('#ffe4a7',.45,2.5),
     foam:mat('#d2eee4'), pool:mat('#61c3c3',.22,.17), rock:mat('#a68f79'), grass:mat('#a3ad79')
   };
+  Object.entries(surface).forEach(([key,value])=>{if(!value.name)value.name='surface:'+key;});
   const box = new T.BoxGeometry(1,1,1), cyl = new T.CylinderGeometry(1,1,1,20);
   const round = new T.SphereGeometry(1,14,10), tube = new T.CylinderGeometry(1,1,1,8);
   const palmTrunk = new T.CylinderGeometry(.74,1,1,9);
@@ -68,21 +76,26 @@ export function createWorld(): World {
   const torus = new T.TorusGeometry(1,.055,6,36);
   const buckets = new Map<string,{g:T.BufferGeometry,m:T.Material, matrices:T.Matrix4[], shadow:boolean}>();
   const dummy = new T.Object3D();
+  const paving:Collider[]=[];
+  const placements:Placement[]=[];let resource:string|undefined;
   function geom(g:T.BufferGeometry,m:T.Material,x:number,y:number,z:number,sx:number,sy:number,sz:number,ry=0,rz=0,rx=0,shadow=true) {
+    if(prebuilt)return;
     if(insideStunt(x,z,1.5))return;
     // Spatial batches let the camera and shadow frusta discard distant blocks.
-    const key=g.uuid+m.uuid+(shadow?'1':'0')+':'+Math.floor(x/120)+','+Math.floor(z/120);
+    const key=g.uuid+m.uuid+(shadow?'1':'0')+':'+Math.floor(x/120)+','+Math.floor(z/120)+':'+(resource??'');
     let b=buckets.get(key); if (!b) { b={g,m,matrices:[],shadow}; buckets.set(key,b); }
     dummy.position.set(x,y,z); dummy.rotation.set(rx,ry,rz,'YXZ'); dummy.scale.set(sx,sy,sz); dummy.updateMatrix(); b.matrices.push(dummy.matrix.clone());
   }
   function cube(m:T.Material,x:number,y:number,z:number,w:number,h:number,d:number,ry=0,shadow=true) {
     geom(box,m,x,y,z,w,h,d,ry,0,0,shadow);
+    if(w>3&&d>3&&h<.8&&Math.abs(y-groundHeight(x,z))<1.2)paving.push({x,z,halfX:w/2,halfZ:d/2,height:h,rotation:ry});
   }
   function post(m:T.Material,x:number,z:number,r:number,h:number,base=groundHeight(x,z)) {
     geom(cyl,m,x,base+h/2,z,r,h,r);
   }
   function collider(x:number,z:number,hx:number,hz:number,height:number,rotation=0) { if(!insideStunt(x,z,1.5))colliders.push({x,z,halfX:hx,halfZ:hz,height,rotation}); }
   function grid(x1:number,x2:number,z1:number,z2:number,nx:number,nz:number,m:T.Material,yOffset=0) {
+    if(prebuilt)return;
     const p:number[]=[],uv:number[]=[], idx:number[]=[];
     for(let j=0;j<=nz;j++) for(let i=0;i<=nx;i++) {
       // The arena has its own floor and ramps. Sampling its raised collision
@@ -133,47 +146,7 @@ export function createWorld(): World {
   function nearJoin(x:number,z:number) {
     return [-160,0,160].some(j=>Math.abs(z-j)<11.3&&[-65,60,180,343].some(i=>Math.abs(x-i)<11.3)) || (Math.abs(x-155)<11.3&&Math.abs(Math.abs(z)-280)<11.3);
   }
-  function paintRoad(r:Road,n:number){
-    function strip(width:number,m:T.Material,lift:number,side=0){
-      const p:number[]=[],uv:number[]=[],indices:number[]=[],pts=r.points;
-      const subdivisions=side?1:8,columns=subdivisions+1;
-      const left=side<0?-r.width/2-1.3:side>0?r.width/2:-width/2;
-      const span=side?1.3:width;
-      for(let i=0;i<pts.length;i++){
-        const here=pts[i],before=pts[Math.max(i-1,0)],after=pts[Math.min(i+1,pts.length-1)];
-        const dx=after.x-before.x,dz=after.z-before.z,len=Math.hypot(dx,dz)||1;
-        for(let j=0;j<columns;j++){
-          const offset=left+span*j/subdivisions,x=here.x+offset*dz/len,z=here.z-offset*dx/len;
-          p.push(x,roadIndex!.nearest(x,z).height+lift,z);uv.push(x,z);
-          if(i<pts.length-1&&j<subdivisions){const k=i*columns+j;indices.push(k,k+columns,k+1,k+1,k+columns,k+columns+1);}
-        }
-      }
-      const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();
-      const mesh=new T.Mesh(g,m);mesh.name=m===surface.asphalt?'Road asphalt':'Road underlay';mesh.receiveShadow=true;group.add(mesh);
-    }
-    strip(r.width,surface.walk,.025,-1);strip(r.width,surface.walk,.025,1);strip(r.width,surface.asphalt,.06);
-    let length=0;
-    for(let i=1;i<r.points.length;i++){
-      const a=r.points[i-1],b=r.points[i],x=(a.x+b.x)/2,z=(a.z+b.z)/2,dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz),yaw=Math.atan2(dx,dz);
-      length+=l;if(nearJoin(x,z)||insideGallery(x,z))continue;
-      const pitch=-Math.atan2(b.y-a.y,l);
-      for(const side of [-1,1]) {
-        const ox=x+side*dz/l*(r.width/2-.37),oz=z-side*dx/l*(r.width/2-.37);
-        const rise=b.y-a.y;
-        geom(box,surface.white,ox,(a.y+b.y)/2+.09,oz,.09,.013,Math.hypot(l,rise)+.025,yaw,0,-Math.atan2(rise,l),false);
-      }
-      if(length>(n===0?9:12)){
-        for(const side of (n===0||r.width>25?[-1,1]:[0])) geom(box,surface.yellow,x+side*dz/l*.12,(a.y+b.y)/2+.095,z-side*dx/l*.12,.09,.016,3.1,yaw,0,pitch,false);
-        if(r.width>25)for(const side of [-1,1])geom(box,surface.white,x+side*dz/l*6.5,(a.y+b.y)/2+.095,z-side*dx/l*6.5,.12,.016,3.1,yaw,0,pitch,false);
-        length=0;
-      }
-    }
-  }
-  roads.forEach(paintRoad);
-  for(const z of [-160,0,160]) for(const x of [-65,60,180,343]) for(const side of [-1,1]) {
-    if((x===-65&&side<0)||(x===343&&side>0)) continue;
-    for(let j=-3;j<=3;j++)cube(surface.white,x+side*11.4,groundHeight(x,z)+.078,z+j*1.55,2,.012,.67,0,false);
-  }
+  if(!prebuilt)renderRoadNetwork(group,roads,roadIndex);
 
   function makeFrond(){
     const p:number[]=[],indices:number[]=[];
@@ -197,6 +170,7 @@ export function createWorld(): World {
   }
   const frond=makeFrond();surface.frond.side=surface.leaf.side=T.DoubleSide;
   function palm(x:number,z:number,h:number,solid=true) {
+    resource='palm';
     const y=groundHeight(x,z), skew=(random()-.5)*.16, yaw=random()*tau;
     geom(palmTrunk,surface.palm,x,y+h*.5,z,h*.034,h,h*.034,yaw,skew);
     const crownX=x-h*.5*Math.sin(skew)*Math.cos(yaw),crownZ=z+h*.5*Math.sin(skew)*Math.sin(yaw);
@@ -205,7 +179,8 @@ export function createWorld(): World {
       geom(frond,i%3===0?surface.leaf:surface.frond,crownX,y+h*.97,crownZ,scale,scale,scale,i*tau/11+yaw,(i%3)*.17-.11);
     }
     geom(bud,surface.palm,crownX,y+h-.18,crownZ,.43,.52,.43);
-    if(solid)collider(x,z,.32,.32,h);
+    if(!insideStunt(x,z,2))placements.push({id:'palm',x,y,z,height:h,rotation:yaw});
+    if(solid)collider(x,z,.32,.32,h);resource=undefined;
   }
   const clearOfCrossStreet=(z:number)=>[-160,0,160].every(j=>Math.abs(z-j)>12);
   for(let z=-251;z<=252;z+=17.5){
@@ -214,7 +189,7 @@ export function createWorld(): World {
   for(let z=-283;z<288;z+=18+random()*9){palm(-94-random()*6,z,5.8+random()*3);if(random()>.45)palm(-92,z+6,5.4+random());}
   for(let z=-245;z<245;z+=24){if(clearOfCrossStreet(z))palm(168,z,7.4+random()*1.8);}
   const boulder=new T.DodecahedronGeometry(1,0);
-  function stone(x:number,z:number,s:number){const y=groundHeight(x,z);geom(boulder,surface.rock,x,y+.34*s,z,s*1.6,s*.77,s*1.15,random()*tau,.16);collider(x,z,s,s*.8,s*1.1);}
+  function stone(x:number,z:number,s:number){resource='boulder';const y=groundHeight(x,z);placements.push({id:'boulder',x,y,z,height:s*1.1});geom(boulder,surface.rock,x,y+.34*s,z,s*1.6,s*.77,s*1.15,random()*tau,.16);collider(x,z,s,s*.8,s*1.1);resource=undefined;}
   for(let z=-302;z<305;z+=9+random()*13)if(z<-177||z>216)stone(-111+random()*3,z,1.1+random()*1.6);
 
   const canvasPlane = new T.PlaneGeometry(1,1);
@@ -227,6 +202,7 @@ export function createWorld(): World {
     if(subtitle){ctx.font='bold 33px Arial';ctx.fillText(subtitle.split('').join(' '),512,183,918);}
     const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;tex.anisotropy=4;
     const m=new T.MeshStandardMaterial({map:tex,emissive:'#ffffff',emissiveMap:tex,emissiveIntensity:.26,roughness:.8});
+    m.userData.glowDay=.26;m.userData.glowNight=1.2;
     dayGlow.push({material:m,day:.26,night:1.2});geom(canvasPlane,m,x,y,z,w,h,1,yaw,0,0,false);
   }
   const lightSources:{position:T.Vector3,color:T.Color,intensity:number,range?:number}[]=[];
@@ -296,10 +272,12 @@ export function createWorld(): World {
     collider(x,z,r*.85,r*.85,1.4);
   }
   function bench(x:number,z:number,angle:number){
+    resource='bench';placements.push({id:'bench',x,y:groundHeight(x,z),z,height:1,rotation:angle});
     const y=groundHeight(x,z);
     for(let i=0;i<4;i++)cube(surface.wood,x+Math.cos(angle)*(i-1.5)*.12,y+.5,z-Math.sin(angle)*(i-1.5)*.12,.105,.11,1.85,angle);
-    for(const d of [-.64,.64])cube(surface.black,x+Math.sin(angle)*d,y+.25,z+Math.cos(angle)*d,.42,.48,.12,angle);
+    for(const d of [-.64,.64])cube(surface.black,x+Math.sin(angle)*d,y+.25,z+Math.cos(angle)*d,.42,.48,.12,angle);resource=undefined;
   }
+  resource=undefined;
   for(let z=-240;z<250;z+=24) bench(-85.6,z,0);
   function planter(x:number,z:number,r:number) {
     const y=groundHeight(x,z);geom(cyl,surface.cream,x,y+.27,z,r,.55,r);
@@ -577,9 +555,10 @@ export function createWorld(): World {
     const x=80+random()*1200,z=-1180+random()*760,p=roadIndex!.nearest(x,z);
     if(!isLand(x,z)||reservedNorth(x,z)||p.distance<p.width/2+10)continue;
     const y=groundHeight(x,z),h=7+random()*8;
+    resource='fir';placements.push({id:'fir',x,y,z,height:h});
     geom(tube,surface.wood,x,y+h*.35,z,.25,h*.7,.25);
     for(let k=0;k<3;k++)geom(shade,pine,x,y+h*(.48+k*.18),z,h*(.28-k*.06),h*.5,h*(.28-k*.06),random()*tau);
-    if(p.distance<60)collider(x,z,.3,.3,h);
+    if(p.distance<60)collider(x,z,.3,.3,h);resource=undefined;
   }
   for(let i=0;i<120;i++){
     const x=250+random()*1000,z=-1150+random()*650;
@@ -700,22 +679,29 @@ export function createWorld(): World {
   }
   seaPatch(-178,-108,-1350,1250,48,250);seaPatch(-1600,-178,-1600,1600,45,67);
   seaPatch(-178,1600,-1600,1400,80,110);
-  for(const b of buckets.values()){
+  for(const [key,b] of buckets){
     const instances=new T.InstancedMesh(b.g,b.m,b.matrices.length);
     b.matrices.forEach((m,i)=>instances.setMatrixAt(i,m));instances.castShadow=b.shadow;instances.receiveShadow=true;
-    instances.computeBoundingSphere();group.add(instances);
+    instances.userData.resource=key.split(':').at(-1)||undefined;instances.computeBoundingSphere();group.add(instances);
   }
+  dressDistricts(group,colliders,roads,groundHeight,placements);
+  const ambientLife=createAmbientLife(group,groundHeight);
+  if(prebuilt){
+    const materials=new Map<string,T.Material>(Object.values(surface).map(m=>[m.name,m]));dayGlow.forEach(d=>{if(d.material.name)materials.set(d.material.name,d.material);});
+    const restored=new Set<T.Material>();
+    const restore=(m:T.Material)=>{const replacement=materials.get(m.name);if(replacement)return replacement;if(m instanceof T.MeshStandardMaterial&&m.userData.glowDay!==undefined&&!restored.has(m)){restored.add(m);dayGlow.push({material:m,day:m.userData.glowDay,night:m.userData.glowNight});}return m;};
+    group.traverse(o=>{if(o instanceof T.Mesh){if(Array.isArray(o.material))o.material=o.material.map(restore);else o.material=restore(o.material);}});
+  }
+  const meadow=createGrassField(group,colliders,groundHeight,(x,z,margin)=>roadIndex!.clear(x,z,margin),paving,prebuilt?group.getObjectByName('County grass meadows') as T.Group:undefined);
   const palettes={
     golden:['#6dc8bb','#317c88','#d6c4aa','#eee9d0','#ffdba1'],
     twilight:['#609198','#3c657e','#9493aa','#d1c7c4','#d99caa'],
     night:['#38636b','#233f56','#384e64','#9aaeb4','#99b7ce']
   };
-  const localLights=Array.from({length:4},()=>{
-    const light=new T.PointLight(0xffffff,0,22,2);
-    light.visible=false;group.add(light);return light;
-  });
-  let last:Lighting|undefined, nextLightUpdate=0;
+  const nearbyLighting=createNearbyLighting(group,lightSources);
+  let last:Lighting|undefined;
   function update(time:number,lighting:Lighting,carPosition:T.Vector3){
+    meadow.update(time,carPosition);ambientLife.update(time,lighting);
     stunt.update(lighting);
     gallery.lighting(lighting);highlands.update(time,lighting);
     beachgoers.update(time);
@@ -724,18 +710,7 @@ export function createWorld(): World {
       const phase=(time*.36+i*.27)%1;
       r.scale.setScalar(r.userData.r*(.29+phase*.57));r.position.y=groundHeight(r.position.x,r.position.z)+.62+Math.sin(phase*Math.PI)*.025;
     }
-    if(last!==lighting||time>=nextLightUpdate){
-      nextLightUpdate=time+.5;
-      if(lighting==='golden'&&!insideGallery(carPosition.x,carPosition.z,10))localLights.forEach(light=>{light.visible=false;});
-      else{
-        lightSources.sort((a,b)=>a.position.distanceToSquared(carPosition)-b.position.distanceToSquared(carPosition));
-        localLights.forEach((light,i)=>{
-          const site=lightSources[i];
-          light.position.copy(site.position);light.color.copy(site.color);
-          light.distance=site.range??26;light.intensity=site.intensity*(lighting==='night'?1:.75);light.visible=true;
-        });
-      }
-    }
+    nearbyLighting.update(time,lighting,carPosition,insideGallery(carPosition.x,carPosition.z,10));
     if(last===lighting)return;
     last=lighting;const lightAmount=lighting==='night'?1:lighting==='twilight'?.58:0;
     dayGlow.forEach(({material,day,night})=>{material.emissiveIntensity=T.MathUtils.lerp(day,night,lightAmount);});
@@ -745,8 +720,8 @@ export function createWorld(): World {
   }
   group.userData.cityArea={original:CITY.originalArea,current:CITY.area,ratio:CITY.area/CITY.originalArea};
   group.userData.districts=DISTRICTS;
-  group.userData.lightSources=lightSources.length;
-  return {group,roads,colliders,dynamicColliders:gallery.dynamicColliders,stepEnvironment:gallery.step,loadAssets:gallery.loadAssets,groundHeight,surfaceHeight:(x,z)=>{if(insideGallery(x,z))return GALLERY.floor+.08;const p=roadIndex!.nearest(x,z);return stuntSurface(x,z,p.distance<=p.width/2+0.3?p.height:groundHeight(x,z));},update,bounds:CITY};
+  group.userData.lightSources=lightSources.length;group.userData.placements=placements;
+  return {group,roads,colliders,visualHeight:(x,z)=>{if(insideGallery(x,z))return GALLERY.floor+.08;const p=roadIndex!.nearest(x,z);return stuntSurface(x,z,p.distance<=p.width/2+.3?p.height+.06:groundHeight(x,z));},setQuality:(quality)=>{meadow.setQuality(quality);nearbyLighting.setQuality(quality);ambientLife.setQuality(quality);},dynamicColliders:gallery.dynamicColliders,stepEnvironment:gallery.step,loadAssets:gallery.loadAssets,groundHeight,surfaceHeight:(x,z)=>{if(insideGallery(x,z))return GALLERY.floor+.08;const p=roadIndex!.nearest(x,z);return stuntSurface(x,z,p.distance<=p.width/2+0.3?p.height:groundHeight(x,z));},update,bounds:CITY};
 }
 
 

@@ -1,0 +1,287 @@
+[
+  {
+    "id": "boulder",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\boulder\\source.gltf",
+    "targetTriangles": 1800,
+    "source": "https://polyhaven.com/a/boulder_01",
+    "author": "Rico Cilliers",
+    "license": "CC0-1.0",
+    "category": "rock"
+  },
+  {
+    "id": "bench",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\bench\\source.gltf",
+    "targetTriangles": 4000,
+    "source": "https://polyhaven.com/a/painted_wooden_bench",
+    "author": "Kirill Sannikov",
+    "license": "CC0-1.0",
+    "category": "prop"
+  },
+  {
+    "id": "picnic",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\picnic\\source.gltf",
+    "targetTriangles": 6000,
+    "source": "https://polyhaven.com/a/wooden_picnic_table",
+    "author": "Ulan Cabanilla",
+    "license": "CC0-1.0",
+    "category": "prop"
+  },
+  {
+    "id": "planter",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\planter\\source.gltf",
+    "targetTriangles": 4500,
+    "source": "https://polyhaven.com/a/planter_box_01",
+    "author": "James Ray Cock",
+    "license": "CC0-1.0",
+    "category": "prop"
+  },
+  {
+    "id": "aircon",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\aircon\\source.gltf",
+    "targetTriangles": 5000,
+    "source": "https://polyhaven.com/a/exterior_aircon_unit",
+    "author": "Monsta3D",
+    "license": "CC0-1.0",
+    "category": "prop"
+  },
+  {
+    "id": "boat",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\boat\\source.gltf",
+    "targetTriangles": 12000,
+    "source": "https://polyhaven.com/a/ship_pinnace",
+    "author": "James Ray Cock, Rico Cilliers, Nicol\u00f2 Zubbini, Yann Kervran",
+    "license": "CC0-1.0",
+    "category": "prop"
+  },
+  {
+    "id": "seating",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\seating\\source.gltf",
+    "targetTriangles": 7000,
+    "source": "https://polyhaven.com/a/modular_street_seating",
+    "author": "Stuart Attenborrow",
+    "license": "CC0-1.0",
+    "category": "prop"
+  },
+  {
+    "id": "fir",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\fir\\source.gltf",
+    "targetTriangles": 14000,
+    "source": "https://polyhaven.com/a/fir_tree_01",
+    "author": "Rob Tuytel, Rico Cilliers",
+    "license": "CC0-1.0",
+    "category": "vegetation"
+  },
+  {
+    "id": "broadleaf",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\broadleaf\\source.gltf",
+    "targetTriangles": 16000,
+    "source": "https://polyhaven.com/a/tree_small_02",
+    "author": "Rico Cilliers",
+    "license": "CC0-1.0",
+    "category": "vegetation"
+  },
+  {
+    "id": "palm",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\palm\\source.glb",
+    "targetTriangles": 12000,
+    "source": "https://poly.pizza/m/DsrrAYmucG",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "category": "vegetation",
+    "height": 9
+  },
+  {
+    "id": "adult-man",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\adult-man\\source.glb",
+    "targetTriangles": 12000,
+    "source": "https://poly.pizza/m/kZ3DmIoGip",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "category": "person",
+    "height": 1.8
+  },
+  {
+    "id": "adult-beach",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\adult-beach\\source.glb",
+    "targetTriangles": 12000,
+    "source": "https://poly.pizza/m/DojKLcO34E",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "category": "person",
+    "height": 1.8
+  },
+  {
+    "id": "container",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\container\\source.glb",
+    "targetTriangles": 12000,
+    "source": "https://poly.pizza/m/dQXRtm5GbO",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "category": "industrial",
+    "height": 2.6
+  },
+  {
+    "id": "tower-a",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\tower-a\\source.glb",
+    "height": 28,
+    "targetTriangles": 12000,
+    "source": "https://kenney.nl/assets/city-kit-commercial",
+    "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/city-kit-commercial/building-a.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "category": "architecture"
+  },
+  {
+    "id": "tower-c",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\tower-c\\source.glb",
+    "height": 28,
+    "targetTriangles": 12000,
+    "source": "https://kenney.nl/assets/city-kit-commercial",
+    "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/city-kit-commercial/building-c.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "category": "architecture"
+  },
+  {
+    "id": "tower-g",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\tower-g\\source.glb",
+    "height": 28,
+    "targetTriangles": 12000,
+    "source": "https://kenney.nl/assets/city-kit-commercial",
+    "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/city-kit-commercial/building-g.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "category": "architecture"
+  },
+  {
+    "id": "tower-m",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\tower-m\\source.glb",
+    "height": 28,
+    "targetTriangles": 12000,
+    "source": "https://kenney.nl/assets/city-kit-commercial",
+    "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/city-kit-commercial/building-m.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "category": "architecture"
+  },
+  {
+    "id": "tower-sky-a",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\tower-sky-a\\source.glb",
+    "height": 28,
+    "targetTriangles": 12000,
+    "source": "https://kenney.nl/assets/city-kit-commercial",
+    "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/city-kit-commercial/building-skyscraper-a.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "category": "architecture"
+  },
+  {
+    "id": "tower-sky-c",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\tower-sky-c\\source.glb",
+    "height": 28,
+    "targetTriangles": 12000,
+    "source": "https://kenney.nl/assets/city-kit-commercial",
+    "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/city-kit-commercial/building-skyscraper-c.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "category": "architecture"
+  },
+  {
+    "id": "house-a",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\house-a\\source.glb",
+    "height": 7,
+    "targetTriangles": 12000,
+    "source": "https://kenney.nl/assets/city-kit-suburban",
+    "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/city-kit-suburban/building-type-a.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "category": "architecture"
+  },
+  {
+    "id": "house-g",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\house-g\\source.glb",
+    "height": 7,
+    "targetTriangles": 12000,
+    "source": "https://kenney.nl/assets/city-kit-suburban",
+    "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/city-kit-suburban/building-type-g.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "category": "architecture"
+  },
+  {
+    "id": "house-n",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\house-n\\source.glb",
+    "height": 7,
+    "targetTriangles": 12000,
+    "source": "https://kenney.nl/assets/city-kit-suburban",
+    "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/city-kit-suburban/building-type-n.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "category": "architecture"
+  },
+  {
+    "id": "chair",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\chair\\source.glb",
+    "height": 0,
+    "targetTriangles": 12000,
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/furniture-kit/chair.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "category": "prop"
+  },
+  {
+    "id": "tableround",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\tableround\\source.glb",
+    "height": 0,
+    "targetTriangles": 12000,
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/furniture-kit/tableround.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "category": "prop"
+  },
+  {
+    "id": "trashcan",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\trashcan\\source.glb",
+    "height": 0,
+    "targetTriangles": 12000,
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/furniture-kit/trashcan.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "category": "prop"
+  },
+  {
+    "id": "boat-row-small",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\boat-row-small\\source.glb",
+    "height": 0,
+    "targetTriangles": 12000,
+    "source": "https://kenney.nl/assets/pirate-kit",
+    "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/pirate-kit/boat-row-small.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "category": "prop"
+  },
+  {
+    "id": "crate",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\crate\\source.glb",
+    "height": 0,
+    "targetTriangles": 12000,
+    "source": "https://kenney.nl/assets/pirate-kit",
+    "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/pirate-kit/crate.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "category": "prop"
+  },
+  {
+    "id": "adult-woman",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\adult-woman\\source.glb",
+    "targetTriangles": 12000,
+    "source": "https://poly.pizza/m/jpKRgGDxhk",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "category": "person",
+    "height": 1.7
+  }
+]

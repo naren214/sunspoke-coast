@@ -1,5 +1,27 @@
 # Sunspoke Coast verification
 
+## Visual upgrade review build — 17 November 2026
+
+**Publication is pending browser acceptance.** The current source and downloadable build include the visual upgrade. They have not replaced the preceding Site/GitHub release. All browser screenshots and render timings in older sections below are historical evidence for those builds.
+
+The final TypeScript/production build passes. The following current-build checks pass:
+
+- 23 driving/camera checks and presentation stability at 60, 90, 120, 144 and 165 Hz, plus variable frame times, pause, reset, teleport and heading wrap.
+- Cayenne geometry and actual GLB loading: 26,800 Low-detail triangles and 43,241 higher-detail triangles; dimensions, retained materials, animated steering/wheels and brake lights remain consistent.
+- All 53 roads connected, 22,467 clear lane probes, ten continuous simulated circuits and 392 terrain/underlay samples without road overlap. These are simulated routes, not manual browser laps.
+- Both bridge directions, gallery entrances/interior/approaches and lakefront/northern traversals. Closed-door collision, sensor opening, occupied doorway holds and closure remain correct at 30/60/120 Hz input frequencies. Ramp Time flight checks still pass.
+- All 135,970 grass placements clear roads, water, gallery and the stunt arena. Across 867 road-surface samples, curved lanes remain covered without sidewalk intrusion. Detail presets reduce grass draw distance and instance counts.
+- All 87 scenery GLBs decode: 29 model designs × three detail levels, with consistent named parts and normalized finite bounds. Combined geometry is 18,642 triangles at Low and 97,089 at High, counting one copy of each model design rather than world instances. PBR files, HDR data and redistribution records are bundled locally.
+- Baked-world loading restores the 53 road meshes, grass controllers, material identities, 791 imported scenery placements and gallery state. Headless hydration measured approximately 0.3 seconds; this excludes image/GPU work and is not browser startup time or FPS.
+- Quality propagation, fitted image bounds, four transparent door panes, nearby-light pool sizes and smoothly faded light handoffs pass data checks. Those checks do not establish rendered appearance or successful GPU shader compilation.
+- Built asset paths, UI identifiers, model-part compatibility and static download budgets pass. A fresh Low-quality start accounts for 22,885,426 bytes of files; all built files total 45,928,863 bytes. This conservative file-size inventory is not a measured browser network waterfall. The local production server also returned successful HEAD responses with matching file sizes for all 152 built files, including GLBs, textures, HDRs, JavaScript, fonts and gallery images. This checks file serving, not browser rendering.
+
+Run the commands in `README.md` to reproduce the checks. `checks/release-checks.mjs` writes its machine-readable byte report to `.cache/release-report.json`.
+
+Current-build browser visual inspection, console capture, audio response, map/photo click-through and sustained FPS remain **unverified**. Windows browser control returned `GetCursorPos failed: Access is denied. (0x80070005)`. The native retry was then stopped because the current browser URL could not be determined reliably enough to enforce policy. No alternative browser automation was used to bypass that stop.
+
+The release gate is the screenshot/interaction checklist and three five-minute foreground Low-quality drives specified in `IMPLEMENTATION_STATUS.md`. Target viewport: 1920 × 1080 on Intel Iris Xe; expected Low internal size: 1440 × 810. No current-build median/p95 frame time, measured FPS or console-error result is available yet. Use **Save performance report** in the pause menu during acceptance and retain the reports with screenshots.
+
 ## Sierra Verde, modern Silver Lake and drive-in gallery - 15 November 2026
 
 The northern development adds 16 homes, 10 shops/civic venues and 13 lakefront towers/sculptural landmarks. There are 739 new roadside fixtures and 869 total lighting source locations, served by the existing four nearby point lights. The Verde River is 56 metres wide and 1,075 metres long, descending through Silver Lake to the eastern sea. Water surfaces have local elevations rather than the ocean datum, and crossing decks clear the river. The cable-stayed bridge has two 48-metre pylons and illuminated rails. The gallery hall measures 210 x 140 metres with 24 metres of clear headroom. Eight downloaded images are locally bundled with sources, authors and licenses; all image files and attribution records are checked.

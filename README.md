@@ -8,6 +8,14 @@ Press **M** to open the county atlas. It draws the actual road geometry, coast, 
 
 This is original procedural geography inspired by the city, coast, islands and countryside mix in [Rockstar's official location overview](https://www.rockstargames.com/VI/only-in-leonida). All buildings and scenery are bundled/generated locally.
 
+## Visual upgrade — local review build
+
+The current source and included build add 29 imported CC0 model designs with three detail levels, seven PBR surface sets and three bundled HDR lighting environments. The Cayenne has sculpted body panels, clearer cabin details, brushed wheels, animated steering and brake lights, and the gold **NAREN** hatch signature. Low and higher-detail car GLBs preserve the same dimensions and handling.
+
+The county now has textured grass meadows, imported palms and trees, roadside furniture, additional homes and lakefront towers, terrain foundations, riverbank reeds, district signs, boats, birds and flags. Road improvements include continuous curved asphalt, curbs, shoulders, turn arrows, crossings and reflectors. The gallery has fitted image displays, glass sensor doors and entrance status lights. Static scenery is prebaked locally to avoid rebuilding the entire county during browser startup.
+
+**Release status:** code, build and automated checks pass. This visual upgrade has not been published to the live Site or GitHub main: current-build browser screenshots, interaction/audio checks and three five-minute Intel Iris Xe performance drives remain pending because native browser access was stopped. Earlier screenshots and timings in `TESTING.md` describe older builds. See `IMPLEMENTATION_STATUS.md` for the exact completion boundary.
+
 ## Sierra Verde and Silver Lake
 
 Sierra Verde is now a connected hill town with 16 homes, 10 shops/civic venues, a market street, a fountain square, a fuel stop and scenic overlooks. Silver Lake has 13 modern high-rise and sculptural landmarks, lit promenades, palms and a fountain installation. A 56-metre-wide, 1.07 km mountain-fed river flows through the lake toward the eastern sea. The cable-stayed Verde Skyline Bridge links the town and lake district. Roadside lighting now reaches all districts; more than 700 new fixtures join the nearby-light pool without adding hundreds of active point lights.
@@ -46,6 +54,7 @@ Use `node scripts/serve.mjs --no-open` to start the server without opening a bro
 | Space | Handbrake |
 | R | Return to the last clear road position |
 | M | Open or close the county map |
+| F2 | Photo mode: orbit, zoom and save a 1920 × 1080 PNG |
 | Esc | Pause or resume |
 | Mouse drag | Orbit the chase camera |
 | Mouse wheel | Zoom |
@@ -54,7 +63,15 @@ The camera gently recentres after you stop orbiting. The small pause button also
 
 The rebuilt keyboard controls blend quick taps into small corrections and held keys into full turns. A single speed-based turning-radius curve keeps parking manoeuvres tight and highway turns responsive. Normal turns preserve forward power. Reverse engages only after braking to a stop and a short neutral dwell. Releasing the handbrake progressively restores grip. The camera gently widens its view as speed increases.
 
-Start with **Low** quality on integrated graphics. Low renders at up to 75% display resolution with dynamic shadows and bloom disabled. Medium and High enable shadows and bloom and increase rendering resolution or shadow quality. Settings apply immediately. Volume, quality, and controls-hint preferences are saved in browser storage when it is available. Each new session begins at golden hour.
+Start with **Low** quality on integrated graphics. Settings apply immediately. Volume, quality, and controls-hint preferences are saved in browser storage when it is available. Each new session begins at golden hour.
+
+| Preset | Resolution scale | Nearby lights | Effects |
+| --- | --- | --- | --- |
+| Low | 75% | 4 | Contact shadows; reduced grass and model range |
+| Medium | 100% | 8 | Sun shadows and soft bloom |
+| High | 100% | 12 | Ambient shading and one 512 px lake reflection, updated at up to 8 Hz |
+
+The pause menu includes **Save performance report**. This exports foreground driving frame times, the viewport, internal render size, selected preset, browser identification and asset errors. Open the county map and choose **Save full map** for a full-area PNG. Photo mode pauses vehicle physics and offers mouse orbit and zoom.
 
 ## Rebuild or develop
 
@@ -72,11 +89,13 @@ npm run build
 node scripts/serve.mjs
 ```
 
-`npm run build` checks TypeScript and creates the complete static game in `dist/`. The source is in `src/`. The project uses TypeScript, Vite, Three.js, and Web Audio. `scripts/serve.mjs` serves the built files with Node's standard library.
+`npm run build` checks TypeScript and creates the complete static game in `dist/`. Before development or a production build, `scripts/bake-world.mjs` refreshes the static county cache when its source fingerprint changes. The source is in `src/`. The project uses TypeScript, Vite, Three.js, and Web Audio. `scripts/serve.mjs` serves the built files with Node's standard library.
 
 ## Assets and audio
 
-The Cayenne model, buildings, landscaping, beach, ocean, and material textures are generated procedurally in the project. The car is an original approximation of the Cayenne with an enclosed roof, four doors, four-point headlights, and a rear light bar. Engine, tire, surf, and city ambience use Web Audio synthesis. These systems require no secret keys, paid services, or external runtime asset services. Audio begins after clicking **Drive**, following browser audio permissions.
+The car is an original approximation of the Cayenne with an enclosed roof, four doors, four-point headlights and a rear light bar. Its editable Blender source, geometry source and preparation scripts are in `source/assets/car/`; the browser loads bundled GLBs. Geography and landmarks are authored in the project. Imported scenery, textures and lighting environments come from Poly Haven, Kenney and Quaternius under CC0, with creator/source records in `public/assets/manifest.json` and `source/assets/provenance/`. **World assets & credits** in the pause menu opens their bundled credits page. `source/assets/README.md` explains asset preparation and LOD regeneration.
+
+Engine, tire, surf and city ambience use Web Audio synthesis. Playing the included build requires no API keys or external asset services. Audio begins after clicking **Drive**, following browser audio permissions. Reacquiring imported source files is optional and requires internet access. The included built game runs offline. After installing development dependencies with `npm ci`, rebuilding requires no external asset downloads.
 
 The SUV proportions follow Porsche's published Cayenne dimensions. [Porsche technical data](https://download.newsroom.porsche.com/dam/jcr%3Abb376133-788c-4e9c-8e92-9630383cc062/pag-cayenne-td-en.pdf.PDF)
 
@@ -86,14 +105,20 @@ The bundled Barlow, Baskervville, and Explora fonts use the SIL Open Font Licens
 
 ## Verification
 
-See `TESTING.md` for the measured render timings, driving checks, screenshot review, and verification limits. Run the focused driving and camera checks with Node.js 22.18 or newer.
+See `TESTING.md` for current automated results, historical browser measurements and the pending browser acceptance checks. Run the checks with Node.js 22.18 or newer after `npm ci` and `npm run build`.
 
 ```sh
 node checks/driving-checks.ts
 node checks/car-checks.ts
+node checks/car-asset-checks.ts
 node checks/camera-stability.ts
 node checks/world-checks.mjs
 node checks/northern-checks.mjs
+node checks/landscape-checks.mjs
+node checks/visual-checks.mjs
+node checks/release-checks.mjs
 ```
 
 For browser diagnostics, append `?qa=1&routes=1` to the local URL. Route results are written to the hidden `qa-report` JSON element. Add `&view=beach&quality=low&benchmark=1` for a 60-frame completed-render timing sample. Diagnostic views run independently of browser focus so automated screenshots can be captured. The normal game pauses when focus is lost.
+
+Static accounting for this build is approximately **22.9 MB** of initial Low-quality files and **45.9 MB** for the complete built game, below the 25 MB / 120 MB budgets. This is file-size accounting, not a measured browser network waterfall or an FPS result. The ZIP contains source, the complete `dist/`, the Windows launcher and documentation; dependency folders and transient acquisition caches are excluded.

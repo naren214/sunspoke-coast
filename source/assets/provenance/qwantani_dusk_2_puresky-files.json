@@ -1,0 +1,81 @@
+{
+  "hdri": {
+    "16k": {
+      "exr": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/exr/16k%2B/qwantani_dusk_2_puresky_16k.exr",
+        "md5": "8f03eb4521e9d7ac6daa773f41c77bb1",
+        "size": 1053443685
+      },
+      "hdr": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/16k%2B/qwantani_dusk_2_puresky_16k.hdr",
+        "md5": "04c0b873cb4c2e07622e26acb59fcb83",
+        "size": 237277236
+      }
+    },
+    "24k": {
+      "exr": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/exr/16k%2B/qwantani_dusk_2_puresky_24k.exr",
+        "md5": "6e650480f01751384ce6463fbd680b5a",
+        "size": 2375355510
+      },
+      "hdr": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/16k%2B/qwantani_dusk_2_puresky_24k.hdr",
+        "md5": "f14d4ed1eacd02f83f11175c8ba3569e",
+        "size": 508593528
+      }
+    },
+    "1k": {
+      "exr": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/exr/1k/qwantani_dusk_2_puresky_1k.exr",
+        "md5": "2ba88732662df93456ec5420af7e2b44",
+        "size": 4983112
+      },
+      "hdr": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/qwantani_dusk_2_puresky_1k.hdr",
+        "md5": "d400530e33f683654e70b4a087b6fe8d",
+        "size": 1166018
+      }
+    },
+    "2k": {
+      "exr": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/exr/2k/qwantani_dusk_2_puresky_2k.exr",
+        "md5": "f9f3e934173c142974622089dee13d84",
+        "size": 18435796
+      },
+      "hdr": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/qwantani_dusk_2_puresky_2k.hdr",
+        "md5": "a6754f300315d6b2e06c4682009a7991",
+        "size": 4612798
+      }
+    },
+    "4k": {
+      "exr": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/exr/4k/qwantani_dusk_2_puresky_4k.exr",
+        "md5": "7b79790f9e15f48bcf9b09dbb051fef8",
+        "size": 70695906
+      },
+      "hdr": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/4k/qwantani_dusk_2_puresky_4k.hdr",
+        "md5": "a37e1a2ff49dea91e8be7a83f219557e",
+        "size": 17976514
+      }
+    },
+    "8k": {
+      "exr": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/exr/8k/qwantani_dusk_2_puresky_8k.exr",
+        "md5": "b093d0b0a08ae375d205d2ba83a9bb86",
+        "size": 275919760
+      },
+      "hdr": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/8k/qwantani_dusk_2_puresky_8k.hdr",
+        "md5": "3bd3907557fe13650ba921d63ac07523",
+        "size": 69345561
+      }
+    }
+  },
+  "tonemapped": {
+    "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/extra/Tonemapped%20JPG/qwantani_dusk_2_puresky.jpg",
+    "md5": "8b705f037f06374abc9b0c6bdaf842e5",
+    "size": 23268379
+  }
+}

@@ -1,0 +1,84 @@
+[
+  {
+    "id": "boulder",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\boulder\\source.gltf",
+    "source": "https://polyhaven.com/a/boulder_01",
+    "author": "Rico Cilliers",
+    "license": "CC0-1.0",
+    "category": "prop",
+    "targetTriangles": 1800
+  },
+  {
+    "id": "bench",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\bench\\source.gltf",
+    "source": "https://polyhaven.com/a/painted_wooden_bench",
+    "author": "Kirill Sannikov",
+    "license": "CC0-1.0",
+    "category": "prop",
+    "targetTriangles": 4000
+  },
+  {
+    "id": "picnic",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\picnic\\source.gltf",
+    "source": "https://polyhaven.com/a/wooden_picnic_table",
+    "author": "Ulan Cabanilla",
+    "license": "CC0-1.0",
+    "category": "prop",
+    "targetTriangles": 6000
+  },
+  {
+    "id": "planter",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\planter\\source.gltf",
+    "source": "https://polyhaven.com/a/planter_box_01",
+    "author": "James Ray Cock",
+    "license": "CC0-1.0",
+    "category": "prop",
+    "targetTriangles": 4500
+  },
+  {
+    "id": "aircon",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\aircon\\source.gltf",
+    "source": "https://polyhaven.com/a/exterior_aircon_unit",
+    "author": "Monsta3D",
+    "license": "CC0-1.0",
+    "category": "prop",
+    "targetTriangles": 5000
+  },
+  {
+    "id": "boat",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\boat\\source.gltf",
+    "source": "https://polyhaven.com/a/ship_pinnace",
+    "author": "James Ray Cock, Rico Cilliers, Nicol\u00f2 Zubbini, Yann Kervran",
+    "license": "CC0-1.0",
+    "category": "prop",
+    "targetTriangles": 12000
+  },
+  {
+    "id": "seating",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\seating\\source.gltf",
+    "source": "https://polyhaven.com/a/modular_street_seating",
+    "author": "Stuart Attenborrow",
+    "license": "CC0-1.0",
+    "category": "prop",
+    "targetTriangles": 7000
+  },
+  {
+    "id": "fir",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\fir\\source.gltf",
+    "source": "https://polyhaven.com/a/fir_tree_01",
+    "author": "Rob Tuytel, Rico Cilliers",
+    "license": "CC0-1.0",
+    "category": "vegetation",
+    "targetTriangles": 8000
+  },
+  {
+    "id": "adult-woman",
+    "input": "C:\\Users\\naren\\Documents\\Codex\\2026-11-12\\files-pasted-by-the-user-build\\work\\sunspoke-coast\\source\\assets\\cache\\adult-woman\\source.glb",
+    "targetTriangles": 12000,
+    "source": "https://poly.pizza/m/jpKRgGDxhk",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "category": "person",
+    "height": 1.7
+  }
+]

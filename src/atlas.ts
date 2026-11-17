@@ -20,13 +20,18 @@ export class CountyAtlas {
     this.canvas.addEventListener('pointerup',()=>this.drag=undefined);
     this.canvas.addEventListener('pointercancel',()=>this.drag=undefined);
     window.addEventListener('resize',()=>{if(!this.root.hidden)this.draw();});
+    document.getElementById('export-map')!.onclick=()=>this.export();
   }
   open(state:DriveState){this.pose={x:state.position.x,z:state.position.z,heading:state.heading};this.root.hidden=false;this.zoom=1;this.panX=this.panY=0;this.draw();document.getElementById('close-map')!.focus();}
   close(){this.root.hidden=true;this.drag=undefined;}
-  private draw(){
-    const w=this.canvas.clientWidth,h=this.canvas.clientHeight,dpr=Math.min(devicePixelRatio,1.5);
-    this.canvas.width=Math.round(w*dpr);this.canvas.height=Math.round(h*dpr);
-    const c=this.ctx;c.setTransform(dpr,0,0,dpr,0,0);c.fillStyle='#173a48';c.fillRect(0,0,w,h);
+  private export(){
+    const target=document.createElement('canvas'),old=[this.zoom,this.panX,this.panY];this.zoom=1;this.panX=this.panY=0;this.draw(target,1600,2200);[this.zoom,this.panX,this.panY]=old;
+    target.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Sunspoke-County-Map.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);});this.draw();
+  }
+  private draw(target=this.canvas,w=this.canvas.clientWidth,h=this.canvas.clientHeight){
+    const dpr=target===this.canvas?Math.min(devicePixelRatio,1.5):1;
+    target.width=Math.round(w*dpr);target.height=Math.round(h*dpr);
+    const c=target.getContext('2d')!;c.setTransform(dpr,0,0,dpr,0,0);c.fillStyle='#173a48';c.fillRect(0,0,w,h);
     const scale=Math.min((w-100)/(CITY.maxX-CITY.minX),(h-65)/(CITY.maxZ-CITY.minZ))*this.zoom;
     const ox=w/2-(CITY.maxX+CITY.minX)/2*scale+this.panX,oz=h/2-(CITY.maxZ+CITY.minZ)/2*scale+this.panY;
     const point=(x:number,z:number)=>[ox+x*scale,oz+z*scale];
@@ -46,7 +51,7 @@ export class CountyAtlas {
       c.strokeStyle=road.width>25?'#edd5a0':'#ecede4';c.lineWidth=Math.max(1.2,road.width*scale*.52);c.stroke();
     }
     c.textAlign='center';c.textBaseline='middle';
-    for(const d of DISTRICTS){const p=point(d.x,d.z);c.font='600 10px Barlow,Arial';const tw=c.measureText(d.name).width;c.fillStyle='#20333bd9';c.fillRect(p[0]-tw/2-5,p[1]-8,tw+10,16);c.fillStyle='#f3efda';c.fillText(d.name,p[0],p[1]);}
+    for(const d of DISTRICTS){const p=point(d.x,d.z);c.font=`600 ${this.zoom>1.5||target!==this.canvas?13:10}px Barlow,Arial`;const tw=c.measureText(d.name).width;c.fillStyle='#20333bd9';c.fillRect(p[0]-tw/2-6,p[1]-10,tw+12,20);c.fillStyle='#f3efda';c.fillText(d.name,p[0],p[1]);}
     const hall=point(GALLERY.x,GALLERY.z);c.fillStyle='#f8dc9a';c.fillRect(hall[0]-GALLERY.width*scale/2,hall[1]-GALLERY.depth*scale/2,GALLERY.width*scale,GALLERY.depth*scale);c.fillStyle='#213842';c.font='600 10px Barlow,Arial';c.fillText('GRAND GALLERY',hall[0],hall[1]);
     const bridge=point(725,-737);c.fillStyle='#f4e5b7';c.font='10px Barlow,Arial';c.fillText('VERDE BRIDGE',bridge[0],bridge[1]-12);
     const stunt=point(-101,0);c.fillStyle='#f6b861';c.beginPath();c.arc(stunt[0],stunt[1],4,0,Math.PI*2);c.fill();

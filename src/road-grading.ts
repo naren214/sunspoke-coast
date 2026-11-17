@@ -35,5 +35,20 @@ export function createRoadIndex(roads:Road[],natural:(x:number,z:number)=>number
     const blend=1-MathUtils.smoothstep(edge,8,28);
     return MathUtils.lerp(base,p.height,blend);
   }
-  return {nearest,grade};
+  function occupiedByOther(x:number,z:number,road:number,margin=0){
+    for(const s of cells.get(Math.floor(x/size)+','+Math.floor(z/size))??[]){
+      if(s.road===road)continue;
+      const t=MathUtils.clamp(((x-s.ax)*s.dx+(z-s.az)*s.dz)/(s.length2||1),0,1);
+      if(Math.hypot(x-s.ax-t*s.dx,z-s.az-t*s.dz)<s.width/2+margin)return true;
+    }
+    return false;
+  }
+  function clear(x:number,z:number,margin=0){
+    for(const s of cells.get(Math.floor(x/size)+','+Math.floor(z/size))??[]){
+      const t=MathUtils.clamp(((x-s.ax)*s.dx+(z-s.az)*s.dz)/(s.length2||1),0,1);
+      if(Math.hypot(x-s.ax-t*s.dx,z-s.az-t*s.dz)<s.width/2+margin)return false;
+    }
+    return true;
+  }
+  return {nearest,grade,occupiedByOther,clear};
 }

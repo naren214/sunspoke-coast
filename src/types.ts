@@ -10,9 +10,11 @@ export interface World {
   dynamicColliders?: Collider[];
   stepEnvironment?: (dt: number, carPosition: THREE.Vector3) => void;
   loadAssets?: () => Promise<void>;
+  setQuality?: (quality: Quality) => void;
   roads: Road[];
   groundHeight: (x: number, z: number) => number;
   surfaceHeight?: (x: number, z: number) => number;
+  visualHeight?: (x: number, z: number) => number;
   update: (time: number, lighting: Lighting, carPosition: THREE.Vector3) => void;
 }
 export interface Car {

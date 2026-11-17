@@ -1,0 +1,1364 @@
+{
+  "models": [
+    {
+      "id": "boulder",
+      "source": "https://polyhaven.com/a/boulder_01",
+      "author": "Rico Cilliers",
+      "license": "CC0-1.0",
+      "category": "rock",
+      "url": "/assets/models/boulder.glb",
+      "sizeBytes": 242964,
+      "triangles": 1800,
+      "bounds": {
+        "min": [
+          -0.6362,
+          0.0,
+          -0.9168
+        ],
+        "max": [
+          0.6384,
+          0.9988,
+          0.9138
+        ]
+      },
+      "dimensions": [
+        1.2746,
+        0.9988,
+        1.8306
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "8fe386b2b0f50e660cd36f407803b532f2d9c74489d42a7a56846ec0e3ac02cb",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/boulder.glb",
+        "medium": "/assets/models/lod/boulder-medium.glb",
+        "low": "/assets/models/lod/boulder-low.glb"
+      },
+      "lodBytes": {
+        "high": 242964,
+        "medium": 209888,
+        "low": 60324
+      }
+    },
+    {
+      "id": "bench",
+      "source": "https://polyhaven.com/a/painted_wooden_bench",
+      "author": "Kirill Sannikov",
+      "license": "CC0-1.0",
+      "category": "prop",
+      "url": "/assets/models/bench.glb",
+      "sizeBytes": 122600,
+      "triangles": 630,
+      "bounds": {
+        "min": [
+          -0.5825,
+          0.0,
+          -0.2483
+        ],
+        "max": [
+          0.5825,
+          0.8893,
+          0.2483
+        ]
+      },
+      "dimensions": [
+        1.1649,
+        0.8893,
+        0.4965
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "d03fd240529b61dd21cdef69179b4aef3389a584f7d504fd935ba3dba56d09d9",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/bench.glb",
+        "medium": "/assets/models/lod/bench-medium.glb",
+        "low": "/assets/models/lod/bench-low.glb"
+      },
+      "lodBytes": {
+        "high": 122600,
+        "medium": 106636,
+        "low": 33460
+      }
+    },
+    {
+      "id": "picnic",
+      "source": "https://polyhaven.com/a/wooden_picnic_table",
+      "author": "Ulan Cabanilla",
+      "license": "CC0-1.0",
+      "category": "prop",
+      "url": "/assets/models/picnic.glb",
+      "sizeBytes": 378864,
+      "triangles": 5999,
+      "bounds": {
+        "min": [
+          -1.1205,
+          0.0,
+          -1.5112
+        ],
+        "max": [
+          1.1205,
+          0.746,
+          1.5112
+        ]
+      },
+      "dimensions": [
+        2.241,
+        0.746,
+        3.0223
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "cfa1f4afbccfcc72fa85085ddd826d8bf12329958c31a14f4999c8f3c47601f8",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/picnic.glb",
+        "medium": "/assets/models/lod/picnic-medium.glb",
+        "low": "/assets/models/lod/picnic-low.glb"
+      },
+      "lodBytes": {
+        "high": 378864,
+        "medium": 301168,
+        "low": 106632
+      }
+    },
+    {
+      "id": "planter",
+      "source": "https://polyhaven.com/a/planter_box_01",
+      "author": "James Ray Cock",
+      "license": "CC0-1.0",
+      "category": "prop",
+      "url": "/assets/models/planter.glb",
+      "sizeBytes": 296632,
+      "triangles": 4500,
+      "bounds": {
+        "min": [
+          -0.4563,
+          0.0,
+          -0.2068
+        ],
+        "max": [
+          0.4563,
+          0.425,
+          0.2069
+        ]
+      },
+      "dimensions": [
+        0.9126,
+        0.425,
+        0.4137
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "18720ba63ba5188c7ede528c4629404353352bb4dfe671aac5455fe87caa1d1a",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/planter.glb",
+        "medium": "/assets/models/lod/planter-medium.glb",
+        "low": "/assets/models/lod/planter-low.glb"
+      },
+      "lodBytes": {
+        "high": 296632,
+        "medium": 231984,
+        "low": 79928
+      }
+    },
+    {
+      "id": "aircon",
+      "source": "https://polyhaven.com/a/exterior_aircon_unit",
+      "author": "Monsta3D",
+      "license": "CC0-1.0",
+      "category": "prop",
+      "url": "/assets/models/aircon.glb",
+      "sizeBytes": 815576,
+      "triangles": 5000,
+      "bounds": {
+        "min": [
+          -0.8999,
+          0.0,
+          -0.1871
+        ],
+        "max": [
+          0.8999,
+          0.9281,
+          0.1871
+        ]
+      },
+      "dimensions": [
+        1.7997,
+        0.9281,
+        0.3742
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "5a58cf706a4d8b0ce68d47a1ae05a5c771762c4f4ad51dced5eb93a840ef5a83",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/aircon.glb",
+        "medium": "/assets/models/lod/aircon-medium.glb",
+        "low": "/assets/models/lod/aircon-low.glb"
+      },
+      "lodBytes": {
+        "high": 815576,
+        "medium": 693276,
+        "low": 192000
+      }
+    },
+    {
+      "id": "boat",
+      "source": "https://polyhaven.com/a/ship_pinnace",
+      "author": "James Ray Cock, Rico Cilliers, Nicolò Zubbini, Yann Kervran",
+      "license": "CC0-1.0",
+      "category": "prop",
+      "url": "/assets/models/boat.glb",
+      "sizeBytes": 1863500,
+      "triangles": 17479,
+      "bounds": {
+        "min": [
+          -4.7222,
+          0.0,
+          -19.799
+        ],
+        "max": [
+          4.767,
+          32.3895,
+          19.8454
+        ]
+      },
+      "dimensions": [
+        9.4892,
+        32.3895,
+        39.6444
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "5c76244577333eab5d811ef557600c54d5a2d8113919cb07bc7d01d434364f7c",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/boat.glb",
+        "medium": "/assets/models/lod/boat-medium.glb",
+        "low": "/assets/models/lod/boat-low.glb"
+      },
+      "lodBytes": {
+        "high": 1863500,
+        "medium": 1500060,
+        "low": 585248
+      }
+    },
+    {
+      "id": "seating",
+      "source": "https://polyhaven.com/a/modular_street_seating",
+      "author": "Stuart Attenborrow",
+      "license": "CC0-1.0",
+      "category": "prop",
+      "url": "/assets/models/seating.glb",
+      "sizeBytes": 647272,
+      "triangles": 7016,
+      "bounds": {
+        "min": [
+          -2.17,
+          0.0,
+          -0.3852
+        ],
+        "max": [
+          2.17,
+          0.95,
+          0.3846
+        ]
+      },
+      "dimensions": [
+        4.3401,
+        0.95,
+        0.7698
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "8bab2ad4c6890c246fae1a67dcd5394577c1fe2024081327492f7ab135ed94ef",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/seating.glb",
+        "medium": "/assets/models/lod/seating-medium.glb",
+        "low": "/assets/models/lod/seating-low.glb"
+      },
+      "lodBytes": {
+        "high": 647272,
+        "medium": 514976,
+        "low": 181780
+      }
+    },
+    {
+      "id": "fir",
+      "source": "https://polyhaven.com/a/fir_tree_01",
+      "author": "Rob Tuytel, Rico Cilliers",
+      "license": "CC0-1.0",
+      "category": "vegetation",
+      "url": "/assets/models/fir.glb",
+      "sizeBytes": 1218292,
+      "triangles": 8000,
+      "bounds": {
+        "min": [
+          -3.1519,
+          0.0,
+          -2.9821
+        ],
+        "max": [
+          3.1519,
+          14.519,
+          2.9816
+        ]
+      },
+      "dimensions": [
+        6.3038,
+        14.519,
+        5.9637
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "e9265b7a4e6f83b5f8e713b0a9354668a72a5e4343da77490a2c9bb6e0edabe1",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/fir.glb",
+        "medium": "/assets/models/lod/fir-medium.glb",
+        "low": "/assets/models/lod/fir-low.glb"
+      },
+      "lodBytes": {
+        "high": 1218292,
+        "medium": 735972,
+        "low": 242140
+      }
+    },
+    {
+      "id": "palm",
+      "source": "https://poly.pizza/m/DsrrAYmucG",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "category": "vegetation",
+      "url": "/assets/models/palm.glb",
+      "sizeBytes": 77392,
+      "triangles": 3208,
+      "bounds": {
+        "min": [
+          -3.2736,
+          0.0,
+          -3.1588
+        ],
+        "max": [
+          3.2736,
+          9.0,
+          3.1588
+        ]
+      },
+      "dimensions": [
+        6.5472,
+        9.0,
+        6.3177
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "07a915239283863d5a27743f466eba7f072e696de87407b871ea0285b131b78e",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/palm.glb",
+        "medium": "/assets/models/lod/palm-medium.glb",
+        "low": "/assets/models/lod/palm-low.glb"
+      },
+      "lodBytes": {
+        "high": 77392,
+        "medium": 40868,
+        "low": 17040
+      }
+    },
+    {
+      "id": "container",
+      "source": "https://poly.pizza/m/dQXRtm5GbO",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "category": "industrial",
+      "url": "/assets/models/container.glb",
+      "sizeBytes": 30204,
+      "triangles": 1336,
+      "bounds": {
+        "min": [
+          -2.6598,
+          0.0,
+          -1.2752
+        ],
+        "max": [
+          2.6598,
+          2.6,
+          1.2752
+        ]
+      },
+      "dimensions": [
+        5.3196,
+        2.6,
+        2.5504
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "1eddc4a391cf71a907b49479c0009235ce146355080f4f1bac4b8418646372f9",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/container.glb",
+        "medium": "/assets/models/lod/container-medium.glb",
+        "low": "/assets/models/lod/container-low.glb"
+      },
+      "lodBytes": {
+        "high": 30204,
+        "medium": 16040,
+        "low": 8320
+      }
+    },
+    {
+      "id": "tower-a",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/city-kit-commercial/building-a.glb",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "category": "architecture",
+      "url": "/assets/models/tower-a.glb",
+      "sizeBytes": 42476,
+      "triangles": 1242,
+      "bounds": {
+        "min": [
+          -9.5671,
+          0.0,
+          -10.1779
+        ],
+        "max": [
+          9.5671,
+          28.0,
+          10.1779
+        ]
+      },
+      "dimensions": [
+        19.1342,
+        28.0,
+        20.3558
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "7009205b4dcc763e05f32e38a709382f65ae42a2040ed9e998160b0e406adf38",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/tower-a.glb",
+        "medium": "/assets/models/lod/tower-a-medium.glb",
+        "low": "/assets/models/lod/tower-a-low.glb"
+      },
+      "lodBytes": {
+        "high": 42476,
+        "medium": 27304,
+        "low": 13808
+      }
+    },
+    {
+      "id": "tower-c",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/city-kit-commercial/building-c.glb",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "category": "architecture",
+      "url": "/assets/models/tower-c.glb",
+      "sizeBytes": 41060,
+      "triangles": 1187,
+      "bounds": {
+        "min": [
+          -13.8524,
+          0.0,
+          -17.0885
+        ],
+        "max": [
+          13.8524,
+          28.0,
+          17.0885
+        ]
+      },
+      "dimensions": [
+        27.7049,
+        28.0,
+        34.1769
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "834e6956280ce01900e2606c85277831d03bef566c760cff1401aa68440f1962",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/tower-c.glb",
+        "medium": "/assets/models/lod/tower-c-medium.glb",
+        "low": "/assets/models/lod/tower-c-low.glb"
+      },
+      "lodBytes": {
+        "high": 41060,
+        "medium": 26540,
+        "low": 13256
+      }
+    },
+    {
+      "id": "tower-g",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/city-kit-commercial/building-g.glb",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "category": "architecture",
+      "url": "/assets/models/tower-g.glb",
+      "sizeBytes": 64416,
+      "triangles": 1984,
+      "bounds": {
+        "min": [
+          -8.0213,
+          0.0,
+          -7.6243
+        ],
+        "max": [
+          8.0213,
+          28.0,
+          7.6243
+        ]
+      },
+      "dimensions": [
+        16.0425,
+        28.0,
+        15.2487
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "06f0c026bb8831e3f847fcebc3a445dae990af872c0984dc174dbc555bef0352",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/tower-g.glb",
+        "medium": "/assets/models/lod/tower-g-medium.glb",
+        "low": "/assets/models/lod/tower-g-low.glb"
+      },
+      "lodBytes": {
+        "high": 64416,
+        "medium": 40260,
+        "low": 19344
+      }
+    },
+    {
+      "id": "tower-m",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/city-kit-commercial/building-m.glb",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "category": "architecture",
+      "url": "/assets/models/tower-m.glb",
+      "sizeBytes": 120924,
+      "triangles": 3740,
+      "bounds": {
+        "min": [
+          -5.5111,
+          0.0,
+          -5.52
+        ],
+        "max": [
+          5.5111,
+          28.0,
+          5.52
+        ]
+      },
+      "dimensions": [
+        11.0222,
+        28.0,
+        11.04
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "a5dd3e13a97fa4c19f76b106080a67b97043c7f6b09b6c04a6d749e5a2dd58ef",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/tower-m.glb",
+        "medium": "/assets/models/lod/tower-m-medium.glb",
+        "low": "/assets/models/lod/tower-m-low.glb"
+      },
+      "lodBytes": {
+        "high": 120924,
+        "medium": 72876,
+        "low": 28716
+      }
+    },
+    {
+      "id": "tower-sky-a",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/city-kit-commercial/building-skyscraper-a.glb",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "category": "architecture",
+      "url": "/assets/models/tower-sky-a.glb",
+      "sizeBytes": 50444,
+      "triangles": 1292,
+      "bounds": {
+        "min": [
+          -6.6111,
+          0.0,
+          -6.6111
+        ],
+        "max": [
+          6.6111,
+          28.0,
+          6.6111
+        ]
+      },
+      "dimensions": [
+        13.2222,
+        28.0,
+        13.2222
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "fcec043b8406d328f1622be9700bf0cb7b7b1fab3a44a7657f886832502917d0",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/tower-sky-a.glb",
+        "medium": "/assets/models/lod/tower-sky-a-medium.glb",
+        "low": "/assets/models/lod/tower-sky-a-low.glb"
+      },
+      "lodBytes": {
+        "high": 50444,
+        "medium": 32944,
+        "low": 14000
+      }
+    },
+    {
+      "id": "tower-sky-c",
+      "source": "https://kenney.nl/assets/city-kit-commercial",
+      "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/city-kit-commercial/building-skyscraper-c.glb",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "category": "architecture",
+      "url": "/assets/models/tower-sky-c.glb",
+      "sizeBytes": 63988,
+      "triangles": 1704,
+      "bounds": {
+        "min": [
+          -4.3922,
+          0.0,
+          -4.7624
+        ],
+        "max": [
+          4.3922,
+          28.0,
+          4.7624
+        ]
+      },
+      "dimensions": [
+        8.7843,
+        28.0,
+        9.5247
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "90292d4951b26abcc8aadb4ce78cfe4eed6d6ed5f25df8148304d8e286cd8741",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/tower-sky-c.glb",
+        "medium": "/assets/models/lod/tower-sky-c-medium.glb",
+        "low": "/assets/models/lod/tower-sky-c-low.glb"
+      },
+      "lodBytes": {
+        "high": 63988,
+        "medium": 40432,
+        "low": 19224
+      }
+    },
+    {
+      "id": "house-a",
+      "source": "https://kenney.nl/assets/city-kit-suburban",
+      "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/city-kit-suburban/building-type-a.glb",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "category": "architecture",
+      "url": "/assets/models/house-a.glb",
+      "sizeBytes": 42724,
+      "triangles": 1168,
+      "bounds": {
+        "min": [
+          -5.4586,
+          0.0,
+          -4.3171
+        ],
+        "max": [
+          5.4586,
+          7.0,
+          4.3171
+        ]
+      },
+      "dimensions": [
+        10.9173,
+        7.0,
+        8.6342
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "7efef9beb52b51d49dfb62371da79344579187694b21f27e3f31acddf64a8004",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/house-a.glb",
+        "medium": "/assets/models/lod/house-a-medium.glb",
+        "low": "/assets/models/lod/house-a-low.glb"
+      },
+      "lodBytes": {
+        "high": 42724,
+        "medium": 28292,
+        "low": 12720
+      }
+    },
+    {
+      "id": "house-g",
+      "source": "https://kenney.nl/assets/city-kit-suburban",
+      "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/city-kit-suburban/building-type-g.glb",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "category": "architecture",
+      "url": "/assets/models/house-g.glb",
+      "sizeBytes": 39640,
+      "triangles": 1067,
+      "bounds": {
+        "min": [
+          -6.6063,
+          0.0,
+          -5.367
+        ],
+        "max": [
+          6.6063,
+          7.0,
+          5.367
+        ]
+      },
+      "dimensions": [
+        13.2125,
+        7.0,
+        10.734
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "d5c36515b03a027d24e5fcf2946b60f296edbe4df53a84b6b28f940ebdc088aa",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/house-g.glb",
+        "medium": "/assets/models/lod/house-g-medium.glb",
+        "low": "/assets/models/lod/house-g-low.glb"
+      },
+      "lodBytes": {
+        "high": 39640,
+        "medium": 26600,
+        "low": 12196
+      }
+    },
+    {
+      "id": "house-n",
+      "source": "https://kenney.nl/assets/city-kit-suburban",
+      "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/city-kit-suburban/building-type-n.glb",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "category": "architecture",
+      "url": "/assets/models/house-n.glb",
+      "sizeBytes": 55636,
+      "triangles": 1612,
+      "bounds": {
+        "min": [
+          -5.4901,
+          0.0,
+          -4.2397
+        ],
+        "max": [
+          5.4901,
+          7.0,
+          4.2397
+        ]
+      },
+      "dimensions": [
+        10.9801,
+        7.0,
+        8.4793
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "4967268f06ce51f88b829fd8fcb6f7d2cbff58e25ad97a019108e2347ed7d841",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/house-n.glb",
+        "medium": "/assets/models/lod/house-n-medium.glb",
+        "low": "/assets/models/lod/house-n-low.glb"
+      },
+      "lodBytes": {
+        "high": 55636,
+        "medium": 35624,
+        "low": 16720
+      }
+    },
+    {
+      "id": "chair",
+      "source": "https://kenney.nl/assets/furniture-kit",
+      "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/furniture-kit/chair.glb",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "category": "prop",
+      "url": "/assets/models/chair.glb",
+      "sizeBytes": 10456,
+      "triangles": 170,
+      "bounds": {
+        "min": [
+          -0.1,
+          0.0,
+          -0.1
+        ],
+        "max": [
+          0.1,
+          0.47,
+          0.1
+        ]
+      },
+      "dimensions": [
+        0.2,
+        0.47,
+        0.2
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "6af3185fba1adfa4f61f5a7b6bee68d0a515304cafcb9607c9a625de35a95577",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/chair.glb",
+        "medium": "/assets/models/lod/chair-medium.glb",
+        "low": "/assets/models/lod/chair-low.glb"
+      },
+      "lodBytes": {
+        "high": 10456,
+        "medium": 4964,
+        "low": 3236
+      }
+    },
+    {
+      "id": "tableround",
+      "source": "https://kenney.nl/assets/furniture-kit",
+      "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/furniture-kit/tableround.glb",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "category": "prop",
+      "url": "/assets/models/tableround.glb",
+      "sizeBytes": 6052,
+      "triangles": 80,
+      "bounds": {
+        "min": [
+          -0.3464,
+          0.0,
+          -0.4
+        ],
+        "max": [
+          0.3464,
+          0.3667,
+          0.4
+        ]
+      },
+      "dimensions": [
+        0.6928,
+        0.3667,
+        0.8
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "4db418487d4a198d6833d64eaca409feaf9752da9c093a305fc543871c6db75a",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/tableround.glb",
+        "medium": "/assets/models/lod/tableround-medium.glb",
+        "low": "/assets/models/lod/tableround-low.glb"
+      },
+      "lodBytes": {
+        "high": 6052,
+        "medium": 3612,
+        "low": 1928
+      }
+    },
+    {
+      "id": "trashcan",
+      "source": "https://kenney.nl/assets/furniture-kit",
+      "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/furniture-kit/trashcan.glb",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "category": "prop",
+      "url": "/assets/models/trashcan.glb",
+      "sizeBytes": 6496,
+      "triangles": 68,
+      "bounds": {
+        "min": [
+          -0.1038,
+          0.0,
+          -0.1171
+        ],
+        "max": [
+          0.1038,
+          0.4279,
+          0.1171
+        ]
+      },
+      "dimensions": [
+        0.2077,
+        0.4279,
+        0.2341
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "95f94f437da5e0f8abf8aef068ad5eab4db87324c74745a31d6675568f231a7c",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/trashcan.glb",
+        "medium": "/assets/models/lod/trashcan-medium.glb",
+        "low": "/assets/models/lod/trashcan-low.glb"
+      },
+      "lodBytes": {
+        "high": 6496,
+        "medium": 6496,
+        "low": 6496
+      }
+    },
+    {
+      "id": "boat-row-small",
+      "source": "https://kenney.nl/assets/pirate-kit",
+      "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/pirate-kit/boat-row-small.glb",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "category": "prop",
+      "url": "/assets/models/boat-row-small.glb",
+      "sizeBytes": 9776,
+      "triangles": 168,
+      "bounds": {
+        "min": [
+          -1.3743,
+          0.0,
+          -1.1861
+        ],
+        "max": [
+          1.3743,
+          0.8477,
+          1.1861
+        ]
+      },
+      "dimensions": [
+        2.7485,
+        0.8477,
+        2.3721
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "165dfbb616141793dd82eff3f5eae8c5fb947536b8830edaf21c2cdf254c8fb1",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/boat-row-small.glb",
+        "medium": "/assets/models/lod/boat-row-small-medium.glb",
+        "low": "/assets/models/lod/boat-row-small-low.glb"
+      },
+      "lodBytes": {
+        "high": 9776,
+        "medium": 9368,
+        "low": 6620
+      }
+    },
+    {
+      "id": "crate",
+      "source": "https://kenney.nl/assets/pirate-kit",
+      "downloadSource": "https://raw.githubusercontent.com/Hidencod/tge-assets/main/packs/pirate-kit/crate.glb",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "category": "prop",
+      "url": "/assets/models/crate.glb",
+      "sizeBytes": 7612,
+      "triangles": 76,
+      "bounds": {
+        "min": [
+          -0.539,
+          0.0,
+          -0.6545
+        ],
+        "max": [
+          0.539,
+          0.77,
+          0.6545
+        ]
+      },
+      "dimensions": [
+        1.078,
+        0.77,
+        1.309
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "120f777c3c7e6181af98e2938a63aef3813a15989e84fe4f405ff8b87a5bb279",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/crate.glb",
+        "medium": "/assets/models/lod/crate-medium.glb",
+        "low": "/assets/models/lod/crate-low.glb"
+      },
+      "lodBytes": {
+        "high": 7612,
+        "medium": 8592,
+        "low": 6644
+      }
+    },
+    {
+      "id": "adult-man",
+      "source": "https://poly.pizza/m/kZ3DmIoGip",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "category": "person",
+      "url": "/assets/models/adult-man.glb",
+      "sizeBytes": 152960,
+      "triangles": 5856,
+      "bounds": {
+        "min": [
+          -0.6013,
+          0.0,
+          -0.6323
+        ],
+        "max": [
+          0.6013,
+          1.8,
+          0.6323
+        ]
+      },
+      "dimensions": [
+        1.2027,
+        1.8,
+        1.2646
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "bca19d287b75a26b1064f2e7bb8d1b6ad63b8f26fe5a09cd799457823dc42b00",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/adult-man.glb",
+        "medium": "/assets/models/lod/adult-man-medium.glb",
+        "low": "/assets/models/lod/adult-man-low.glb"
+      },
+      "lodBytes": {
+        "high": 152960,
+        "medium": 82272,
+        "low": 36884
+      }
+    },
+    {
+      "id": "adult-beach",
+      "source": "https://poly.pizza/m/DojKLcO34E",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "category": "person",
+      "url": "/assets/models/adult-beach.glb",
+      "sizeBytes": 174552,
+      "triangles": 6654,
+      "bounds": {
+        "min": [
+          -0.5979,
+          0.0,
+          -0.6286
+        ],
+        "max": [
+          0.5979,
+          1.8,
+          0.6286
+        ]
+      },
+      "dimensions": [
+        1.1958,
+        1.8,
+        1.2573
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "99fc8c6ec34a5379bb87733787a07b037113a9978eec28677afbcb263126ce5c",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/adult-beach.glb",
+        "medium": "/assets/models/lod/adult-beach-medium.glb",
+        "low": "/assets/models/lod/adult-beach-low.glb"
+      },
+      "lodBytes": {
+        "high": 174552,
+        "medium": 96856,
+        "low": 45192
+      }
+    },
+    {
+      "id": "adult-woman",
+      "source": "https://poly.pizza/m/jpKRgGDxhk",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "category": "person",
+      "url": "/assets/models/adult-woman.glb",
+      "sizeBytes": 65940,
+      "triangles": 2856,
+      "bounds": {
+        "min": [
+          -0.3186,
+          0.0,
+          -0.335
+        ],
+        "max": [
+          0.3186,
+          1.7,
+          0.335
+        ]
+      },
+      "dimensions": [
+        0.6372,
+        1.7,
+        0.67
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "e1b4e24a0f07c9e5a41bc6c40c3aa8a5feba429918872485296d5da65b4fb9f8",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/adult-woman.glb",
+        "medium": "/assets/models/lod/adult-woman-medium.glb",
+        "low": "/assets/models/lod/adult-woman-low.glb"
+      },
+      "lodBytes": {
+        "high": 65940,
+        "medium": 37532,
+        "low": 20556
+      }
+    },
+    {
+      "id": "broadleaf",
+      "source": "https://polyhaven.com/a/tree_small_02",
+      "author": "Rico Cilliers",
+      "license": "CC0-1.0",
+      "category": "vegetation",
+      "url": "/assets/models/broadleaf.glb",
+      "sizeBytes": 1243180,
+      "triangles": 9724,
+      "bounds": {
+        "min": [
+          -1.4287,
+          0.0,
+          -2.1349
+        ],
+        "max": [
+          1.4366,
+          4.2355,
+          2.1348
+        ]
+      },
+      "dimensions": [
+        2.8652,
+        4.2355,
+        4.2697
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "3a6fb60b2e72836127ca4f8efc3a42c6eef05d2cd24b477e328d0473a6458226",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/broadleaf.glb",
+        "medium": "/assets/models/lod/broadleaf-medium.glb",
+        "low": "/assets/models/lod/broadleaf-low.glb"
+      },
+      "lodBytes": {
+        "high": 1243180,
+        "medium": 865360,
+        "low": 256840
+      }
+    },
+    {
+      "id": "barrel",
+      "source": "https://polyhaven.com/a/barrel_03",
+      "author": "Serhii Khromov",
+      "license": "CC0-1.0",
+      "category": "prop",
+      "url": "/assets/models/barrel.glb",
+      "sizeBytes": 168708,
+      "triangles": 1473,
+      "bounds": {
+        "min": [
+          -0.317,
+          0.0,
+          -0.3193
+        ],
+        "max": [
+          0.317,
+          0.9305,
+          0.3193
+        ]
+      },
+      "dimensions": [
+        0.6339,
+        0.9305,
+        0.6386
+      ],
+      "up": "+Y",
+      "forward": "+Z",
+      "changes": "Imported original glTF; centred in X/Z, base at Y=0; metric scaling where noted; decimated to a browser triangle budget; images capped at 512 pixels; static pose; binary glTF export.",
+      "sha256": "211196aa32c2dcca91ead12169e05b65145f82d5fe4ab8796dca36eda9883a7d",
+      "textureMaxSize": 512,
+      "lods": {
+        "high": "/assets/models/barrel.glb",
+        "medium": "/assets/models/lod/barrel-medium.glb",
+        "low": "/assets/models/lod/barrel-low.glb"
+      },
+      "lodBytes": {
+        "high": 168708,
+        "medium": 145912,
+        "low": 46568
+      }
+    }
+  ],
+  "materials": [
+    {
+      "id": "asphalt",
+      "source": "https://polyhaven.com/a/asphalt_02",
+      "author": "Rob Tuytel",
+      "license": "CC0-1.0",
+      "repeat": 0.16,
+      "changes": "1K source maps resized to 1024 pixels and recompressed as JPEG. OpenGL normal map; roughness is grayscale.",
+      "baseColor": "/assets/materials/asphalt/baseColor.jpg",
+      "normal": "/assets/materials/asphalt/normal.jpg",
+      "roughness": "/assets/materials/asphalt/roughness.jpg",
+      "sizeBytes": 1057639
+    },
+    {
+      "id": "sand",
+      "source": "https://polyhaven.com/a/coast_sand_01",
+      "author": "Rob Tuytel",
+      "license": "CC0-1.0",
+      "repeat": 0.17,
+      "changes": "1K source maps resized to 1024 pixels and recompressed as JPEG. OpenGL normal map; roughness is grayscale.",
+      "baseColor": "/assets/materials/sand/baseColor.jpg",
+      "normal": "/assets/materials/sand/normal.jpg",
+      "roughness": "/assets/materials/sand/roughness.jpg",
+      "sizeBytes": 665701
+    },
+    {
+      "id": "grass",
+      "source": "https://polyhaven.com/a/aerial_grass_rock",
+      "author": "Rob Tuytel",
+      "license": "CC0-1.0",
+      "repeat": 0.04,
+      "changes": "1K source maps resized to 1024 pixels and recompressed as JPEG. OpenGL normal map; roughness is grayscale.",
+      "baseColor": "/assets/materials/grass/baseColor.jpg",
+      "normal": "/assets/materials/grass/normal.jpg",
+      "roughness": "/assets/materials/grass/roughness.jpg",
+      "sizeBytes": 687652
+    },
+    {
+      "id": "pavement",
+      "source": "https://polyhaven.com/a/concrete_pavement",
+      "author": "Charlotte Baglioni",
+      "license": "CC0-1.0",
+      "repeat": 0.3,
+      "changes": "1K source maps resized to 1024 pixels and recompressed as JPEG. OpenGL normal map; roughness is grayscale.",
+      "baseColor": "/assets/materials/pavement/baseColor.jpg",
+      "normal": "/assets/materials/pavement/normal.jpg",
+      "roughness": "/assets/materials/pavement/roughness.jpg",
+      "sizeBytes": 673663
+    },
+    {
+      "id": "facade",
+      "source": "https://polyhaven.com/a/concrete_tile_facade",
+      "author": "Charlotte Baglioni",
+      "license": "CC0-1.0",
+      "repeat": 0.2,
+      "changes": "1K source maps resized to 1024 pixels and recompressed as JPEG. OpenGL normal map; roughness is grayscale.",
+      "baseColor": "/assets/materials/facade/baseColor.jpg",
+      "normal": "/assets/materials/facade/normal.jpg",
+      "roughness": "/assets/materials/facade/roughness.jpg",
+      "sizeBytes": 436094
+    },
+    {
+      "id": "brick",
+      "source": "https://polyhaven.com/a/brick_wall_001",
+      "author": "Rob Tuytel, Dimitrios Savva",
+      "license": "CC0-1.0",
+      "repeat": 0.2,
+      "changes": "1K source maps resized to 1024 pixels and recompressed as JPEG. OpenGL normal map; roughness is grayscale.",
+      "baseColor": "/assets/materials/brick/baseColor.jpg",
+      "normal": "/assets/materials/brick/normal.jpg",
+      "roughness": "/assets/materials/brick/roughness.jpg",
+      "sizeBytes": 622358
+    },
+    {
+      "id": "wood",
+      "source": "https://polyhaven.com/a/wood_floor",
+      "author": "Dimitrios Savva",
+      "license": "CC0-1.0",
+      "repeat": 0.5,
+      "changes": "1K source maps resized to 1024 pixels and recompressed as JPEG. OpenGL normal map; roughness is grayscale.",
+      "baseColor": "/assets/materials/wood/baseColor.jpg",
+      "normal": "/assets/materials/wood/normal.jpg",
+      "roughness": "/assets/materials/wood/roughness.jpg",
+      "sizeBytes": 357218
+    }
+  ],
+  "environments": [
+    {
+      "id": "golden",
+      "url": "/assets/environments/golden.hdr",
+      "source": "https://polyhaven.com/a/belfast_sunset_puresky",
+      "author": "Greg Zaal, Dimitrios Savva, Jarod Guest",
+      "license": "CC0-1.0",
+      "sizeBytes": 1190247,
+      "resolution": [
+        1024,
+        512
+      ],
+      "changes": "Original 1K Radiance HDR; no tonemapping applied."
+    },
+    {
+      "id": "twilight",
+      "url": "/assets/environments/twilight.hdr",
+      "source": "https://polyhaven.com/a/qwantani_dusk_2_puresky",
+      "author": "Greg Zaal, Jarod Guest",
+      "license": "CC0-1.0",
+      "sizeBytes": 1166018,
+      "resolution": [
+        1024,
+        512
+      ],
+      "changes": "Original 1K Radiance HDR; no tonemapping applied."
+    },
+    {
+      "id": "night",
+      "url": "/assets/environments/night.hdr",
+      "source": "https://polyhaven.com/a/qwantani_night_puresky",
+      "author": "Greg Zaal, Jarod Guest",
+      "license": "CC0-1.0",
+      "sizeBytes": 1389258,
+      "resolution": [
+        1024,
+        512
+      ],
+      "changes": "Original 1K Radiance HDR; no tonemapping applied."
+    }
+  ],
+  "totalBytes": 30897075
+}

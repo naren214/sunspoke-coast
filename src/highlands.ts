@@ -125,7 +125,7 @@ export function developHighlands(k:Kit){
   const waterUniform={clock:{value:0},color:{value:new T.Color('#348d9c')},glow:{value:new T.Color('#c9e1bd')}};
   const water=new T.ShaderMaterial({uniforms:waterUniform,side:T.DoubleSide,
     vertexShader:'varying vec3 p;void main(){p=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader:`varying vec3 p;uniform float clock;uniform vec3 color,glow;void main(){float rip=sin(p.x*.38+p.z*.14-clock*1.8)*sin(p.z*.24-clock);vec3 c=color*(.91+rip*.075);c+=glow*pow(max(0.,sin(p.z*.21+p.x*.03-clock*.5)),24.)*.13;gl_FragColor=vec4(c,1.);#include <tonemapping_fragment>\n#include <colorspace_fragment>}`.replace(';#include',';\n#include')});
+    fragmentShader:`varying vec3 p;uniform float clock;uniform vec3 color,glow;void main(){float rip=sin(p.x*.38+p.z*.14-clock*1.8)*sin(p.z*.24-clock);vec3 c=color*(.91+rip*.075);c+=glow*pow(max(0.,sin(p.z*.21+p.x*.03-clock*.5)),24.)*.13;vec3 view=normalize(cameraPosition-p);float fres=pow(1.-clamp(view.y,0.,1.),3.);c=mix(c,glow*.38,fres*.45);gl_FragColor=vec4(c,1.);#include <tonemapping_fragment>\n#include <colorspace_fragment>}`.replace(';#include',';\n#include')});
   const vertices:number[]=[],indices:number[]=[];
   for(let i=0;i<RIVER.points.length;i++){
     const p=RIVER.points[i],a=RIVER.points[Math.max(0,i-1)],b=RIVER.points[Math.min(i+1,RIVER.points.length-1)],dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz);

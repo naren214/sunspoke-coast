@@ -1,0 +1,53 @@
+{
+  "type": 0,
+  "name": "Qwantani Night (Pure Sky)",
+  "categories": [
+    "outdoor",
+    "natural light",
+    "nature",
+    "skies",
+    "clear",
+    "low contrast",
+    "night",
+    "pure skies"
+  ],
+  "tags": [
+    "pure skies"
+  ],
+  "authors": {
+    "Greg Zaal": "Photography",
+    "Jarod Guest": "Processing"
+  },
+  "info": "Edited sky-only version of [Qwantani Night](https://polyhaven.com/a/qwantani_night).",
+  "whitebalance": 4901,
+  "date_taken": 1724352180,
+  "coords": [
+    -28.48533209827116,
+    29.012639559934758
+  ],
+  "evs_cap": 23,
+  "max_resolution": [
+    24576,
+    12288
+  ],
+  "files_hash": "0478aaabb44e4947e5853f496f59433bf6d72af4",
+  "date_published": 1755820800,
+  "staging": null,
+  "sponsors": [
+    "10485422"
+  ],
+  "description": "Free 24K unclipped HDRI - clear, low-contrast night sky with Milky Way and cool distant glows, great for subtle night lighting.",
+  "category_id": "61ac0f4c-0977-548f-b345-f34c2d9eff35",
+  "attributes": {
+    "time_of_day": "night",
+    "weather": "clear",
+    "light_type": "natural",
+    "contrast": "low",
+    "environment": "outdoor",
+    "sky_view": "open"
+  },
+  "category": "Pure Skies",
+  "img_version": "0f408adc",
+  "download_count": 83292,
+  "thumbnail_url": "https://cdn.polyhaven.com/asset_img/thumbs/qwantani_night_puresky.png?width=256&height=256&format=webp&v=0f408adc"
+}
