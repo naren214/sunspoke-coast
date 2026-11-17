@@ -123,7 +123,7 @@ export function createGrandGallery(){
     frame.position.set(xx-side*.78,floor+8,zz);frame.rotation.y=yaw;group.add(frame);panels.push({material,art});
     frame.userData={display:true,title:art.title,width:w,height:h};
     text(art.title,xx-side*.81,floor+2,zz,20,.8,yaw);
-    text(`${art.author} / ${art.license}`,xx-side*.82,floor+1,zz,20,.55,yaw);
+    text('caption' in art ? art.caption : `${art.author} / ${art.license}`,xx-side*.82,floor+1,zz,20,.55,yaw);
   });
   const doors=[-1,1].map(side=>{
     const zz=z+side*depth/2;

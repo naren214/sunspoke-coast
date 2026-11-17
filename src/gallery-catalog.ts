@@ -4,6 +4,7 @@ export const GALLERY_ART = [
     "src": "/gallery/lolcat.jpg",
     "title": "FEATURED PORTRAIT",
     "category": "USER PHOTO",
+    "caption": "World famous",
     "author": "User-provided image",
     "license": "Not specified",
     "licenseUrl": "",
