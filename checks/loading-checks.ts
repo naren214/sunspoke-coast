@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {gzipSync} from 'node:zlib';
-import {readFile} from 'node:fs/promises';
 import {GameDownloads} from '../src/downloads';
 import {OpeningScreen} from '../src/opening';
 import {DefaultLoadingManager,FileLoader} from 'three';
@@ -97,7 +96,7 @@ try{
     const response=await fetch(new URL('boot-manifest.json',baseURL));assert.equal(response.status,200);const catalog=await response.json() as BootManifest;
     let realRequests=0;const actual=new GameDownloads(()=>{},(url,options)=>{realRequests++;return fetch(new URL(String(url),baseURL),options);});await actual.preload(catalog);
     for(const asset of catalog.assets){assert.equal(actual.buffer(asset.url).byteLength,asset.bytes,asset.url);productionFiles++;productionBytes+=asset.bytes;}
-    assert.equal(productionBytes,catalog.totalBytes);assert.equal(actual.json('/world/metadata.json').fingerprint,JSON.parse(await readFile('public/world/metadata.json','utf8')).fingerprint);
+    assert.equal(productionBytes,catalog.totalBytes);assert.ok(catalog.assets.every(asset=>!asset.url.startsWith('/world/')),'County generation does not block on a network download');
     assert.equal(new Uint8Array(actual.buffer('/assets/car/sunspoke-gt-low.glb'))[0],103);
     Object.assign(globalThis,{ProgressEvent:class extends Event{loaded:number;total:number;lengthComputable:boolean;constructor(type:string,init:ProgressEventInit){super(type);Object.assign(this,init);}}});
     DefaultLoadingManager.setURLModifier(url=>actual.resource(url));

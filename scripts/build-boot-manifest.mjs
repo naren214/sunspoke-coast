@@ -5,7 +5,6 @@ const root=resolve(import.meta.dirname,'..'),dist=resolve(root,process.argv.incl
 const manifest=JSON.parse(await readFile(resolve(dist,'assets/manifest.json'),'utf8'));
 const assets=new Map();
 const add=(url,label,type='application/octet-stream')=>assets.set(url,{url,label,type});
-add('/world/metadata.json','Reading the county map','application/json');add('/world/county.json.gz','Downloading the coast and city','application/gzip');
 add('/assets/manifest.json','Finding your scenery','application/json');add('/assets/car/sunspoke-gt-low.glb','Downloading your Sunspoke GT','model/gltf-binary');
 for(const id of ['palm','bench','boulder'])add(manifest.models.find(m=>m.id===id).lods.low,'Downloading the beach scenery','model/gltf-binary');
 for(const material of manifest.materials)for(const field of ['baseColor','normal','roughness'])if(material[field])add(material[field],'Downloading road and landscape detail','image/jpeg');

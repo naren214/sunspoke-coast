@@ -10,7 +10,7 @@ This is original procedural geography inspired by the city, coast, islands and c
 
 ## Opening screen
 
-The opening uses locally bundled coastal artwork, a live Sunspoke GT preview, a keyboard-controls guide and an explicit loading panel. Its percentage, received megabytes and completed-file count come from the 37 startup game files (about 20.2 MB), rather than a timed animation. The artwork, fonts and engine code load separately. Download completion is followed by a preparation stage; **Drive the coast** becomes available after shader preparation and the first successful game render. A stalled, missing or incomplete download offers **Retry download**. Cached downloads can finish quickly, and additional scenery/detail levels still load in the background.
+The opening uses locally bundled coastal artwork, a live Sunspoke GT preview, a keyboard-controls guide and an explicit loading panel. Its percentage, received megabytes and completed-file count come from the 35 startup game files (about 7.2 MB), rather than a timed animation. The artwork, fonts and engine code load separately. Download completion is followed by a preparation stage; **Drive the coast** becomes available after shader preparation and the first successful game render. A stalled, missing or incomplete download offers **Retry download**. Cached downloads can finish quickly, and additional scenery/detail levels still load in the background.
 
 ## Play with a friend
 
@@ -24,7 +24,7 @@ Multiplayer requires internet access and the online room server. Solo driving re
 
 The current source and included build add 29 imported CC0 model designs with three detail levels, seven PBR surface sets and three bundled HDR lighting environments. The Sunspoke GT has sculpted fenders, split-spoke wheels, a fastback cabin, animated lights and steering, and a gold **NAREN** signature between its tail lamps. Low and higher-detail car GLBs preserve the same dimensions and handling.
 
-The county now has textured grass meadows, imported palms and trees, roadside furniture, additional homes and lakefront towers, terrain foundations, riverbank reeds, district signs, boats, birds and flags. Road improvements include continuous curved asphalt, curbs, shoulders, turn arrows, crossings and reflectors. The gallery has fitted image displays, glass sensor doors and entrance status lights. Static scenery is prebaked locally to avoid rebuilding the entire county during browser startup.
+The county now has textured grass meadows, imported palms and trees, roadside furniture, additional homes and lakefront towers, terrain foundations, riverbank reeds, district signs, boats, birds and flags. Road improvements include continuous curved asphalt, curbs, shoulders, turn arrows, crossings and reflectors. The gallery has fitted image displays, glass sensor doors and entrance status lights. The browser generates the county during preparation.
 
 **Review status.** The county and UI update is available in the local build. `TESTING.md` and `IMPLEMENTATION_STATUS.md` record the current build checks and browser evidence. For co-op development, use the local Worker and the `VITE_MULTIPLAYER_URL` override in `MULTIPLAYER.md` so the frontend and Worker use the same baked map version.
 

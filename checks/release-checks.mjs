@@ -25,7 +25,7 @@ for(const url of urls){assert.ok(url.startsWith('/')&&!url.startsWith('//'),'Loc
 const files=await walk(dist),sizes=new Map(await Promise.all(files.map(async path=>[path,(await stat(path)).size])));
 const initial=new Set(files.filter(path=>/[/\\](fonts|gallery)[/\\]/.test(path)));
 for(const path of files)if(/[/\\]index\.html$/.test(path)||/[/\\]assets[/\\][^/\\]+\.(js|css)$/.test(path)&&!/[\/\\]qa-/.test(path)||/[/\\]home[/\\]/.test(path)||path.endsWith('boot-manifest.json'))initial.add(path);
-for(const url of ['/assets/manifest.json','/world/metadata.json','/world/county.json.gz','/assets/car/sunspoke-gt-low.glb'])initial.add(resolve(dist,'.'+url));
+for(const url of ['/assets/manifest.json','/assets/car/sunspoke-gt-low.glb'])initial.add(resolve(dist,'.'+url));
 for(const id of ['palm','bench','boulder'])initial.add(resolve(dist,'.'+manifest.models.find(m=>m.id===id).lods.low));
 for(const entry of manifest.materials)for(const field of ['baseColor','normal','roughness'])initial.add(resolve(dist,'.'+entry[field]));
 initial.add(resolve(dist,'.'+manifest.environments.find(e=>e.id==='golden').url));

@@ -14,7 +14,6 @@ import { Driving, ChaseCamera } from './driving';
 import { GameAudio } from './audio';
 import type { Lighting, Quality } from './types';
 import {AssetLibrary,createImportedScenery} from './assets';
-import {loadBakedWorld} from './world-cache';
 import {VISUAL_QUALITY,createContactShadows,createOutdoorEnvironment} from './visuals';
 import {insideGallery,WATERS} from './geography';
 import {districtAt} from './districts';
@@ -60,8 +59,8 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
   progress(.02,'Loading Sunspoke Coast');await new Promise(resolve=>requestAnimationFrame(resolve));
   const library=new AssetLibrary(downloads);
   await Promise.all([document.fonts.load('190px CoastSignature'),document.fonts.load('900 245px Barlow'),library.init()]);
-  const baked=await loadBakedWorld(progress,downloads);
-  const world = createWorld(baked);
+  progress(.08,'Building the county');
+  const world = createWorld();
   const scenery=createImportedScenery(world.group,library,world.group.userData.placements??[]);
   const atlas=new CountyAtlas(world);
   const canvas = $('scene') as HTMLCanvasElement;
