@@ -5,7 +5,7 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
-const inputs=['world','grass','roads','geography','county-roads','road-grading','highlands','stunt','beachgoers','gallery','gallery-catalog','visuals','districts'];
+const inputs=['world','city','grass','roads','geography','county-roads','places','road-grading','highlands','stunt','beachgoers','gallery','gallery-catalog','visuals','districts'];
 const hash=createHash('sha256').update(await readFile(new URL(import.meta.url)));
 for(const file of inputs)hash.update(await readFile(new URL('../src/'+file+'.ts',import.meta.url)));
 for(const file of ['switchback-route','protocol'])hash.update(await readFile(new URL('../shared/'+file+'.ts',import.meta.url)));

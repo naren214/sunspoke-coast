@@ -6,6 +6,7 @@ import { createGrandGallery } from './gallery';
 import { developHighlands, reservedNorth } from './highlands';
 import { createRoadIndex } from './road-grading';
 import { COUNTY_ROADS } from './county-roads';
+import { SCENIC_STOPS } from './places';
 import { renderRoadNetwork } from './roads';
 import { createGrassMaterial, createGrassField } from './grass';
 import { createNearbyLighting } from './visuals';
@@ -26,8 +27,17 @@ export function createWorld(prebuilt?:T.Group): World {
   if(prebuilt){group.userData={...prebuilt.userData};group.add(...prebuilt.children.slice());}
   const roads: Road[] = [];
   const colliders: Collider[] = [];
+  const stops: (typeof SCENIC_STOPS[number] & { elevation: number })[] = [];
   let roadIndex:ReturnType<typeof createRoadIndex>|undefined;
-  const baseGroundHeight=(x:number,z:number)=>isLand(x,z)?(roadIndex?.grade(x,z)??landHeight(x,z)):waterLevel(x,z)-4;
+  function baseGroundHeight(x:number,z:number) {
+    if(!isLand(x,z))return waterLevel(x,z)-4;
+    const height=roadIndex?.grade(x,z)??landHeight(x,z);
+    for(const stop of stops){
+      const edge=Math.max(Math.abs(x-stop.x)-stop.width/2,Math.abs(z-stop.z)-stop.depth/2);
+      if(edge<6)return T.MathUtils.lerp(stop.elevation,height,T.MathUtils.smoothstep(edge,0,6));
+    }
+    return height;
+  }
   const groundHeight=(x:number,z:number)=>stuntGround(x,z,baseGroundHeight(x,z));
   const random = noiseGenerator(27061);
   const dayGlow: { material: T.MeshStandardMaterial; day: number; night: number }[] = [];
@@ -129,7 +139,16 @@ export function createWorld(prebuilt?:T.Group): World {
   road(extension,18);
   for(const z of [-160,0,160])road([[180,z],[343,z]],15);
   for(const route of COUNTY_ROADS){
-    if(route.curve){
+    const stop=SCENIC_STOPS.find(candidate=>candidate.name===route.name);
+    if(stop){
+      const access=createRoadIndex(roads.filter(candidate=>candidate.name===stop.road),landHeight).nearest(stop.from.x,stop.from.z);
+      const distance=Math.hypot(stop.x-stop.from.x,stop.z-stop.from.z);
+      const gradeLimit=Math.max(0,distance-7)*.10;
+      const elevation=T.MathUtils.clamp(landHeight(stop.x,stop.z),access.height-gradeLimit,access.height+gradeLimit);
+      const entry=1-7/distance;
+      road([[stop.from.x,stop.from.z,access.height],[T.MathUtils.lerp(stop.from.x,stop.x,entry),T.MathUtils.lerp(stop.from.z,stop.z,entry),elevation],[stop.x,stop.z,elevation]],route.width,stop.name);
+      stops.push({...stop,elevation});
+    }else if(route.curve){
       const curve=new T.CatmullRomCurve3(route.points.map(p=>new T.Vector3(p[0],p[2]??landHeight(p[0],p[1]),p[1])),Boolean(route.closed),'centripetal');
       const points=curve.getSpacedPoints(Math.ceil(curve.getLength()/3.5));
       // Explicitly elevated causeways retain their spline profile; country roads follow terrain.
@@ -227,7 +246,10 @@ export function createWorld(prebuilt?:T.Group): World {
   // Low road-end walls and headland rocks ground the perimeter visually.
   // The former eastern city wall is opened to the county road network.
 
-  collider(-116.9,0,.8,312,1.8);
+  for(let z=-296;z<=296;z+=8){
+    if(Math.abs(z)<108)continue;
+    rail(-115,z,.56,8,0,.48);
+  }
 
   const fabrics=[mat('#df765e'),mat('#77a8a4'),mat('#e3ba64')];
   function umbrella(x:number,z:number,s:number,c:number){
@@ -510,8 +532,13 @@ export function createWorld(prebuilt?:T.Group): World {
     const y=groundHeight(x,610);podium(x,610,70,30,9,citySilver,surface.amber);
     cube(surface.dark,x,y+4.5,594.6,55,7,.2);
   }
-  for(let x=112;x<415;x+=18){cube(surface.white,x,.095,520,8,.02,.35,0,false);}
-  for(const x of [115,405])for(const side of [-1,1])cube(surface.white,x,.095,520+side*10,12,.02,1.6,0,false);
+  // Low-profile runway markers keep the edges legible from the cockpit at night.
+  const runwayEdge=glow('#afd5fb',.2,1.8,'#a0b7ca');
+  for(let x=110;x<=410;x+=15)for(const side of [-1,1]){
+    const z=520+side*17.8,y=groundHeight(x,z);
+    cube(cityDark,x,y+.07,z,.5,.14,.46,0,false);
+    cube(runwayEdge,x,y+.17,z,.24,.11,.23,0,false);
+  }
   function plane(x:number,z:number){
     const y=groundHeight(x,z);
     geom(cyl,surface.ivory,x,y+2,z,1,17,1,0,Math.PI/2);
@@ -679,6 +706,77 @@ export function createWorld(prebuilt?:T.Group): World {
   }
   seaPatch(-178,-108,-1350,1250,48,250);seaPatch(-1600,-178,-1600,1600,45,67);
   seaPatch(-178,1600,-1600,1400,80,110);
+  const scenicAsphalt=surface.asphalt.clone();
+  scenicAsphalt.name='Scenic stop asphalt';scenicAsphalt.color.set('#eff3f5');
+  for(const stop of stops){
+    const {x,z,elevation:y,width,depth,color}=stop;
+    const accent=mat(color),accessX=stop.from.x-x,accessZ=stop.from.z-z;
+    const westEntry=Math.abs(accessX)>Math.abs(accessZ);
+    const farX=westEntry?-Math.sign(accessX):0,farZ=westEntry?0:-Math.sign(accessZ);
+    const acrossX=farZ,acrossZ=-farX;
+    const far=westEntry?width/2:depth/2,across=westEntry?depth/2:width/2;
+    const yaw=Math.atan2(-farX,-farZ);
+    const borderX=x+farX*(far-.4),borderZ=z+farZ*(far-.4);
+    const span=across*2;
+    cube(scenicAsphalt,x,y-.038,z,width,.14,depth,0,false);
+    cube(surface.stone,borderX,y+.32,borderZ,span,.69,.46,yaw);
+    cube(accent,borderX,y+.69,borderZ,span,.11,.51,yaw);
+    colliders.push({x:borderX,z:borderZ,halfX:span/2,halfZ:.26,rotation:yaw,baseY:y,height:.75});
+    for(const lane of [-1,1]){
+      const offset=lane*across*.55;
+      const lx=x+acrossX*offset+farX*(far-3.1),lz=z+acrossZ*offset+farZ*(far-3.1);
+      cube(accent,lx,y+.043,lz,.12,.017,4.4,yaw,false);
+      const postX=borderX+acrossX*lane*across*.80,postZ=borderZ+acrossZ*lane*across*.80;
+      geom(cyl,surface.dark,postX,y+.53,postZ,.11,1.06,.11);
+      geom(cyl,surface.lamp,postX,y+1.03,postZ,.16,.11,.16,0,0,0,false);
+      lightSources.push({position:new T.Vector3(postX,y+1.22,postZ),color:new T.Color(color),intensity:14,range:13});
+    }
+    const signX=borderX+acrossX*across*.53,signZ=borderZ+acrossZ*across*.53;
+    geom(cyl,surface.dark,signX,y+.92,signZ,.09,1.8,.09);
+    lettering(stop.name.toUpperCase(),stop.district.toUpperCase(),'#f8edcf','#173c40',signX,y+1.66,signZ,4.6,1.25,yaw);
+    const seatX=borderX-acrossX*across*.52-farX*.95,seatZ=borderZ-acrossZ*across*.52-farZ*.95;
+    cube(surface.wood,seatX,y+.52,seatZ,2.25,.13,.45,yaw);
+    cube(surface.stone,seatX,y+.24,seatZ,1.67,.46,.39,yaw);
+    colliders.push({x:seatX,z:seatZ,halfX:1.125,halfZ:.225,rotation:yaw,baseY:y,height:.59});
+    for(const side of [-1,1]){
+      const bedX=x+acrossX*side*(across+1.8)+farX*2.8,bedZ=z+acrossZ*side*(across+1.8)+farZ*2.8;
+      if(!lotClear(bedX,bedZ,2.8,2.8))continue;
+      const base=groundHeight(bedX,bedZ);
+      if(stop.id==='sierra-vista'){
+        cube(surface.stone,bedX,base+.32,bedZ,2.4,.85,2.4,yaw);
+        const h=4.6;
+        post(surface.wood,bedX,bedZ,.14,h,base);
+        for(let tier=0;tier<3;tier++)geom(shade,surface.green,bedX,base+2.3+tier*.85,bedZ,2.8-tier*.58,2.15,2.8-tier*.58);
+        collider(bedX,bedZ,1.2,1.2,.8,yaw);
+      }else if(stop.id==='lake-overlook'){
+        cube(surface.cream,bedX,base+.39,bedZ,2.85,.95,2.2,yaw);
+        for(const offset of [-.7,0,.7])geom(oval,surface.green,bedX+acrossX*offset,base+1,bedZ+acrossZ*offset,1.12,.74,1.06);
+        collider(bedX,bedZ,1.43,1.1,.9,yaw);
+      }else{
+        for(const offset of [-.94,.94]){
+          const bx=bedX+acrossX*offset,bz=bedZ+acrossZ*offset;
+          post(surface.cream,bx,bz,.12,2.65,base);collider(bx,bz,.13,.13,2.7);
+        }
+        for(let row=-2;row<=2;row++)cube(surface.wood,bedX+farX*row*.48,base+2.7,bedZ+farZ*row*.48,2.65,.14,.22,yaw);
+        cube(surface.walk,bedX,base+.045,bedZ,2.8,.14,2.8,yaw,false);
+      }
+    }
+    const route=roads.find(r=>r.name===stop.road)!;
+    // Two-sided direction blade is set beyond the shoulder and faces along the road.
+    const a=route.points.reduce((best,p)=>Math.hypot(p.x-stop.from.x,p.z-stop.from.z)<Math.hypot(best.x-stop.from.x,best.z-stop.from.z)?p:best);
+    const i=route.points.indexOf(a),b=route.points[Math.min(i+1,route.points.length-1)],q=route.points[Math.max(0,i-1)];
+    const dx=b.x-q.x,dz=b.z-q.z,l=Math.hypot(dx,dz)||1;
+    for(const direction of [-1,1]){
+      const u=(route.width/2+3.6)*direction;
+      const xx=a.x+dz/l*u+dx/l*direction*11,zz=a.z-dx/l*u+dz/l*direction*11;
+      if(!lotClear(xx,zz,2.7,1))continue;
+      const base=groundHeight(xx,zz),face=Math.atan2(dx,dz);
+      post(surface.dark,xx,zz,.077,2.9,base);
+      lettering(stop.name.toUpperCase(),'SCENIC PULL-OFF','#fff2db','#234743',xx+dx/l*.025,base+2.55,zz+dz/l*.025,5.3,1.28,face);
+      lettering(stop.name.toUpperCase(),'SCENIC PULL-OFF','#fff2db','#234743',xx-dx/l*.025,base+2.55,zz-dz/l*.025,5.3,1.28,face+Math.PI);
+      break;
+    }
+  }
   for(const [key,b] of buckets){
     const instances=new T.InstancedMesh(b.g,b.m,b.matrices.length);
     b.matrices.forEach((m,i)=>instances.setMatrixAt(i,m));instances.castShadow=b.shadow;instances.receiveShadow=true;

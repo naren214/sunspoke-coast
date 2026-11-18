@@ -1,5 +1,45 @@
 # Sunspoke Coast verification
 
+## Sunspoke GT
+
+- The production build serves all 156 files over HTTP. The startup manifest checks 37 assets totaling 20,242,726 bytes. The fresh Low build inventory is 21,879,851 bytes against a 25 MB limit.
+- The actual Low and High GLBs decode to 24,101 and 38,751 triangles. Both detail levels fit the collision bounds. The procedural model fits inside the swept footprint at full steering lock. Checks cover shared immutable geometry, independent player paint and steering, lamp response, and signature texture alignment.
+- Chrome on Intel Iris Xe rendered the opening, chase view, and front, rear, and side views in golden-hour, twilight, and night lighting. Photo mode saved a 1920 × 1080 PNG. The capture run logged zero browser errors and failed HTTP responses.
+- Driving and world checks cover the beachfront and Silver Lake circuits, stunt launch and landing, and both directions through the gallery doors. The camera stability check covers 60–165 Hz.
+- The local Worker passed the two-client network test. Chromium displayed the teal and coral GTs together and completed Airport Sprint staging, countdown, and a server-acknowledged +5 s checkpoint recovery. The browser smoke test retried its connection before staging.
+
+### Sunspoke GT Iris Xe driving measurements
+
+Automated keyboard driving ran for five minutes per route in a focused and visible headless Chrome page on the Intel Iris Xe D3D11 renderer. The viewport was 1920 × 1080. Low rendered at 1440 × 810 with the minimap enabled.
+
+| Route | Average FPS | Median frame | p95 frame |
+| --- | ---: | ---: | ---: |
+| Beachfront Circuit | 24.4 | 41.7 ms | 66.7 ms |
+| Crosstown Freeway | 35.9 | 16.9 ms | 66.7 ms |
+| Silver Lake Circuit | 41.7 | 16.7 ms | 58.2 ms |
+
+The beachfront run missed the 30 FPS average target. All three runs recorded zero console errors, failed HTTP responses, driving-test recoveries, and lost-focus samples. Raw results are in `.cache/sunspoke-gt/iris-xe-drives.json`.
+
+A separate stationary comparison at the beachfront starting position recorded 17.0 and 17.6 FPS with the car visible, 21.0 FPS with it hidden, and 17.1 FPS with the former chase-camera framing. The scene at that position remained below 30 FPS with the GT hidden. Raw comparison results are in `.cache/sunspoke-gt/iris-xe-render-diagnostic.json`.
+
+## County wayfinding and scenic stops — 18 November 2026
+
+The local review covers 58 connected roads, 22,560 lane probes, ten simulated circuits, and bidirectional access to the three scenic stops. Route checks cover all 12 atlas destinations from the starting boulevard, a grade-separated crossing, and offshore route failure. Water checks reproduce the Isla Luz immersion and confirm safe recovery. They also cover the three bridge decks and Ramp Time's recessed landing gap.
+
+Chromium checks exercise startup, keyboard acceleration, held-key pause and resume, atlas search and routing, focus restoration, compact overlays, minimap settings, keyboard photo orbit, and both PNG exports. The local Worker and two WebSocket clients cover rooms, starting grids, race transitions, checkpoint recovery, and reconnects. The four multiplayer track definitions match the previous build.
+
+### Iris Xe driving measurements
+
+Automated keyboard driving ran for five minutes per route in a visible, focused page in headless Chrome using the Intel Iris Xe D3D11 renderer. The browser viewport was 1920 × 1080 and Low rendered at 1440 × 810 with the minimap enabled and the full atlas closed.
+
+| Route | Average FPS | Median frame | p95 frame |
+| --- | ---: | ---: | ---: |
+| Beachfront Circuit | 63.8 | 16.6 ms | 25.1 ms |
+| Crosstown Freeway | 76.1 | 8.5 ms | 25.1 ms |
+| Silver Lake Circuit | 33.4 | 33.3 ms | 50.0 ms |
+
+The three averages cleared 30 FPS. Silver Lake had slower frames. The runs logged zero console errors, failed HTTP responses, or driving-test recoveries. The measurements precede the final fix for drawing slowly moving multiplayer markers while the full atlas is open.
+
 ## Cinematic opening and download progress — 18 November 2026
 
 The redesigned opening adds local coastal artwork, a responsive layout, a native keyboard-controls disclosure, a live Cayenne preview and download/preparation/ready states. The production build passes. `predev` and `postbuild` generate the same content-versioned startup manifest: 37 files, 21,540,491 bytes. The lightweight opening entry loads independently of the Three.js/game chunk. The progress panel counts startup asset bytes; it excludes the separately loaded engine, CSS, fonts and key art. For HTTP-encoded responses, the panel credits the catalogued file size only on completion because Fetch can deliver decoded chunks. It does not claim to measure wire transfer or connection speed.

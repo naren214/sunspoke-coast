@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#102b2e"><meta name="description" content="Take the coast road in a Porsche Cayenne. An unhurried drive through Sunspoke Coast."><title>Sunspoke Coast — Leave the ordinary</title><link rel="preload" href="/home/coast-keyart.webp" as="image" fetchpriority="high"><link rel="icon" type="image/svg+xml" href="/favicon.svg"></head><body><main id="app"><canvas id="scene" aria-label="Sunspoke Coast driving world"></canvas>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#102b2e"><meta name="description" content="Take the coast road in the Sunspoke GT. An unhurried drive through Sunspoke Coast."><title>Sunspoke Coast — Leave the ordinary</title><link rel="preload" href="/home/coast-keyart.webp" as="image" fetchpriority="high"><link rel="icon" type="image/svg+xml" href="/favicon.svg"></head><body><main id="app"><canvas id="scene" aria-label="Sunspoke Coast driving world"></canvas>
 <section id="opening" class="screen opening" data-stage="download" aria-busy="true">
   <div class="home-art" aria-hidden="true"></div><div class="home-shade" aria-hidden="true"></div><div class="home-grain" aria-hidden="true"></div>
   <header class="home-header">
@@ -28,13 +28,104 @@
     </div>
     <aside class="home-scene" aria-label="Your car">
       <div class="home-scene-caption"><i></i><span id="preview-label">A GLIMPSE OF YOUR ESCAPE</span></div>
-      <div class="home-ride"><p class="home-micro">WAITING FOR YOU</p><h2>Porsche Cayenne</h2><span class="home-ride-color">MIDNIGHT TEAL <i>·</i> NAREN</span><div class="home-ride-line"><div><strong>250</strong><span>KM/H</span></div><p>One car.<br>A thousand detours.</p></div></div>
+      <div class="home-ride"><p class="home-micro">WAITING FOR YOU</p><h2>Sunspoke GT</h2><span class="home-ride-color"><span id="ride-paint">Deep Metallic Teal</span> <i>·</i> NAREN</span><div class="home-ride-line"><div><strong>250</strong><span>KM/H</span></div><p>One car.<br>A thousand detours.</p></div></div>
     </aside>
   </div>
-  <footer class="home-footer"><div class="home-world"><span><strong>9</strong> DISTRICTS</span><span><strong>25.8</strong> KM OF ROAD</span></div><div class="home-experiences"><span><i>01</i>Find your coast</span><span><i>02</i>Bring a friend</span><span><i>03</i>Chase the apex</span></div><p class="home-signoff">NO WRONG TURNS.<br><span>JUST GOOD STORIES.</span></p></footer>
+  <footer class="home-footer"><div class="home-world"><span><strong>9</strong> DISTRICTS</span><span><strong id="home-road-length">26.0</strong> KM OF ROAD</span></div><div class="home-experiences"><span><i>01</i>Find your coast</span><span><i>02</i>Bring a friend</span><span><i>03</i>Chase the apex</span></div><p class="home-signoff">NO WRONG TURNS.<br><span>JUST GOOD STORIES.</span></p></footer>
   <noscript>Enable JavaScript to load Sunspoke Coast.</noscript>
 </section>
 
-<section id="hud" hidden><div id="district-label" aria-live="polite"></div><div id="race-hud" hidden role="status"></div><div id="turn-hud" hidden role="group" aria-label="Turn guidance"><span id="turn-arrow" aria-hidden="true"></span><div><strong id="turn-direction" aria-live="polite"></strong><span id="turn-distance"></span></div></div><button id="pause-button" aria-label="Pause and settings" title="Pause · Esc">Ⅱ</button><div id="hint"><span><kbd>WASD</kbd> drive</span><span><kbd>SHIFT</kbd> brake</span><span><kbd>SPACE</kbd> handbrake</span><span><kbd>R</kbd> reset</span><span><kbd>M</kbd> map</span><span><kbd>F2</kbd> photo</span><span>drag to look · scroll to zoom</span><button id="hide-hint" aria-label="Hide controls">×</button></div><div class="speedometer"><div><span id="speed">0</span><span class="unit">km/h</span></div><div class="speed-line"><i id="speed-fill"></i></div><span id="gear">P</span></div></section>
-<section id="pause" class="screen pause" hidden><div class="pause-panel"><p class="eyebrow">TAKE A BREATHER</p><h2>Stay a while.</h2><div class="setting"><span>The light</span><div class="segmented" id="lighting"><button data-value="golden" class="selected">Golden hour</button><button data-value="twilight">Twilight</button><button data-value="night">Night</button></div></div><div class="setting"><label for="volume">Volume</label><input id="volume" type="range" min="0" max="100" value="45" aria-label="Master volume"></div><div class="setting multiplayer"><span>Play with a friend</span><div class="room-entry"><input id="room-code" type="text" inputmode="numeric" pattern="[0-9]{3}" maxlength="3" placeholder="000" aria-label="Three-digit room code" autocomplete="off"><button id="room-join" type="button">Join</button><button id="room-create" type="button">Create room</button></div><p id="room-status" class="setting-note" role="status">Solo driving</p><div class="room-actions"><button id="room-copy" type="button" hidden>Copy code</button><button id="room-leave" type="button" hidden>Leave room</button></div><div id="race-controls" hidden><label for="race-track">Race together</label><select id="race-track" aria-label="Race track"></select><div class="room-actions"><button id="race-ready" type="button" hidden>Ready to race</button><button id="race-rematch" type="button" hidden>Rematch</button><button id="race-free" type="button" hidden>Free roam</button></div><p id="race-status" class="setting-note" role="status"></p><p class="setting-note">Ghost cars · R returns to checkpoint with +5 s</p></div></div><div class="setting"><span>Visual quality</span><div class="segmented" id="quality"><button data-value="low" class="selected">Low</button><button data-value="medium">Medium</button><button data-value="high">High</button></div><p id="quality-description" class="setting-note">Balanced for integrated graphics</p></div><label class="toggle"><input id="controls-toggle" type="checkbox" checked> Show driving controls</label><p class="pause-controls">WASD or arrows to drive · Shift to brake &middot; Space to handbrake<br>Drag to look · Scroll to zoom · R to reset · Esc to pause</p><button id="resume" class="primary">Back to the coast <span>↗</span></button><button id="open-photo" class="text-button">Photo mode · F2</button><button id="performance-report" class="text-button">Save performance report</button><a class="text-button gallery-credits" href="/assets/credits.html" target="_blank" rel="noopener">World assets &amp; credits ↗</a><button id="open-map" class="text-button">County map · M</button><button id="reset" class="text-button">Return to the road</button><a class="text-button gallery-credits" href="/gallery/index.html" target="_blank" rel="noopener">Gallery photos &amp; image credits ↗</a></div></section>
-<section id="atlas" class="screen atlas" hidden aria-label="Sunspoke County map"><div class="atlas-heading"><div><p class="eyebrow">THE WHOLE COAST IS YOURS</p><h2>Sunspoke County</h2><p id="atlas-summary"></p></div><button id="export-map" class="text-button">Save full map ↓</button><button id="close-map" aria-label="Close map">Back to driving · M / Esc &nbsp; ×</button></div><canvas id="atlas-map" aria-label="County roads, districts and current car position"></canvas><div class="atlas-footer"><span><i class="atlas-road"></i> City streets &nbsp; <i class="atlas-freeway"></i> Freeway &nbsp; <i class="atlas-player"></i> Your car</span><span>Scroll to zoom · Drag to explore</span></div></section><section id="photo-mode" class="screen photo-mode" hidden><div class="photo-toolbar"><div><p class="eyebrow">SUNSPOKE PHOTO MODE</p><p>Drag to orbit · Scroll to zoom</p></div><button id="capture-photo" class="primary">Save photo ↓</button><button id="close-photo" class="text-button">Back to driving · F2 / Esc</button></div></section><section id="error" class="screen error" hidden><h2>The coast needs a moment.</h2><p id="error-message"></p><button class="primary" onclick="location.reload()">Try again ↗</button></section><div id="toast" role="status" hidden></div></main><script type="module" src="/src/entry.ts"></script></body></html>
+<section id="hud" hidden aria-label="Driving instruments">
+  <div id="district-label"></div>
+  <div class="driving-actions">
+    <button id="hud-map" class="game-button" aria-label="Open county map"><span class="map-glyph" aria-hidden="true">⌖</span> Map <kbd>M</kbd></button>
+    <button id="pause-button" class="game-button" aria-label="Pause and settings">Ⅱ <span>Pause</span> <kbd>Esc</kbd></button>
+  </div>
+  <div class="race-instruments">
+    <div id="race-hud" hidden></div>
+    <div id="turn-hud" hidden role="group" aria-label="Turn guidance"><span id="turn-arrow" aria-hidden="true"></span><div><strong id="turn-direction"></strong><span id="turn-distance"></span></div></div>
+  </div>
+  <div class="navigation-hud">
+    <div id="mini-map-frame"><canvas id="mini-map" aria-hidden="true"></canvas><span class="mini-north" aria-hidden="true">▲ N</span></div>
+    <div id="route-hud" hidden><strong id="route-name"></strong><span id="route-distance"></span></div>
+  </div>
+  <div id="hint"><span><kbd>WASD</kbd> Drive</span><span><kbd>SHIFT</kbd> Brake</span><span><kbd>SPACE</kbd> Handbrake</span><span><kbd>R</kbd> Reset</span><span><kbd>F2</kbd> Photo</span><button id="hide-hint" aria-label="Hide driving controls">×</button></div>
+  <div class="speedometer"><div><span id="speed">0</span><span class="unit">km/h</span></div><div class="speed-line" aria-hidden="true"><i id="speed-fill"></i></div><span id="gear">P</span></div>
+</section>
+<section id="pause" class="screen pause" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title">
+  <div class="pause-panel">
+    <header class="pause-header"><h2 id="pause-title">Paused</h2><button id="resume" class="primary">Resume drive <kbd>Esc</kbd></button></header>
+    <div class="pause-grid">
+      <div class="pause-card">
+        <h3>Driving settings</h3>
+        <div class="setting">
+          <span id="car-paint-label">Car paint</span>
+          <div class="segmented" id="car-paint" role="group" aria-labelledby="car-paint-label">
+            <button type="button" data-value="teal" class="selected" aria-pressed="true">Deep Metallic Teal</button>
+            <button type="button" data-value="red" aria-pressed="false">Ferrari Red</button>
+          </div>
+        </div>
+        <div class="setting"><span id="lighting-label">Time of day</span><div class="segmented" id="lighting" role="group" aria-labelledby="lighting-label"><button data-value="golden" class="selected">Golden hour</button><button data-value="twilight">Twilight</button><button data-value="night">Night</button></div></div>
+        <div class="setting"><span id="quality-label">Visual quality</span><div class="segmented" id="quality" role="group" aria-labelledby="quality-label"><button data-value="low" class="selected">Low</button><button data-value="medium">Medium</button><button data-value="high">High</button></div><p id="quality-description" class="setting-note"></p></div>
+        <div class="setting"><label for="volume">Master volume</label><input id="volume" type="range" min="0" max="100" value="45"></div>
+        <label class="toggle"><input id="minimap-toggle" type="checkbox" checked> Show minimap</label>
+        <label class="toggle"><input id="controls-toggle" type="checkbox" checked> Show driving controls</label>
+      </div>
+      <div class="pause-side">
+        <div class="pause-card multiplayer">
+          <h3>Play with a friend</h3>
+          <div class="room-entry"><input id="room-code" type="text" inputmode="numeric" pattern="[0-9]{3}" maxlength="3" placeholder="000" aria-label="Three-digit room code" autocomplete="off"><button id="room-join">Join</button><button id="room-create">Create room</button></div>
+          <p id="room-status" class="setting-note" role="status">Solo driving</p>
+          <div class="room-actions"><button id="room-copy" hidden>Copy code</button><button id="room-leave" hidden>Leave room</button></div>
+          <div id="race-controls" hidden><label for="race-track">Race together</label><select id="race-track"></select><div class="room-actions"><button id="race-ready" hidden>Ready to race</button><button id="race-rematch" hidden>Rematch</button><button id="race-free" hidden>Free roam</button></div><p id="race-status" class="setting-note"></p><p class="setting-note">R returns you to the checkpoint with a 5 s penalty.</p></div>
+        </div>
+        <div class="pause-card pause-tools">
+          <h3>Tools</h3>
+          <button id="open-map" class="game-button">County map <kbd>M</kbd></button>
+          <button id="open-photo" class="game-button">Photo mode <kbd>F2</kbd></button>
+          <button id="reset" class="game-button">Return to the road <kbd>R</kbd></button>
+          <button id="performance-report" class="game-button">Save performance report <span aria-hidden="true">↓</span></button>
+          <div class="credit-links"><a href="/assets/credits.html" target="_blank" rel="noopener">World assets ↗</a><a href="/gallery/index.html" target="_blank" rel="noopener">Gallery credits ↗</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="atlas" class="screen atlas" hidden role="dialog" aria-modal="true" aria-labelledby="atlas-title">
+  <header class="atlas-heading">
+    <div><h2 id="atlas-title">Sunspoke County</h2><p id="atlas-summary"></p></div>
+    <div class="atlas-actions"><button id="export-map" class="game-button">Save map <span aria-hidden="true">↓</span></button><button id="close-map" class="game-button">Close <kbd>Esc</kbd></button></div>
+  </header>
+  <div class="atlas-workspace">
+    <aside class="atlas-sidebar">
+      <label for="destination-search">Destinations</label>
+      <input type="search" id="destination-search" placeholder="Search places" aria-label="Search destinations" autocomplete="off">
+      <div id="destination-list" class="destination-list"></div>
+      <div id="destination-details" class="destination-details" hidden>
+        <p id="destination-district"></p><h3 id="destination-name"></h3><p id="destination-description"></p>
+        <div class="destination-actions"><button id="set-route" class="game-button">Set route <span aria-hidden="true">↗</span></button><button id="clear-route" class="game-button" hidden>Clear</button></div>
+        <p id="destination-status" role="status" hidden></p>
+      </div>
+    </aside>
+    <div class="atlas-viewport">
+      <canvas id="atlas-base" aria-hidden="true"></canvas>
+      <canvas id="atlas-map" tabindex="0" aria-label="County map. Use arrows to pan, plus or minus to zoom, and Home to fit. Destinations are also listed beside the map."></canvas>
+      <div class="atlas-map-tools" aria-label="Map navigation">
+        <button id="atlas-zoom-in" class="game-button" aria-label="Zoom in">+</button>
+        <button id="atlas-zoom-out" class="game-button" aria-label="Zoom out">−</button>
+        <button id="atlas-center" class="game-button" aria-label="Center on your car" title="Center on your car">⌖</button>
+        <button id="atlas-fit" class="game-button" aria-label="Fit county" title="Fit county">⤢</button>
+      </div>
+    </div>
+  </div>
+  <div class="atlas-footer"><span><i class="atlas-road"></i> Streets</span><span><i class="atlas-freeway"></i> Freeway</span><span><i class="atlas-bridge"></i> Bridge</span><span><i class="atlas-runway"></i> Runway</span><span><i class="atlas-route"></i> Your route</span><span><i class="atlas-race"></i> Race course</span></div>
+</section>
+<section id="photo-mode" class="screen photo-mode" hidden role="dialog" aria-modal="true" aria-labelledby="photo-title">
+  <div class="photo-toolbar">
+    <div><h2 id="photo-title">Photo mode</h2><p>Drag or use arrow keys to orbit. Scroll or use + and − to zoom.</p></div>
+    <button id="capture-photo" class="primary">Save photo <span aria-hidden="true">↓</span></button>
+    <button id="close-photo" class="game-button">Close <kbd>Esc</kbd></button>
+  </div>
+</section>
+<div id="game-announcement" class="visually-hidden" role="status"></div>
+<section id="error" class="screen error" hidden><h2>The coast needs a moment.</h2><p id="error-message"></p><button class="primary" onclick="location.reload()">Try again ↗</button></section><div id="toast" role="status" hidden></div></main><script type="module" src="/src/entry.ts"></script></body></html>

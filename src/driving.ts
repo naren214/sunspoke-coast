@@ -294,11 +294,11 @@ export class Driving {
     let nextSpeed = Math.sign(speed || this.gear) * Math.hypot(this.vx, this.vz);
     if (state.braking) nextSpeed = approach(nextSpeed, 0, (footBrake ? 12.5 : 7.5) * STEP);
     else if (direction && direction === this.gear) {
-      const topSpeed = direction > 0 ? 250 / 3.6 : 8;
+      const topSpeed = direction > 0 ? VEHICLE.topSpeed : VEHICLE.reverseSpeed;
       const acceleration = direction > 0 ? 7.2 : 4.2;
       nextSpeed += direction * acceleration * state.throttle * Math.max(0, 1 - (Math.min(absSpeed,direction>0?30:8) / (direction>0?40:topSpeed)) ** 2) * STEP;
       nextSpeed = approach(nextSpeed, 0, rolling * (1-(direction>0?MathUtils.smoothstep(absSpeed,30,50):0)*state.throttle) * STEP);
-      nextSpeed = clamp(nextSpeed, -8, 250 / 3.6);
+      nextSpeed = clamp(nextSpeed, -VEHICLE.reverseSpeed, VEHICLE.topSpeed);
     } else nextSpeed = approach(nextSpeed, 0, rolling * STEP);
     if (shifting || (footBrake && Math.abs(nextSpeed) < 0.15)) nextSpeed = 0;
 
@@ -413,7 +413,8 @@ export class Driving {
         const a = road.points[i - 1], b = road.points[i];
         const dx = b.x - a.x, dz = b.z - a.z;
         const t = clamp(((pos.x - a.x) * dx + (pos.z - a.z) * dz) / (dx * dx + dz * dz || 1), 0, 1);
-        if ((a.x + t * dx - pos.x) ** 2 + (a.z + t * dz - pos.z) ** 2 <= maxDistance * maxDistance) {
+        if (Math.abs(pos.y-MathUtils.lerp(a.y,b.y,t))<1.5&&
+            (a.x + t * dx - pos.x) ** 2 + (a.z + t * dz - pos.z) ** 2 <= maxDistance * maxDistance) {
           this.safePosition.copy(pos);
           this.safeHeading = this.state.heading;
           return;
@@ -446,9 +447,9 @@ export class ChaseCamera {
     const distance = clamp(orbit.distance, 4, 16);
     const horizontal = Math.cos(pitch) * distance;
     const lookAhead = 0.72 + Math.min(Math.abs(state.speed) / 30, 0.65);
-    this.focus.set(position.x - Math.sin(heading) * lookAhead, position.y + 1.35,
+    this.focus.set(position.x - Math.sin(heading) * lookAhead, position.y + VEHICLE.height * .84,
       position.z - Math.cos(heading) * lookAhead);
-    this.desired.set(position.x + Math.sin(yaw) * horizontal, position.y + 1.3 + Math.sin(pitch) * distance,
+    this.desired.set(position.x + Math.sin(yaw) * horizontal, position.y + VEHICLE.height * .84 + Math.sin(pitch) * distance,
       position.z + Math.cos(yaw) * horizontal);
     const snap = !this.initialized || this.previous.distanceToSquared(position) > 16 * 16;
     if (snap) this.camera.position.copy(this.desired);

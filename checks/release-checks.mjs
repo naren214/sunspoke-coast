@@ -9,7 +9,7 @@ async function walk(path){const files=[];for(const entry of await readdir(path,{
 const html=await read('index.html'),main=(await Promise.all(['src/main.ts','src/opening.ts','src/multiplayer-game.ts'].map(read))).join('\n');
 const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);assert.equal(new Set(ids).size,ids.length,'Unique UI identifiers');
 for(const match of main.matchAll(/\$\(\s*['"]([^'"]+)['"]/g))assert.ok(ids.includes(match[1]),'UI element '+match[1]);
-const manifest=JSON.parse(await read('public/assets/manifest.json')),urls=new Set(['/assets/manifest.json','/world/metadata.json','/world/county.json.gz','/assets/car/cayenne-low.glb','/assets/car/cayenne-high.glb']);
+const manifest=JSON.parse(await read('public/assets/manifest.json')),urls=new Set(['/assets/manifest.json','/world/metadata.json','/world/county.json.gz','/assets/car/sunspoke-gt-low.glb','/assets/car/sunspoke-gt-high.glb']);
 for(const entry of manifest.models){
   const names=[];
   for(const level of ['low','medium','high']){
@@ -25,14 +25,14 @@ for(const url of urls){assert.ok(url.startsWith('/')&&!url.startsWith('//'),'Loc
 const files=await walk(dist),sizes=new Map(await Promise.all(files.map(async path=>[path,(await stat(path)).size])));
 const initial=new Set(files.filter(path=>/[/\\](fonts|gallery)[/\\]/.test(path)));
 for(const path of files)if(/[/\\]index\.html$/.test(path)||/[/\\]assets[/\\][^/\\]+\.(js|css)$/.test(path)&&!/[\/\\]qa-/.test(path)||/[/\\]home[/\\]/.test(path)||path.endsWith('boot-manifest.json'))initial.add(path);
-for(const url of ['/assets/manifest.json','/world/metadata.json','/world/county.json.gz','/assets/car/cayenne-low.glb'])initial.add(resolve(dist,'.'+url));
+for(const url of ['/assets/manifest.json','/world/metadata.json','/world/county.json.gz','/assets/car/sunspoke-gt-low.glb'])initial.add(resolve(dist,'.'+url));
 for(const id of ['palm','bench','boulder'])initial.add(resolve(dist,'.'+manifest.models.find(m=>m.id===id).lods.low));
 for(const entry of manifest.materials)for(const field of ['baseColor','normal','roughness'])initial.add(resolve(dist,'.'+entry[field]));
 initial.add(resolve(dist,'.'+manifest.environments.find(e=>e.id==='golden').url));
 const sum=paths=>[...paths].reduce((total,path)=>total+sizes.get(path),0);
 const boot=JSON.parse(await read('dist/boot-manifest.json'));
 assert.equal(boot.totalBytes,boot.assets.reduce((total,asset)=>total+sizes.get(resolve(dist,'.'+asset.url)),0),'Startup manifest matches built files');
-const report={build:'cinematic-homepage',files:files.length,modelDesigns:manifest.models.length,modelLevels:manifest.models.length*3,initialLowAssetBytes:sum(initial),startupDataBytes:boot.totalBytes,startupDataFiles:boot.assets.length,fullBuiltBytes:sum(files),budgetBytes:{initial:25000000,full:120000000},scope:'Static byte accounting for a fresh Low-quality start; not a browser network waterfall or FPS measurement.'};
+const report={build:'sunspoke-gt',files:files.length,modelDesigns:manifest.models.length,modelLevels:manifest.models.length*3,initialLowAssetBytes:sum(initial),startupDataBytes:boot.totalBytes,startupDataFiles:boot.assets.length,fullBuiltBytes:sum(files),budgetBytes:{initial:25000000,full:120000000},scope:'Static byte accounting for a fresh Low-quality start; not a browser network waterfall or FPS measurement.'};
 assert.ok(report.initialLowAssetBytes<=report.budgetBytes.initial,JSON.stringify(report));assert.ok(report.fullBuiltBytes<=report.budgetBytes.full);
 const baseURL=process.argv.find(arg=>arg.startsWith('--http='))?.slice(7);
 if(baseURL){

@@ -3,7 +3,7 @@ import bpy,math
 from pathlib import Path
 from mathutils import Vector
 here=Path(__file__).resolve().parent;project=here.parents[2]
-bpy.ops.wm.open_mainfile(filepath=str(here/'cayenne.blend'))
+bpy.ops.wm.open_mainfile(filepath=str(here/'sunspoke-gt.blend'))
 bpy.ops.mesh.primitive_plane_add(size=200,location=(0,0,-.015))
 floor=bpy.context.object;floor.name='Inspection ground'
 material=bpy.data.materials.new('Inspection asphalt');material.use_nodes=True
@@ -15,6 +15,7 @@ for location,energy,size,color in [((-4,-2,7),1600,5,(1,.82,.66)),((3,4,5),1000,
 bpy.ops.object.camera_add(location=(5.8,-7.6,3.4));camera=bpy.context.object;camera.rotation_euler=(Vector((0,0,.8))-camera.location).to_track_quat('-Z','Y').to_euler();camera.data.lens=58;scene.camera=camera
 scene.render.engine='CYCLES';scene.cycles.device='CPU';scene.cycles.samples=24;scene.cycles.use_denoising=True
 scene.render.resolution_x=1200;scene.render.resolution_y=800;scene.render.resolution_percentage=100
-scene.render.image_settings.file_format='PNG';scene.render.filepath=str(project.parent.parent/'outputs/Refined-Cayenne-Asset.png')
+(project/'.cache').mkdir(exist_ok=True)
+scene.render.image_settings.file_format='PNG';scene.render.filepath=str(project/'.cache/Sunspoke-GT-Asset.png')
 scene.view_settings.view_transform='AgX'
 bpy.ops.render.render(write_still=True)

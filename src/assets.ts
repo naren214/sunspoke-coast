@@ -9,6 +9,11 @@ export interface ModelAsset{id:string;url:string;source:string;author:string;lic
 export interface MaterialAsset{id:string;baseColor:string;normal?:string;roughness?:string;source:string;author:string;license:string;repeat?:number;}
 export interface AssetManifest{models:ModelAsset[];materials:MaterialAsset[];environments:{id:string;url:string}[];}
 export type Placement={id:string;x:number;y:number;z:number;height:number;rotation?:number;size?:number[];animate?:boolean;};
+type SurfaceTexture={
+  texture:T.Texture;
+  original:CanvasImageSource&{width:number;height:number};
+  scaled:Map<number,HTMLCanvasElement>;
+};
 
 export class AssetLibrary{
   constructor(private downloads?:GameDownloads){}
@@ -18,7 +23,7 @@ export class AssetLibrary{
   private materials=new Map<string,Promise<{color:T.Texture;normal?:T.Texture;roughness?:T.Texture}>>();
   private gltf=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   private quality:Quality='low';
-  private textures:{texture:T.Texture;original:CanvasImageSource&{width:number;height:number}}[]=[];
+  private textures:SurfaceTexture[]=[];
   errors:string[]=[];
   async init(){try{if(this.downloads)this.manifest=this.downloads.json<AssetManifest>('/assets/manifest.json');else{const response=await fetch('/assets/manifest.json');if(!response.ok)throw new Error('No asset manifest');this.manifest=await response.json();}}catch(e){this.errors.push(String(e));}}
   async model(id:string,quality:Quality='low'){
@@ -30,13 +35,34 @@ export class AssetLibrary{
   async surface(id:string){
     if(!this.materials.has(id))this.materials.set(id,(async()=>{
       const entry=this.manifest.materials.find(m=>m.id===id);if(!entry)throw new Error('Unknown surface '+id);
-      const loader=new T.TextureLoader(),load=async(url:string,color=false)=>{const texture=await loader.loadAsync(url);texture.colorSpace=color?T.SRGBColorSpace:T.NoColorSpace;texture.wrapS=texture.wrapT=T.RepeatWrapping;texture.repeat.setScalar(.2);texture.anisotropy=4;this.textures.push({texture,original:texture.image});this.setQuality(this.quality);return texture;};
+      const loader=new T.TextureLoader(),load=async(url:string,color=false)=>{
+        const texture=await loader.loadAsync(url);
+        texture.colorSpace=color?T.SRGBColorSpace:T.NoColorSpace;
+        texture.wrapS=texture.wrapT=T.RepeatWrapping;texture.repeat.setScalar(.2);texture.anisotropy=4;
+        const entry={texture,original:texture.image,scaled:new Map<number,HTMLCanvasElement>()};
+        this.textures.push(entry);this.resizeTexture(entry);
+        return texture;
+      };
       return {color:await load(entry.baseColor,true),normal:entry.normal?await load(entry.normal):undefined,roughness:entry.roughness?await load(entry.roughness):undefined};
     })());return this.materials.get(id)!;
   }
   setQuality(quality:Quality){
-    this.quality=quality;const max=quality==='low'?512:quality==='medium'?1024:2048;
-    for(const entry of this.textures){const original=entry.original;if(Math.max(original.width,original.height)>max){const scale=max/Math.max(original.width,original.height),c=document.createElement('canvas');c.width=Math.round(original.width*scale);c.height=Math.round(original.height*scale);c.getContext('2d')!.drawImage(original,0,0,c.width,c.height);entry.texture.image=c;}else entry.texture.image=original;entry.texture.needsUpdate=true;}
+    if(this.quality===quality)return;
+    this.quality=quality;
+    for(const entry of this.textures)this.resizeTexture(entry);
+  }
+  private resizeTexture({texture,original,scaled}:SurfaceTexture){
+    const max={low:512,medium:1024,high:2048}[this.quality],longest=Math.max(original.width,original.height);
+    let image=original;
+    if(longest>max){
+      let canvas=scaled.get(max);
+      if(!canvas){
+        canvas=document.createElement('canvas');canvas.width=Math.round(original.width*max/longest);canvas.height=Math.round(original.height*max/longest);
+        canvas.getContext('2d')!.drawImage(original,0,0,canvas.width,canvas.height);scaled.set(max,canvas);
+      }
+      image=canvas;
+    }
+    if(texture.image!==image){texture.image=image;texture.needsUpdate=true;}
   }
   environment(renderer:T.WebGLRenderer,setting:Lighting){
     if(!this.environments.has(setting))this.environments.set(setting,(async()=>{
@@ -49,7 +75,7 @@ export class AssetLibrary{
     group.traverse(o=>{if(!(o instanceof T.Mesh))return;for(const m of Array.isArray(o.material)?o.material:[o.material]){
       if(!(m instanceof T.MeshStandardMaterial)||m.transparent)continue;
       let id:string|undefined;
-      if(o.name==='Road asphalt')id='asphalt';else if(o.name==='Road underlay')id='pavement';else if(m.name==='surface:sand')id='sand';else if(m.name==='County meadow grass')id='grass';
+      if(o.name==='Road asphalt'||m.name==='Scenic stop asphalt')id='asphalt';else if(o.name==='Road underlay')id='pavement';else if(m.name==='surface:sand')id='sand';else if(m.name==='County meadow grass')id='grass';
       else if(['surface:walk','surface:curb','surface:stone'].includes(m.name))id='pavement';else if(['surface:cream','surface:ivory'].includes(m.name))id='facade';else if(m.name==='surface:terra')id='brick';else if(m.name==='surface:wood')id='wood';
       if(id){const set=targets.get(id)??new Set<T.MeshStandardMaterial>();set.add(m);targets.set(id,set);}
     }});
@@ -83,7 +109,7 @@ export function createImportedScenery(group:T.Group,library:AssetLibrary,placeme
   const proxies=group.children.filter(o=>o instanceof T.InstancedMesh&&o.userData.resource) as T.InstancedMesh[];
   const fadeMaterial=(material:T.Material|T.Material[])=>{const clone=(m:T.Material)=>{const next=m.clone();next.onBeforeCompile=m.onBeforeCompile;next.customProgramCacheKey=m.customProgramCacheKey;next.alphaHash=true;next.userData.baseOpacity=m.opacity;return next;};return Array.isArray(material)?material.map(clone):clone(material);};
   proxies.forEach(proxy=>proxy.material=fadeMaterial(proxy.material));
-  const loaded=new Set<string>(),pending=new Set<string>(),referenceDimensions=new Map<string,T.Vector3>();
+  const loaded=new Set<string>(),pending=new Set<string>(),prepared=new Set<string>(),upgrading=new Set<string>(),referenceDimensions=new Map<string,T.Vector3>();
   const groups=new Map<string,Placement[]>();for(const p of placements){const list=groups.get(p.id)??[];list.push(p);groups.set(p.id,list);}
   async function load(id:string){
     if(pending.has(id)||loaded.has(id))return;pending.add(id);
@@ -102,19 +128,25 @@ export function createImportedScenery(group:T.Group,library:AssetLibrary,placeme
           mesh.castShadow=true;mesh.receiveShadow=true;mesh.computeBoundingSphere();root.add(mesh);chunks.push({mesh,center:mesh.boundingSphere!.center.clone(),radius:mesh.boundingSphere!.radius,resource:id,placements:list,actor,key:id+':'+cell,part:o.name,levels:{[requested]:geometry}});
         }
       });
-      loaded.add(id);root.userData.loaded=[...loaded];if(quality!==requested)void upgrade(id,quality);
+      prepared.add(id+':'+requested);loaded.add(id);root.userData.loaded=[...loaded];
+      if(quality!==requested)void upgrade(id,quality);
+      if(quality==='high'&&requested!=='medium')void upgrade(id,'medium');
     }catch(error){library.errors.push(id+': '+String(error));}finally{pending.delete(id);}
     update(last);
   }
   async function upgrade(id:string,level:Quality){
+    const key=id+':'+level;
+    if(prepared.has(key)||upgrading.has(key))return;
+    upgrading.add(key);
     try{const model=await library.model(id,level),bounds=new T.Box3().setFromObject(model),size=bounds.getSize(new T.Vector3()),base=new T.Vector3(-bounds.min.x-size.x/2,-bounds.min.y,-bounds.min.z-size.z/2);
       const reference=referenceDimensions.get(id)??size;
       model.traverse(o=>{if(!(o instanceof T.Mesh))return;const geometry=o.geometry.clone();geometry.applyMatrix4(o.matrixWorld);geometry.translate(base.x,base.y,base.z);
         // Keep the initial footprint stable when decimation changes a model's bounds.
         geometry.scale(reference.x/Math.max(.001,size.x),reference.y/Math.max(.001,size.y),reference.z/Math.max(.001,size.z));
         for(const chunk of chunks)if(chunk.resource===id&&chunk.part===o.name)chunk.levels[level]=geometry;});
-      update(last);
+      prepared.add(key);update(last);
     }catch(error){library.errors.push('LOD '+id+': '+String(error));}
+    finally{upgrading.delete(key);}
   }
   function update(position:T.Vector3,time=clock){
     clock=time;actorClock.value=time;

@@ -64,7 +64,7 @@ export function createGrassField(group:T.Group,colliders:Collider[],ground:(x:nu
   }
   const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));geometry.setIndex(indices);geometry.computeVertexNormals();
   geometry.setAttribute('color',new T.Float32BufferAttribute(positions.map((_,i)=>.65+.35*positions[Math.floor(i/3)*3+1]),3));
-  const wind={value:0},range={value:85},material=new T.MeshLambertMaterial({color:'#74934f',side:T.DoubleSide,vertexColors:true});
+  const wind={value:0},range={value:85},material=new T.MeshLambertMaterial({color:'#d9dfbe',side:T.DoubleSide,vertexColors:true});
   material.name='Wind grass blades';
   material.onBeforeCompile=shader=>{
     shader.uniforms.grassClock=wind;shader.uniforms.grassRange=range;
@@ -87,7 +87,7 @@ export function createGrassField(group:T.Group,colliders:Collider[],ground:(x:nu
     if(y<-.2||Math.abs(y-neighbor)>1.2)continue;
     dummy.position.set(xx,y-.015,zz);dummy.rotation.set(0,random()*Math.PI*2,0);
     const scale=.7+random()*.8,urban=zz> -400||insideGallery(xx,zz,60);
-    dummy.scale.set(scale,urban?.16+random()*.17:.26+random()*.36,scale);dummy.updateMatrix();
+    dummy.scale.set(scale,urban?.095+random()*.12:.16+random()*.25,scale);dummy.updateMatrix();
     const key=Math.floor(xx/size)+','+Math.floor(zz/size);
     let bucket=buckets.get(key);if(!bucket){bucket={x:(Math.floor(xx/size)+.5)*size,z:(Math.floor(zz/size)+.5)*size,matrices:[]};buckets.set(key,bucket);}
     bucket.matrices.push(dummy.matrix.clone());count++;
@@ -97,7 +97,7 @@ export function createGrassField(group:T.Group,colliders:Collider[],ground:(x:nu
     // Low/Medium draw a uniformly shuffled subset, rather than half of a patch.
     for(let i=b.matrices.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[b.matrices[i],b.matrices[j]]=[b.matrices[j],b.matrices[i]];}
     const mesh=new T.InstancedMesh(geometry,material,b.matrices.length);mesh.name='Grass patch';
-    b.matrices.forEach((matrix,i)=>{mesh.setMatrixAt(i,matrix);color.setHSL(.24+random()*.055,.27+random()*.12,.25+random()*.13);mesh.setColorAt(i,color);});
+    b.matrices.forEach((matrix,i)=>{mesh.setMatrixAt(i,matrix);color.setHSL(.21+random()*.055,.25+random()*.12,.36+random()*.15);mesh.setColorAt(i,color);});
     mesh.castShadow=false;mesh.receiveShadow=true;mesh.computeBoundingSphere();
     if(mesh.boundingSphere)mesh.boundingSphere.radius+=.6;
     root.add(mesh);meshes.push({mesh,x:b.x,z:b.z,full:b.matrices.length});

@@ -2,7 +2,7 @@
 
 This directory records the provenance and reproducible preparation of the locally bundled library in `public/assets`.
 
-All selected imported assets are CC0 1.0. They may be redistributed in the public GitHub repository and source ZIP. Original authorship remains with the credited creators; Sunspoke does not claim to have authored these assets. The separately authored Cayenne source is in `car/`.
+All selected imported assets are CC0 1.0. They may be redistributed in the public GitHub repository and source ZIP. Original authorship remains with the credited creators; Sunspoke does not claim to have authored these assets. The original Sunspoke GT source is in `car/`.
 
 - Poly Haven: https://polyhaven.com/license explicitly allows any use and redistribution. Individual API source and author records are retained in `provenance`.
 - Kenney: original creator pages identify Creative Commons CC0. The selected GLB mirror also carries its CC0 notice, retained in `provenance/kenney-mirror-license.txt`.
@@ -18,4 +18,4 @@ The optional asset-preparation scripts need Python with Pillow (`python -m pip i
 
 Generate the three model detail levels with `blender --background --python source/assets/generate-lods.py`, then run `python source/assets/compact-lods.py`. Source GLBs are the bundled high-detail files; regeneration needs no external downloads.
 
-For the original car, `blender --background --python source/assets/car/build-car.py` rebuilds both GLBs from `car/cayenne-source.json.gz` and saves the editable Blender file. Label PNGs are already included; `python source/assets/car/build-labels.py` can regenerate them using local fonts. `source/assets/car/export-source.mjs` refreshes the geometry source from `src/car.ts` after a code-model edit.
+For the original car, `blender --background --python source/assets/car/build-car.py` rebuilds both GLBs from `car/sunspoke-gt-source.json.gz` and saves the editable Blender file. The NAREN label PNG is included; `python source/assets/car/build-labels.py` can regenerate it using local fonts. `source/assets/car/export-source.mjs` refreshes the geometry source from `src/gt-model.ts` after a code-model edit.

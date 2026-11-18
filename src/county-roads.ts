@@ -1,3 +1,5 @@
+import { SCENIC_STOPS } from './places';
+
 export interface CountyRoute {name:string;points:number[][];width:number;curve?:boolean;closed?:boolean;}
 function rounded(x0:number,x1:number,z0:number,z1:number,r:number){
   const p:number[][]=[];
@@ -39,4 +41,7 @@ export const COUNTY_ROADS:CountyRoute[]=[
   {name:'Grand Gallery Drive',width:18,points:[[930,-910],[930,-1050],[930,-1090]]},
   {name:'Gallery Sierra Approach',width:18,curve:true,points:[[930,-1090],[820,-1100],[700,-1100],[620,-1100],[620,-960]]},
   {name:'Silver East Promenade',width:18,curve:true,points:[[1100,-800],[1210,-830],[1270,-750],[1250,-660],[1190,-640]]},
+  {name:'Verde North Turn',width:8,points:[[210,-970],[218.2,-961.8]]},
+  {name:'Verde South Turn',width:8,points:[[570,-650],[561.8,-658.2]]},
+  ...SCENIC_STOPS.map(stop=>({name:stop.name,width:6.8,points:[[stop.from.x,stop.from.z],[stop.x,stop.z]]})),
 ];

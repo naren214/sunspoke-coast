@@ -1,4 +1,18 @@
-# Sunspoke Coast visual upgrade status
+# Sunspoke Coast implementation status
+
+## Sunspoke GT review build
+
+The local build features the original Sunspoke GT in the opening, free roam, photo mode, and co-op. The coupe has a lower chase camera, a revised collision envelope, and 24,101 Low and 38,751 High triangles. The opening artwork uses the actual in-game car. See `TESTING.md` for the current verification.
+
+## County and game UI review build — 18 November 2026
+
+The local build adds three signed scenic turnouts, paved joins at both Verde Village entrances, and a redesigned driving HUD, pause menu, photo toolbar, atlas, and minimap. The atlas routes to 12 destinations using the same road geometry used by the driving simulation. Water recovery returns the car to a safe road in free roam and follows the existing checkpoint penalty during races. The generated county, startup manifest, and multiplayer map version are included in the current build.
+
+The four multiplayer track definitions match the previous build. Local room testing must use the Worker generated from this checkout so both sides share the map version. The current update is a local review build.
+
+See `TESTING.md` for the current browser, automated, and GPU evidence.
+
+## Previous published opening and visual upgrade
 
 Review build: 18 November 2026. The homepage refresh and visual systems below are implemented in source and included in the production build. The owner authorized GitHub main and Site publication on 17 November 2026 despite the pending browser acceptance checks. Publication does not establish that those checks passed.
 

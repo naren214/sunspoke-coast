@@ -98,13 +98,13 @@ try{
     let realRequests=0;const actual=new GameDownloads(()=>{},(url,options)=>{realRequests++;return fetch(new URL(String(url),baseURL),options);});await actual.preload(catalog);
     for(const asset of catalog.assets){assert.equal(actual.buffer(asset.url).byteLength,asset.bytes,asset.url);productionFiles++;productionBytes+=asset.bytes;}
     assert.equal(productionBytes,catalog.totalBytes);assert.equal(actual.json('/world/metadata.json').fingerprint,JSON.parse(await readFile('public/world/metadata.json','utf8')).fingerprint);
-    assert.equal(new Uint8Array(actual.buffer('/assets/car/cayenne-low.glb'))[0],103);
+    assert.equal(new Uint8Array(actual.buffer('/assets/car/sunspoke-gt-low.glb'))[0],103);
     Object.assign(globalThis,{ProgressEvent:class extends Event{loaded:number;total:number;lengthComputable:boolean;constructor(type:string,init:ProgressEventInit){super(type);Object.assign(this,init);}}});
     DefaultLoadingManager.setURLModifier(url=>actual.resource(url));
     try{
       const library=new AssetLibrary(actual);await library.init();assert.equal(library.errors.length,0);assert.equal(library.manifest.models.length,29);
-      const carBytes=await new FileLoader().setResponseType('arraybuffer').loadAsync('/assets/car/cayenne-low.glb') as ArrayBuffer;
-      assert.equal(carBytes.byteLength,actual.buffer('/assets/car/cayenne-low.glb').byteLength);assert.equal(realRequests,catalog.assets.length,'Actual Three.js file loader reuses prefetched bytes');
+      const carBytes=await new FileLoader().setResponseType('arraybuffer').loadAsync('/assets/car/sunspoke-gt-low.glb') as ArrayBuffer;
+      assert.equal(carBytes.byteLength,actual.buffer('/assets/car/sunspoke-gt-low.glb').byteLength);assert.equal(realRequests,catalog.assets.length,'Actual Three.js file loader reuses prefetched bytes');
     }finally{DefaultLoadingManager.setURLModifier(url=>url);}
     actual.release();
   }

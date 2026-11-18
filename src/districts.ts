@@ -14,7 +14,8 @@ export function dressDistricts(group:T.Group,colliders:Collider[],roads:World['r
   const blocked=(x:number,z:number,w:number,d:number,margin=1)=>colliders.some(b=>{
     if(b.baseY!==undefined&&b.baseY>ground(b.x,b.z)+3)return false;
     const c=Math.cos(b.rotation??0),s=Math.sin(b.rotation??0),dx=x-b.x,dz=z-b.z;
-    return Math.abs(dx*c-dz*s)<b.halfX+w/2+margin&&Math.abs(dx*s+dz*c)<b.halfZ+d/2+margin;
+    const halfX=(Math.abs(c)*w+Math.abs(s)*d)/2,halfZ=(Math.abs(s)*w+Math.abs(c)*d)/2;
+    return Math.abs(dx*c-dz*s)<b.halfX+halfX+margin&&Math.abs(dx*s+dz*c)<b.halfZ+halfZ+margin;
   });
   const clear=(x:number,z:number,w:number,d:number)=>isLand(x,z)&&!insideGallery(x,z,25)&&!insideStunt(x,z,8)&&index.clear(x,z,Math.hypot(w,d)/2+3)&&!blocked(x,z,w,d)&&[[-1,-1],[1,-1],[1,1],[-1,1]].every(([a,b])=>isLand(x+a*w/2,z+b*d/2));
   function box(x:number,y:number,z:number,w:number,h:number,d:number,yaw=0){dummy.position.set(x,y,z);dummy.rotation.set(0,yaw,0);dummy.scale.set(w,h,d);dummy.updateMatrix();matrices.push(dummy.matrix.clone());}
@@ -23,8 +24,10 @@ export function dressDistricts(group:T.Group,colliders:Collider[],roads:World['r
     if(b.halfX<5||b.halfZ<5||b.height<5||b.baseY!==undefined)continue;
     const key=Math.round(b.x/5)+','+Math.round(b.z/5);if(foundationKeys.has(key))continue;foundationKeys.add(key);
     const y=ground(b.x,b.z);
+    const c=Math.cos(b.rotation??0),s=Math.sin(b.rotation??0);
     for(const side of [-1,1])for(const axis of [0,1]){
-      const x=b.x+(axis===0?side*b.halfX:0),z=b.z+(axis===1?side*b.halfZ:0),edge=ground(x,z),height=Math.max(.35,y-edge+.25);
+      const dx=axis===0?side*b.halfX:0,dz=axis===1?side*b.halfZ:0;
+      const x=b.x+dx*c+dz*s,z=b.z-dx*s+dz*c,edge=ground(x,z),height=Math.max(.35,y-edge+.25);
       if(index.clear(x,z,.7))box(x,Math.min(y,edge)+height/2-.08,z,axis===0?.35:b.halfX*2,height,axis===1?.35:b.halfZ*2,b.rotation??0);
     }
     // Shared roof equipment adds believable scale without another building mesh.
@@ -41,16 +44,29 @@ export function dressDistricts(group:T.Group,colliders:Collider[],roads:World['r
     if(!clear(x,z,28,26))continue;const height=42+(i%4)*12,y=ground(x,z);
     placements.push({id:['tower-a','tower-c','tower-g','tower-m','tower-sky-a','tower-sky-c'][i%6],x,y,z,height,size:[28,height,26]});colliders.push({x,z,halfX:14,halfZ:13,height});box(x,y-.05,z,31,.15,29);towers++;
   }
+  const furniture:Record<string,string[]> = {
+    'SUNSPOKE BEACH':['bench','seating','trashcan'],
+    'PALM QUARTER':['planter','bench','planter'],
+    'CROWN DOWNTOWN':['seating','planter','trashcan'],
+    'CANAL GARDENS':['bench','planter','seating'],
+    'SOUTHPORT':['crate','barrel'],
+    'COAST AIRFIELD':['crate','barrel'],
+    'ISLA LUZ':['bench','picnic','trashcan'],
+    'SIERRA VERDE':['bench','picnic','planter'],
+    'SILVER LAKE':['seating','planter','bench'],
+  };
   let props=0;
   roads.forEach((road,roadId)=>{
     if(road.name?.includes('Runway')||road.name==='Grand Gallery Drive')return;
     for(let i=12;i<road.points.length;i+=29){const a=road.points[i-1],p=road.points[i],dx=p.x-a.x,dz=p.z-a.z,len=Math.hypot(dx,dz)||1,side=i%2?1:-1,x=p.x+side*dz/len*(road.width/2+4.8),z=p.z-side*dx/len*(road.width/2+4.8);
       if(!clear(x,z,1.3,1.3))continue;
-      const district=districtAt(x,z).name,id=district==='SOUTHPORT'?['crate','barrel','container'][i%3]:district==='COAST AIRFIELD'?'crate':i%4===0?'planter':i%4===1?'trashcan':i%4===2?'seating':'bench';
-      const height=id==='container'?2.6:id==='barrel'?1:id==='planter'?.7:id==='trashcan'?.9:1;
-      if(id==='container'&&!clear(x,z,6,3))continue;
+      const district=districtAt(x,z).name,options=furniture[district],id=options[(Math.floor(i/29)+roadId)%options.length];
+      const height=id==='planter'?.7:id==='trashcan'?.9:1;
       placements.push({id,x,y:ground(x,z),z,height,rotation:Math.atan2(dx,dz)});props++;
-      if(i%3===0&&district!=='SOUTHPORT')placements.push({id:i%2?'adult-man':'adult-woman',x:x+1.5,y:ground(x+1.5,z),z,height:1.75,rotation:Math.atan2(-dz,dx)});
+      const actorX=x+side*dz/len*1.9,actorZ=z-side*dx/len*1.9;
+      if(i%3===0&&district!=='SOUTHPORT'&&district!=='COAST AIRFIELD'&&clear(actorX,actorZ,2,2)){
+        placements.push({id:i%2?'adult-man':'adult-woman',x:actorX,y:ground(actorX,actorZ),z:actorZ,height:1.75,rotation:Math.atan2(-dz,dx)});
+      }
     }
   });
   for(const [x,z] of [[1080,-40],[1080,160],[1080,330],[1145,730],[1148,845]])placements.push({id:'boat-row-small',x,y:waterLevel(x,z)+.1,z,height:.85,rotation:.4});
@@ -79,7 +95,10 @@ export function dressDistricts(group:T.Group,colliders:Collider[],roads:World['r
   for(const district of DISTRICTS){
     let closest=roads[0],point=roads[0].points[0],best=Infinity;for(const road of roads)for(let i=8;i<road.points.length-1;i+=16){const p=road.points[i],d=(p.x-district.x)**2+(p.z-district.z)**2;if(d<best){best=d;closest=road;point=p;}}
     const at=closest.points.indexOf(point),next=closest.points[at+1],dx=next.x-point.x,dz=next.z-point.z,len=Math.hypot(dx,dz),x=point.x+dz/len*(closest.width/2+3.3),z=point.z-dx/len*(closest.width/2+3.3);if(!isLand(x,z)||!index.clear(x,z,1.5)||insideGallery(x,z,15)||insideStunt(x,z,10))continue;
-    const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;const ctx=canvas.getContext('2d')!;ctx.fillStyle='#214f4c';ctx.fillRect(0,0,512,128);ctx.strokeStyle='#d2dfc9';ctx.lineWidth=3;ctx.strokeRect(6,6,500,116);ctx.font='600 34px Barlow,Arial';ctx.fillStyle='#f4edcc';ctx.textAlign='center';ctx.fillText(closest.name??'COAST BOULEVARD',256,53,480);ctx.font='20px Barlow,Arial';ctx.fillText(district.name,256,98,480);
+    const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;const ctx=canvas.getContext('2d')!;
+    ctx.fillStyle='#142f34';ctx.fillRect(0,0,512,128);ctx.fillStyle=district.color;ctx.fillRect(0,0,11,128);
+    ctx.textAlign='left';ctx.font='bold 35px Barlow,Arial';ctx.fillStyle='#f4edcc';ctx.fillText(district.name,31,55,454);
+    ctx.fillStyle=district.color;ctx.font='23px Barlow,Arial';ctx.fillText(closest.name??'Coast Boulevard',31,96,454);
     const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;const sign=new T.Mesh(new T.PlaneGeometry(5.5,1.35),new T.MeshBasicMaterial({map:texture,side:T.DoubleSide}));sign.position.set(x,ground(x,z)+3.1,z);sign.rotation.y=Math.atan2(point.x-x,point.z-z);root.add(sign);const pole=new T.Mesh(new T.CylinderGeometry(.055,.055,3.1,6),new T.MeshStandardMaterial({color:'#667977',metalness:.4}));pole.position.set(x,ground(x,z)+1.55,z);root.add(pole);
   }
   return root;

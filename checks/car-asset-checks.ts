@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
-import {Box3,Mesh,Vector3,Material} from 'three';
+import {Box3,Mesh,SpotLight,Vector3,MeshStandardMaterial} from 'three';
 import {createCar} from '../src/car.ts';
 import {VEHICLE} from '../src/vehicle.ts';
 
@@ -29,7 +29,7 @@ try{
   for(const quality of ['low','medium','high'] as const){
     car.setQuality(quality);car.group.updateMatrixWorld(true);
     const bounds=new Box3().setFromObject(car.group),size=bounds.getSize(new Vector3());
-    assert.ok(size.x<=VEHICLE.halfWidth*2+.002&&size.z<5&&size.y>1.65&&size.y<1.75&&bounds.min.y>=-.002);
+    assert.ok(size.x<=VEHICLE.halfWidth*2+.002&&size.z<VEHICLE.halfLength*2&&size.y>1.25&&size.y<=VEHICLE.height&&bounds.min.y>=-.002);
     let triangles=0;car.group.traverse(object=>{if(object instanceof Mesh){triangles+=(object.geometry.index?.count??object.geometry.attributes.position.count)/3;assert.ok(Array.from(object.geometry.attributes.position.array).every(Number.isFinite));}});counts[quality]=triangles;
     assert.equal((signature as Mesh).material,signatureMaterial,'The real calligraphy material must survive LOD changes');
     const position=signature.geometry.attributes.position,uv=signature.geometry.attributes.uv;
@@ -44,11 +44,27 @@ try{
   car.group.traverse(object=>{assert.ok(object.position.toArray().every(Number.isFinite));assert.ok([object.rotation.x,object.rotation.y,object.rotation.z].every(Number.isFinite));});
   const wheels=car.group.children.filter(object=>object.name.startsWith('wheel_'));assert.equal(wheels.length,4);
   assert.ok(wheels.some(wheel=>Math.abs(wheel.rotation.y)>.1));
-  const friend=createCar({color:0xc9684d,label:'Friend Cayenne'});await friend.loadAssets();friend.setQuality('low');
+  let tailMaterial:MeshStandardMaterial|undefined;
+  const headlights:SpotLight[]=[];
+  car.group.traverse(object=>{
+    if(object instanceof Mesh && object.material instanceof MeshStandardMaterial
+      && object.material.name==='rear_lights')tailMaterial=object.material;
+    if(object instanceof SpotLight)headlights.push(object);
+  });
+  assert.ok(tailMaterial);
+  assert.equal(headlights.length,2);
+  car.update(0,0,0,false,2,0);
+  const restingEmissive=tailMaterial.emissiveIntensity;
+  assert.ok(headlights.every(light=>light.intensity===0));
+  car.update(0,0,0,true,2.02,0);
+  assert.ok(tailMaterial.emissiveIntensity>restingEmissive*3);
+  car.update(0,0,0,false,2.04,1);
+  assert.ok(headlights.every(light=>light.intensity>0));
+  const friend=createCar({color:0xc9684d,label:'Friend Sunspoke GT'});await friend.loadAssets();friend.setQuality('low');
   const localMeshes:Mesh[]=[],friendMeshes:Mesh[]=[];car.group.traverse(o=>{if(o instanceof Mesh)localMeshes.push(o);});friend.group.traverse(o=>{if(o instanceof Mesh)friendMeshes.push(o);});
   assert.equal(localMeshes.length,friendMeshes.length);for(let i=0;i<localMeshes.length;i++){assert.equal(localMeshes[i].geometry,friendMeshes[i].geometry,'Cars share cached immutable GLB geometry');assert.notEqual(localMeshes[i].material,friendMeshes[i].material,'Each car keeps its own materials');}
   const paint=friendMeshes.flatMap(o=>Array.isArray(o.material)?o.material:[o.material]).find(m=>m.name==='paint') as any;assert.equal(paint.color.getHex(),0xc9684d);
   const hostSteer=wheels[0].rotation.y;friend.update(12,-.5,.5,true,2,1);assert.equal(wheels[0].rotation.y,hostSteer,'Remote animation must not change local pivots');
-  console.log('PASS two differently colored Cayennes share geometry with independent materials and wheel animation');
+  console.log('PASS two differently colored Sunspoke GTs share geometry with independent materials and wheel animation');
   console.log('PASS real car GLB loading, preserved bounds/materials, animated pivots and Low/High geometry budgets',JSON.stringify(counts));
 }finally{globalThis.Request=OriginalRequest;server.close();}

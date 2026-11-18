@@ -9,6 +9,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { createWorld } from './world';
 import { CountyAtlas } from './atlas';
 import { createCar } from './car';
+import { GT_ORBIT, GT_PAINTS } from './gt-model';
 import { Driving, ChaseCamera } from './driving';
 import { GameAudio } from './audio';
 import type { Lighting, Quality } from './types';
@@ -20,22 +21,25 @@ import {districtAt} from './districts';
 import {MultiplayerGame} from './multiplayer-game';
 import type {GameDownloads} from './downloads';
 import type {OpeningScreen} from './opening';
+import {VEHICLE} from './vehicle';
+import {isSubmerged} from './water-recovery';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const clamp = THREE.MathUtils.clamp;
 const keys = new Set<string>();
 const qaView = new URLSearchParams(location.search).has('qa') && new URLSearchParams(location.search).has('view');
-let paused = true;
+type GameMode = 'driving' | 'pause' | 'atlas' | 'photo';
 let started = false;
 let lighting: Lighting = 'golden';
 let quality: Quality = 'low';
 let volume = .45;
 let showControls = true;
+let showMinimap = true;
 let lastFrame = performance.now();
 let elapsed = 0;
 let orbitLast = 0;
-let dragging = false;
-const orbit = { yaw: 0, pitch: .34, distance: 8.2 };
+let pointer: number | undefined;
+const orbit = { ...GT_ORBIT };
 const frameTimes: number[] = [];
 
 
@@ -60,16 +64,19 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
   const world = createWorld(baked);
   const scenery=createImportedScenery(world.group,library,world.group.userData.placements??[]);
   const atlas=new CountyAtlas(world);
-  let atlasOpen=false,resumeAfterAtlas=false,photoMode=false,resumeAfterPhoto=false;
-  let interiorBlend=0,lastDistrict='',districtUntil=0;
+  const canvas = $('scene') as HTMLCanvasElement;
+  let mode:GameMode='pause',returnMode:'driving'|'pause'='driving',opener:HTMLElement|null=null;
+  let interiorBlend=0,lastDistrict='',districtUntil=0,candidateDistrict='',districtSince=0;
   const car = createCar();
   scene.add(world.group, car.group);
   const contacts=createContactShadows(scene,world);
-  await Promise.all([world.loadAssets?.(),car.loadAssets((loaded,total)=>progress(.42+.1*loaded/total,'Detailing the Cayenne'),true),library.applySurfaces(world.group,f=>progress(.52+.12*f,'Finishing the streets')),scenery.essential(f=>progress(.64+.12*f,'Planting the coast'))]);
+  await Promise.all([world.loadAssets?.(),car.loadAssets((loaded,total)=>progress(.42+.1*loaded/total,'Detailing the Sunspoke GT'),true),library.applySurfaces(world.group,f=>progress(.52+.12*f,'Finishing the streets')),scenery.essential(f=>progress(.64+.12*f,'Planting the coast'))]);
   const drive = new Driving(world);
   const chase = new ChaseCamera(camera, world);
   const audio = new GameAudio();
-  const multiplayer=new MultiplayerGame({world,scene,drive,car,atlas,paused:()=>paused,lighting:()=>lighting,light:applyLighting,beginRace:()=>{if(!started)return false;if(atlasOpen){atlasOpen=false;atlas.close();}if(photoMode){photoMode=false;$('photo-mode').hidden=true;}setPaused(false);return true;},teleported:()=>{keys.clear();orbit.yaw=0;orbitLast=elapsed;},toast});
+  const multiplayer=new MultiplayerGame({world,scene,drive,atlas,paused:()=>mode!=='driving',lighting:()=>lighting,light:applyLighting,
+    beginRace:()=>{if(!started||document.hidden||!document.hasFocus())return false;enterMode('driving');return true;},
+    teleported:()=>{clearInput();orbit.yaw=0;orbitLast=elapsed;},toast});
   const hemi = new THREE.HemisphereLight('#a9d9e1', '#a38a63', 2);
   scene.add(hemi);
   const sun = new THREE.DirectionalLight('#ffd0a0', 3.5);
@@ -94,6 +101,8 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
   const skyUniforms = { cloudClock:{value:0}, top: { value: new THREE.Color('#619cb6') }, middle: { value: new THREE.Color('#f1bb96') }, bottom: { value: new THREE.Color('#e8c0a2') }, sunDirection: { value: new THREE.Vector3(-.9, .24, -.36).normalize() }, sunColor: { value: new THREE.Color('#ffddb0') }, sunStrength: { value: 1 } };
   const sky = new THREE.Mesh(new THREE.SphereGeometry(1400, 32, 20), new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, uniforms: skyUniforms, vertexShader: 'varying vec3 vDirection; void main(){vDirection=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}', fragmentShader: 'varying vec3 vDirection;uniform float cloudClock;uniform vec3 top;uniform vec3 middle;uniform vec3 bottom;uniform vec3 sunDirection;uniform vec3 sunColor;uniform float sunStrength;void main(){vec3 d=normalize(vDirection);float h=max(0.0,d.y);vec3 col=mix(bottom,middle,smoothstep(-.08,.05,d.y));col=mix(col,top,pow(h,.5));float band=smoothstep(.08,.18,d.y)*(1.-smoothstep(.5,.8,d.y));float cloud=pow(max(0.,sin(d.x*25.+d.z*8.+cloudClock*.004)*.3+sin(d.z*18.-d.x*9.-cloudClock*.003)*.25+.4),5.)*band;col=mix(col,middle+vec3(.07),cloud*.25);float s=max(0.0,dot(d,sunDirection));col+=sunColor*pow(s,18.0)*.15*sunStrength;col+=sunColor*smoothstep(.9994,.9998,s)*2.5*sunStrength;gl_FragColor=vec4(col,1.0);}' }));
   scene.add(sky);
+  (sky.material as THREE.ShaderMaterial).fragmentShader=(sky.material as THREE.ShaderMaterial).fragmentShader.replace(
+    'gl_FragColor=vec4(col,1.0);','gl_FragColor=vec4(col,1.0);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n');
   const starGeometry = new THREE.BufferGeometry();
   const starPositions = [];
   for (let i = 0; i < 500; i++) { const y = .12 + (i * .61803398875 % 1) * .85; const a = i * 2.399963; const r = Math.sqrt(1 - y * y); starPositions.push(Math.cos(a) * r * 1000, y * 1000, Math.sin(a) * r * 1000); }
@@ -113,7 +122,9 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
 
-  function resize() {
+  let lastResolution='';
+  let measuredPrevious=false;
+  function resize(trackChange=true) {
     renderer.setPixelRatio(Math.min(devicePixelRatio, presets[quality].pixel));
     renderer.setSize(innerWidth, innerHeight);
     composer.setPixelRatio(renderer.getPixelRatio());
@@ -121,8 +132,13 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
     ao.setSize(Math.round(innerWidth*renderer.getPixelRatio()/2),Math.round(innerHeight*renderer.getPixelRatio()/2));
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
+    if(trackChange){
+      const resolution=[innerWidth,innerHeight,canvas.width,canvas.height].join('x');
+      if(lastResolution!==resolution){frameTimes.length=0;measuredPrevious=false;lastResolution=resolution;}
+    }
   }
   function applyQuality(next: Quality) {
+    if(quality!==next){frameTimes.length=0;measuredPrevious=false;}
     quality = next;
     world.setQuality?.(next);car.setQuality(next);multiplayer.quality(next);scenery.setQuality(next);library.setQuality(next);
     ao.enabled=presets[next].ao;lakeReflection.visible=presets[next].reflection;
@@ -133,9 +149,10 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
     sun.shadow.map?.dispose();
     sun.shadow.map = null;
     resize();
-    document.querySelectorAll('#quality button').forEach(b=>b.classList.toggle('selected',(b as HTMLElement).dataset.value===next));
+    selectSetting('quality',next);
   }
   function applyLighting(next: Lighting) {
+    if(lighting!==next){frameTimes.length=0;measuredPrevious=false;}
     lighting = next;scene.environment=outdoor[next].texture;void library.environment(renderer,next).then(environment=>{if(lighting===next)scene.environment=environment.texture;}).catch(()=>{});
     const data = { golden: { top: '#78adc2', mid: '#ead3b6', bottom: '#dcd8c4', fog: '#c4c5ba', hemi: '#b5d8df', ground: '#b19574', sun: '#ffc994', intensity: 2.35, ambient: 1.05, env: .7, exposure: 1, skySun: 1 }, twilight: { top: '#354c83', mid: '#dd9ba8', bottom: '#b691ac', fog: '#9e90ae', hemi: '#869ed0', ground: '#74788d', sun: '#f1b2ac', intensity: .75, ambient: 1.35, env: .65, exposure: 1.12, skySun: .4 }, night: { top: '#08152f', mid: '#244064', bottom: '#324d67', fog: '#253d56', hemi: '#7995c2', ground: '#4e6484', sun: '#a9c8ff', intensity: .18, ambient: .48, env: .3, exposure: 1.05, skySun: 0 } }[next];
     skyUniforms.top.value.set(data.top); skyUniforms.middle.value.set(data.mid); skyUniforms.bottom.value.set(data.bottom); skyUniforms.sunStrength.value = data.skySun;
@@ -148,135 +165,225 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
     renderer.toneMappingExposure = data.exposure;
     (stars.material as THREE.PointsMaterial).opacity = next === 'night' ? .85 : 0;
     bloom.strength = next === 'night' ? .28 : .18;
-    document.querySelectorAll('#lighting button').forEach(b => b.classList.toggle('selected', (b as HTMLElement).dataset.value === next));
+    selectSetting('lighting',next);
   }
-  function persist() { try { localStorage.setItem('sunspoke-settings', JSON.stringify({quality, lighting, volume, showControls})); } catch {} }
-  try { const saved = JSON.parse(localStorage.getItem('sunspoke-settings') || '{}'); if (saved.quality in presets) quality = saved.quality; if (typeof saved.volume === 'number') volume = clamp(saved.volume, 0, 1); if (typeof saved.showControls === 'boolean') showControls = saved.showControls; } catch {}
+  function selectSetting(id:string,value:string){
+    document.querySelectorAll<HTMLButtonElement>('#'+id+' button').forEach(button=>{
+      const selected=button.dataset.value===value;
+      button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
+    });
+  }
+  let paint: keyof typeof GT_PAINTS = 'teal';
+  const paintButtons = document.querySelectorAll<HTMLButtonElement>('#car-paint button');
+  function applyPaint(next: keyof typeof GT_PAINTS) {
+    paint = next;
+    car.setPaint(GT_PAINTS[paint]);
+    selectSetting('car-paint', paint);
+    const selected = Array.from(paintButtons).find(button => button.dataset.value === paint);
+    if (selected) $('ride-paint').textContent = selected.textContent;
+  }
+  function persist() { try { localStorage.setItem('sunspoke-settings', JSON.stringify({quality, lighting, volume,showControls,showMinimap,paint})); } catch {} }
+  try { const saved = JSON.parse(localStorage.getItem('sunspoke-settings') || '{}'); if (Object.hasOwn(presets,saved.quality)) quality = saved.quality; if (typeof saved.volume === 'number') volume = clamp(saved.volume, 0, 1); if (typeof saved.showControls === 'boolean') showControls = saved.showControls; if(typeof saved.showMinimap==='boolean')showMinimap=saved.showMinimap; if(saved.paint==='teal'||saved.paint==='red')paint=saved.paint; } catch {}
+  applyPaint(paint);
   applyQuality(quality);
   applyLighting('golden');
   audio.setVolume(volume);
   ($('volume') as HTMLInputElement).value = String(volume * 100);
   ($('controls-toggle') as HTMLInputElement).checked = showControls;
-  document.querySelectorAll('#quality button').forEach(b => b.classList.toggle('selected', (b as HTMLElement).dataset.value === quality));
-  function setPaused(next: boolean) {
-    paused = next; keys.clear(); dragging = false; lastFrame = performance.now();
-    $('pause').hidden = !next || !started || atlasOpen || photoMode;
-    $('hud').hidden = next || !started;
+  ($('minimap-toggle') as HTMLInputElement).checked=showMinimap;
+  atlas.setMinimap(showMinimap);
+  function clearInput(){
+    keys.clear();
+    if(pointer!==undefined&&canvas.hasPointerCapture(pointer))canvas.releasePointerCapture(pointer);
+    pointer=undefined;lastFrame=performance.now();measuredPrevious=false;
+  }
+  function enterMode(next: GameMode,focus=true) {
+    clearInput();
+    if(mode==='atlas'&&next!=='atlas')atlas.close();
+    mode=next;
+    $('pause').hidden=!started||mode!=='pause';
+    $('hud').hidden=!started||mode!=='driving';
+    $('photo-mode').hidden=!started||mode!=='photo';
     $('hint').hidden = !showControls;
-    audio.setPaused(next);
-    if (next && started) $('resume').focus();
-    else ($('scene') as HTMLCanvasElement).focus();
+    canvas.tabIndex=mode==='driving'?0:-1;
+    audio.setPaused(mode!=='driving');
+    if(!started)return;
+    if(mode==='atlas')atlas.open(drive.renderState(true));
+    if(focus)({driving:canvas,pause:$('resume'),atlas:$('close-map'),photo:$('capture-photo')}[mode]).focus({preventScroll:true});
+  }
+  function setPaused(next: boolean){enterMode(next?'pause':'driving');}
+  function toggleOverlay(overlay:'atlas'|'photo',trigger?:HTMLElement){
+    if(!started)return;
+    if(mode===overlay){
+      enterMode(returnMode);
+      if(opener?.isConnected&&!opener.closest('[hidden]'))opener.focus({preventScroll:true});
+      opener=null;return;
+    }
+    if(mode==='atlas'||mode==='photo')return;
+    returnMode=mode;
+    opener=trigger??document.activeElement as HTMLElement|null;
+    enterMode(overlay);
   }
   $('drive').onclick = async () => {
     started = true;
     $('opening').hidden = true;
     try { await audio.start(); } catch { toast('Audio is unavailable. You can keep driving.'); }
     audio.setVolume(volume);
-    setPaused(false);void car.loadAssets();
+    if(document.hidden||!document.hasFocus())enterMode('pause',false);else setPaused(false);
+    multiplayer.tryStage();void car.loadAssets();
   };
-  function toggleAtlas(){
-    if(!started)return;
-    if(atlasOpen){atlasOpen=false;atlas.close();setPaused(!resumeAfterAtlas);}
-    else{resumeAfterAtlas=!paused;atlasOpen=true;setPaused(true);atlas.open(drive.renderState(true));}
-  }
-  function togglePhoto(){
-    if(!started||atlasOpen)return;
-    if(photoMode){photoMode=false;$('photo-mode').hidden=true;setPaused(!resumeAfterPhoto);}
-    else{resumeAfterPhoto=!paused;photoMode=true;setPaused(true);$('photo-mode').hidden=false;$('capture-photo').focus();}
-  }
+  const toggleAtlas=(event?:MouseEvent)=>toggleOverlay('atlas',event?.currentTarget as HTMLElement|undefined);
+  const togglePhoto=(event?:MouseEvent)=>toggleOverlay('photo',event?.currentTarget as HTMLElement|undefined);
   $('open-photo').onclick=togglePhoto;$('close-photo').onclick=togglePhoto;
   $('capture-photo').onclick=()=>{
     const previousAspect=camera.aspect;camera.aspect=16/9;camera.updateProjectionMatrix();renderer.setPixelRatio(1);renderer.setSize(1920,1080,false);composer.setPixelRatio(1);composer.setSize(1920,1080);ao.setSize(960,540);
-    if(bloom.enabled||ao.enabled)composer.render();else renderer.render(scene,camera);
-    const copy=document.createElement('canvas');copy.width=1920;copy.height=1080;copy.getContext('2d')!.drawImage(renderer.domElement,0,0);camera.aspect=previousAspect;resize();
+    const copy=document.createElement('canvas');copy.width=1920;copy.height=1080;
+    try{
+      if(bloom.enabled||ao.enabled)composer.render();else renderer.render(scene,camera);
+      copy.getContext('2d')!.drawImage(renderer.domElement,0,0);
+    }finally{camera.aspect=previousAspect;resize(false);}
     copy.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='Sunspoke-Coast-Photo.png';link.click();setTimeout(()=>URL.revokeObjectURL(url),2000);});
   };
+  const gl = renderer.getContext();
+  const ext = gl.getExtension('WEBGL_debug_renderer_info');
+  const gpu = ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);
+  function timings(){
+    const sorted=[...frameTimes].sort((a,b)=>a-b),seconds=frameTimes.reduce((a,b)=>a+b,0)/1000;
+    return {seconds,frames:sorted.length,fps:seconds?sorted.length/seconds:null,medianMs:sorted[Math.floor(sorted.length*.5)]??null,p95Ms:sorted[Math.floor(sorted.length*.95)]??null};
+  }
   $('performance-report').onclick=()=>{
-    const sorted=[...frameTimes].sort((a,b)=>a-b),data={build:'visual-overhaul',quality,lighting,viewport:[innerWidth,innerHeight],internal:[canvas.width,canvas.height],seconds:frameTimes.reduce((a,b)=>a+b,0)/1000,frames:frameTimes.length,fps:1000/(frameTimes.reduce((a,b)=>a+b,0)/Math.max(1,frameTimes.length)),medianMs:sorted[Math.floor(sorted.length*.5)],p95Ms:sorted[Math.floor(sorted.length*.95)],assets:library.errors,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,userAgent:navigator.userAgent};
+    const data={build:'county-overhaul',quality,lighting,viewport:[innerWidth,innerHeight],internal:[canvas.width,canvas.height],...timings(),renderer:gpu,assets:library.errors,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,userAgent:navigator.userAgent};
     const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download='Sunspoke-Performance.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
   };
-  $('close-map').onclick=toggleAtlas;$('open-map').onclick=toggleAtlas;
+  $('close-map').onclick=toggleAtlas;$('open-map').onclick=toggleAtlas;$('hud-map').onclick=toggleAtlas;
   $('pause-button').onclick = () => setPaused(true);
-  $('resume').onclick = () => setPaused(false);
-  function reset() { if(!multiplayer.reset())drive.reset(); orbit.yaw = 0; orbit.pitch = .34; orbit.distance = 8.2; toast('Back on the coast road'); }
+  $('resume').onclick = () => {setPaused(false);multiplayer.tryStage();};
+  function reset(water=false){
+    if(!multiplayer.reset()){
+      drive.reset();toast(water?'Recovered from the water':'Back on the coast road');
+    }
+    clearInput();Object.assign(orbit,GT_ORBIT);
+  }
   $('reset').onclick = () => { reset(); setPaused(false); };
   $('hide-hint').onclick = () => { showControls = false; $('hint').hidden = true; ($('controls-toggle') as HTMLInputElement).checked = false; persist(); };
   $('controls-toggle').onchange = e => { showControls = (e.target as HTMLInputElement).checked; persist(); };
+  $('minimap-toggle').onchange=e=>{showMinimap=(e.target as HTMLInputElement).checked;atlas.setMinimap(showMinimap);persist();};
   $('volume').oninput = e => { volume = Number((e.target as HTMLInputElement).value) / 100; audio.setVolume(volume); persist(); };
   document.querySelectorAll('#lighting button').forEach(button => button.addEventListener('click', () => { applyLighting((button as HTMLElement).dataset.value as Lighting); multiplayer.setLighting(lighting); persist(); }));
-  document.querySelectorAll('#quality button').forEach(button => button.addEventListener('click', () => { applyQuality((button as HTMLElement).dataset.value as Quality); document.querySelectorAll('#quality button').forEach(b => b.classList.toggle('selected', b === button)); persist(); }));
-  const drivingKeys = ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight','Space','ShiftLeft','ShiftRight','KeyR','KeyM','F2','Escape'];
+  document.querySelectorAll('#quality button').forEach(button => button.addEventListener('click', () => { applyQuality((button as HTMLElement).dataset.value as Quality); persist(); }));
+  paintButtons.forEach(button => button.addEventListener('click', () => {
+    const value = button.dataset.value;
+    if (value === 'teal' || value === 'red') {
+      applyPaint(value);
+      persist();
+    }
+  }));
+  const drivingKeys = ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight','Space','ShiftLeft','ShiftRight','KeyR'];
   window.addEventListener('keydown', e => {
     if(!started)return;
-    if (!drivingKeys.includes(e.code)) return;
-    if(e.code==='F2'&&started&&!e.repeat){e.preventDefault();togglePhoto();return;}
-    if(e.code==='Escape'&&photoMode&&!e.repeat){e.preventDefault();togglePhoto();return;}
-    if(photoMode)return;
-    if(e.code==='KeyM'&&started&&!e.repeat){e.preventDefault();toggleAtlas();return;}
-    if(e.code==='Escape'&&atlasOpen&&!e.repeat){e.preventDefault();toggleAtlas();return;}
-    if(atlasOpen)return;
-    if ((e.target as HTMLElement)?.matches('input,button') && e.code !== 'Escape' && paused) return;
-    e.preventDefault();
-    if (e.code === 'Escape' && started && !e.repeat) { setPaused(!paused); return; }
-    if (paused) return;
-    if (e.repeat) return;
-    if (e.code === 'KeyR' && !e.repeat) reset();
+    if(e.code==='Tab'&&mode!=='driving'){
+      const panel=$(mode==='photo'?'photo-mode':mode);
+      const focusable=[...Array.from(panel.querySelectorAll<HTMLElement>('button,input,select,a[href],[tabindex="0"]'))]
+        .filter(el=>!el.matches(':disabled')&&el.getClientRects().length>0);
+      if(!focusable.length)return;
+      const index=focusable.indexOf(document.activeElement as HTMLElement);
+      if(index<0||(e.shiftKey?index===0:index===focusable.length-1)){
+        e.preventDefault();focusable[e.shiftKey?focusable.length-1:0].focus();
+      }
+      return;
+    }
+    if(e.code==='Escape'&&!e.repeat){
+      e.preventDefault();
+      if(mode==='atlas'||mode==='photo')toggleOverlay(mode);
+      else setPaused(mode==='driving');
+      return;
+    }
+    const target=e.target as HTMLElement;
+    if(e.defaultPrevented||e.altKey||e.ctrlKey||e.metaKey||target?.matches?.('input,select,textarea,[contenteditable]'))return;
+    if(e.code==='F2'&&!e.repeat&&mode!=='atlas'){e.preventDefault();togglePhoto();return;}
+    if(e.code==='KeyM'&&!e.repeat&&mode!=='photo'){e.preventDefault();toggleAtlas();return;}
+    if(mode==='photo'){
+      if(e.key==='ArrowLeft'||e.key==='ArrowRight')orbit.yaw+=e.key==='ArrowLeft'?-.11:.11;
+      else if(e.key==='ArrowUp'||e.key==='ArrowDown')orbit.pitch=clamp(orbit.pitch+(e.key==='ArrowUp'?-.06:.06),.12,.9);
+      else if(['+','=','-'].includes(e.key))orbit.distance=clamp(orbit.distance+(['+','='].includes(e.key)?-.7:.7),5.5,18);
+      else return;
+      e.preventDefault();return;
+    }
+    if(mode!=='driving'||!drivingKeys.includes(e.code))return;
+    if(e.code==='Space'&&target?.closest?.('button,a'))return;
+    e.preventDefault();if(e.repeat)return;
+    if(e.code==='KeyR'){reset();return;}
     keys.add(e.code);
   });
   window.addEventListener('keyup', e => keys.delete(e.code));
-  window.addEventListener('blur', () => { if (started && !qaView) {if(atlasOpen)resumeAfterAtlas=false;setPaused(true);} });
-  document.addEventListener('visibilitychange', () => { if (document.hidden && started && !qaView) setPaused(true); });
-  const canvas = $('scene') as HTMLCanvasElement;
-  canvas.tabIndex = 0;
-  let oldX = 0; let oldY = 0;
-  canvas.addEventListener('pointerdown', e => { if (paused&&!photoMode) return; dragging = true; oldX=e.clientX; oldY=e.clientY; canvas.setPointerCapture(e.pointerId); });
-  canvas.addEventListener('pointermove', e => { if (!dragging) return; orbit.yaw -= (e.clientX-oldX)*.005; orbit.pitch = clamp(orbit.pitch+(e.clientY-oldY)*.004,.12,.9); oldX=e.clientX;oldY=e.clientY;orbitLast=elapsed; });
-  canvas.addEventListener('pointerup', () => { dragging=false;orbitLast=elapsed; });
-  canvas.addEventListener('pointercancel', () => dragging=false);
-  canvas.addEventListener('wheel', e => { if (paused&&!photoMode) return; e.preventDefault(); orbit.distance=clamp(orbit.distance+e.deltaY*.012,5.5,18);orbitLast=elapsed; }, { passive:false });
-  window.addEventListener('resize', resize);
+  function background(){
+    if(!started||qaView)return;
+    clearInput();atlas.cancelDrag();
+    if(mode==='atlas'||mode==='photo'){returnMode='pause';opener=null;}
+    else if(mode==='driving')enterMode('pause',false);
+  }
+  window.addEventListener('blur',background);
+  window.addEventListener('focus',()=>multiplayer.tryStage());
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)background();else multiplayer.tryStage();});
+  canvas.tabIndex=-1;
+  let oldX = 0, oldY = 0;
+  canvas.addEventListener('pointerdown',e=>{if((mode!=='driving'&&mode!=='photo')||pointer!==undefined||e.button!==0)return;if(mode==='photo')e.preventDefault();pointer=e.pointerId;oldX=e.clientX;oldY=e.clientY;canvas.setPointerCapture(e.pointerId);});
+  canvas.addEventListener('pointermove',e=>{if(pointer!==e.pointerId)return;orbit.yaw-=(e.clientX-oldX)*.005;orbit.pitch=clamp(orbit.pitch+(e.clientY-oldY)*.004,.12,.9);oldX=e.clientX;oldY=e.clientY;orbitLast=elapsed;});
+  for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,()=>{pointer=undefined;orbitLast=elapsed;});
+  canvas.addEventListener('wheel',e=>{if(mode!=='driving'&&mode!=='photo')return;e.preventDefault();orbit.distance=clamp(orbit.distance+e.deltaY*.012,5.5,18);orbitLast=elapsed;},{passive:false});
+  window.addEventListener('resize',()=>resize());
   let toastTimer = 0;
   function toast(text: string) { $('toast').textContent = text; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = window.setTimeout(()=>$('toast').hidden=true,2400); }
   let captureJump=false;
   const input = { forward:false,backward:false,left:false,right:false,handbrake:false,brake:false };
   const sunDirection = new THREE.Vector3(-.9,.24,-.36).normalize();
-  let fpsStart = performance.now();
-  let fpsFrames = 0;
-  let measuredFps = 0;
+  let submergedFor=0,waterRecoverySent=false,shownSpeed=-1,shownGear='';
   function animate(now: number) {
-    const rawDt = (now-lastFrame)/1000;
-    const dt = Math.min(rawDt,.05);
-    lastFrame = now;
-    elapsed += dt;
-    if (!document.hidden) {
-      if(!paused&&rawDt>0)frameTimes.push(rawDt*1000); if (frameTimes.length>60000) frameTimes.shift();
-      fpsFrames++; if (now-fpsStart>1000) { measuredFps=fpsFrames*1000/(now-fpsStart);fpsStart=now;fpsFrames=0; }
+    const rawDt=Math.max(0,(now-lastFrame)/1000),dt=Math.min(rawDt,.05);
+    lastFrame=now;elapsed+=dt;
+    const friend=multiplayer.update(elapsed);
+    const paused=mode!=='driving',driving=started&&!paused&&multiplayer.canDrive();
+    const measure=driving&&!document.hidden&&document.hasFocus()&&!captureJump;
+    if(measure&&measuredPrevious&&rawDt>0&&frameTimes.length<60000)frameTimes.push(rawDt*1000);
+    measuredPrevious=measure;
+    if(mode==='atlas'){
+      atlas.updatePlayers(drive.renderState(true),friend,elapsed,false);
+      requestAnimationFrame(animate);return;
     }
-    multiplayer.update(elapsed);
-    if(atlasOpen){canvas.dataset.ready='true';requestAnimationFrame(animate);return;}
     if (!paused) {
       input.forward=keys.has('KeyW')||keys.has('ArrowUp'); input.backward=keys.has('KeyS')||keys.has('ArrowDown'); input.left=keys.has('KeyA')||keys.has('ArrowLeft'); input.right=keys.has('KeyD')||keys.has('ArrowRight'); input.handbrake=keys.has('Space');
       input.brake=keys.has('ShiftLeft')||keys.has('ShiftRight');
       if(!captureJump&&multiplayer.canDrive())drive.step(dt,input);
-      if (!dragging && elapsed-orbitLast>2.5) { orbit.yaw=THREE.MathUtils.damp(orbit.yaw,0,1.5,dt);orbit.pitch=THREE.MathUtils.damp(orbit.pitch,.34,1,dt); }
+      if(!isSubmerged(drive.state)){submergedFor=0;waterRecoverySent=false;}
+      else if(driving&&!captureJump&&!waterRecoverySent&&(submergedFor+=dt)>=.4){
+        waterRecoverySent=true;reset(true);
+      }
+      if (pointer===undefined && elapsed-orbitLast>2.5) { orbit.yaw=THREE.MathUtils.damp(orbit.yaw,0,1.5,dt);orbit.pitch=THREE.MathUtils.damp(orbit.pitch,GT_ORBIT.pitch,1,dt); }
     }
     const state = drive.renderState(captureJump);
+    atlas.updatePlayers(state,friend,elapsed,started&&!paused);
     car.group.position.copy(state.position);
     if(!state.airborne)car.group.position.y+=(world.visualHeight?.(state.position.x,state.position.z)??state.position.y)-(world.surfaceHeight??world.groundHeight)(state.position.x,state.position.z);
     car.group.rotation.set(state.pitch,state.heading,0,'YXZ');
     car.update(paused?0:state.speed,state.steering,paused?0:state.throttle,state.braking,elapsed,lighting==='golden'?0:lighting==='night'?1:.5);
     if (!started) {
       const a = Math.sin(elapsed*.06)*.07;
-      camera.position.set(-72.8+Math.sin(a)*1.2,3.6,216.8);
-      camera.lookAt(-67,2.6,207.7);
+      camera.position.set(state.position.x+5.1+Math.sin(a)*1.2,state.position.y+1.95,state.position.z+5.6);
+      camera.lookAt(state.position.x-2.35,state.position.y+1.0,state.position.z+.10);
     } else if(captureJump){camera.position.set(-81,17,24);camera.lookAt(-101,3,0);} else {
       interiorBlend=THREE.MathUtils.damp(interiorBlend,insideGallery(state.position.x,state.position.z)?1:0,2.5,dt);
-      chase.update(dt,state,photoMode?orbit:{...orbit,distance:THREE.MathUtils.lerp(orbit.distance,Math.min(orbit.distance,6.8),interiorBlend),pitch:THREE.MathUtils.lerp(orbit.pitch,.25,interiorBlend*.55)});
+      chase.update(dt,state,mode==='photo'?orbit:{...orbit,distance:THREE.MathUtils.lerp(orbit.distance,Math.min(orbit.distance,6.8),interiorBlend),pitch:THREE.MathUtils.lerp(orbit.pitch,.25,interiorBlend*.55)});
     }
     contacts.update(state);scenery.update(state.position,elapsed);
-    const district=districtAt(state.position.x,state.position.z).name;if(district!==lastDistrict){lastDistrict=district;districtUntil=elapsed+3.8;$('district-label').textContent=district;}$('district-label').classList.toggle('visible',elapsed<districtUntil);
+    const district=districtAt(state.position.x,state.position.z).name;
+    if(started&&!lastDistrict){candidateDistrict=lastDistrict=district;districtUntil=elapsed+4;$('district-label').textContent=district;}
+    if(candidateDistrict!==district){candidateDistrict=district;districtSince=elapsed;}
+    if(started&&lastDistrict!==candidateDistrict&&elapsed-districtSince>.9){
+      lastDistrict=candidateDistrict;districtUntil=elapsed+4;$('district-label').textContent=lastDistrict;
+    }
+    $('district-label').classList.toggle('visible',elapsed<districtUntil);
     car.group.traverse(o=>{if(o instanceof THREE.Mesh){for(const m of Array.isArray(o.material)?o.material:[o.material])if(m instanceof THREE.MeshPhysicalMaterial)m.envMap=quality==='high'&&interiorBlend>.8?interiorEnvironment.texture:null;}});
-    const targetFov=55+7*THREE.MathUtils.smoothstep(Math.abs(state.speed),12,34);
+    const targetFov=started?55+7*THREE.MathUtils.smoothstep(Math.abs(state.speed),12,34):42;
     camera.fov=THREE.MathUtils.damp(camera.fov,targetFov,3,dt);camera.updateProjectionMatrix();
     sky.position.copy(camera.position);skyUniforms.cloudClock.value=elapsed;
     stars.position.copy(camera.position);
@@ -284,9 +391,11 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
     sun.position.copy(state.position).addScaledVector(sunDirection,180);
     world.update(elapsed,lighting,state.position);
     audio.update(state,dt);
-    $('speed').textContent = String(Math.round(Math.abs(state.speed)*3.6));
-    $('gear').textContent = Math.abs(state.speed)<.1?'P':state.speed<0?'R':'D';
-    $('speed-fill').style.width = `${Math.min(100,Math.abs(state.speed)/32*100)}%`;
+    const speed=Math.round(Math.abs(state.speed)*3.6),gear=Math.abs(state.speed)<.1?'P':state.speed<0?'R':'D';
+    if(speed!==shownSpeed){shownSpeed=speed;$('speed').textContent=String(speed);}
+    if(gear!==shownGear){shownGear=gear;$('gear').textContent=gear;}
+    const fill=Math.min(100,Math.abs(state.speed)/VEHICLE.topSpeed*100).toFixed(1)+'%';
+    if($('speed-fill').dataset.fill!==fill){$('speed-fill').dataset.fill=fill;$('speed-fill').style.width=fill;}
     if (bloom.enabled||ao.enabled) composer.render(); else renderer.render(scene,camera);
     canvas.dataset.ready = 'true';
     requestAnimationFrame(animate);
@@ -304,14 +413,12 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
     const report = document.createElement('script'); report.id='qa-report'; report.type='application/json'; document.body.append(report);
     let benchmark: unknown;
     let routeChecks: unknown;
-    const gl = renderer.getContext();
-    const ext = gl.getExtension('WEBGL_debug_renderer_info');
     (window as any).__SUNSPOKE__ = {
       drive, world, car, camera, renderer, audio, input, multiplayer,
       pause: setPaused, light: applyLighting, quality: applyQuality,
       teleport(x:number,z:number,heading=0) { stateTeleport(x,z,heading); },
-      stats() { const sorted=[...frameTimes].sort((a,b)=>a-b);return {fps:measuredFps,medianMs:sorted[Math.floor(sorted.length*.5)],p95Ms:sorted[Math.floor(sorted.length*.95)],frames:sorted.length,width:innerWidth,height:innerHeight,renderWidth:canvas.width,renderHeight:canvas.height,quality,lighting,paused,renderer:ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER),airborne:drive.state.airborne,verticalSpeed:drive.state.verticalSpeed,pitch:drive.state.pitch,captureJump,stunt:world.group.getObjectByName('RAMP TIME stunt compound')?.userData,cityArea:world.group.userData.cityArea,beachgoers:world.group.getObjectByName('Adult beachgoers')?.userData,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,speed:drive.state.speed,heading:drive.state.heading,steering:drive.state.steering,position:drive.state.position.toArray(),audioState:(audio as any).ctx?.state,audioGain:(audio as any).master?.gain.value}; },
-      clearStats() { frameTimes.length=0;fpsFrames=0;fpsStart=performance.now(); }
+      stats() { return {...timings(),width:innerWidth,height:innerHeight,renderWidth:canvas.width,renderHeight:canvas.height,quality,lighting,paused:mode!=='driving',renderer:gpu,airborne:drive.state.airborne,verticalSpeed:drive.state.verticalSpeed,pitch:drive.state.pitch,captureJump,stunt:world.group.getObjectByName('RAMP TIME stunt compound')?.userData,cityArea:world.group.userData.cityArea,beachgoers:world.group.getObjectByName('Adult beachgoers')?.userData,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,speed:drive.state.speed,heading:drive.state.heading,steering:drive.state.steering,position:drive.state.position.toArray(),audioState:(audio as any).ctx?.state,audioGain:(audio as any).master?.gain.value}; },
+      clearStats() { frameTimes.length=0;measuredPrevious=false; }
     };
     function stateTeleport(x:number,z:number,heading:number) { drive.reset();drive.state.position.set(x,(world.surfaceHeight??world.groundHeight)(x,z),z);drive.state.heading=heading; }
     if (params.get('quality') && params.get('quality')! in presets) applyQuality(params.get('quality') as Quality);

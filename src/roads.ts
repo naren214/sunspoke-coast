@@ -4,11 +4,12 @@ import type { createRoadIndex } from './road-grading';
 import { insideGallery, isLand } from './geography';
 import { insideStunt } from './stunt';
 
-export type RoadStyle='city'|'country'|'freeway'|'airfield'|'interior';
+export type RoadStyle='city'|'country'|'freeway'|'airfield'|'interior'|'access';
 export function roadStyle(road:Road):RoadStyle{
   if(road.name==='Grand Gallery Drive')return 'interior';
   if(road.name==='Runway 07'||road.name==='Airfield Taxiway')return 'airfield';
   if(road.name==='Crosstown Freeway')return 'freeway';
+  if(road.width<10)return 'access';
   if(['Sierra Coast Highway','Verde Skyline Bridge','Gallery Sierra Approach','Verde North Approach','Verde South Approach','Verde Bridge Approach'].includes(road.name??''))return 'country';
   return 'city';
 }
@@ -88,7 +89,7 @@ export function renderRoadNetwork(group:T.Group,roads:Road[],index:ReturnType<ty
   const reflectorWhite=new T.MeshStandardMaterial({color:'#e8f0d1',emissive:'#d5efd4',emissiveIntensity:.48,roughness:.6});
   const height=(x:number,z:number)=>index.nearest(x,z).height;
   const markingsWhite=new SurfaceWriter(height),markingsYellow=new SurfaceWriter(height),cats=new SurfaceWriter(height);
-  const stats={roads:roads.length,junctions:0,crosswalks:0,arrows:0,curbSegments:0,reflectors:0,shoulderSegments:0,airfieldMarkings:0,styles:{city:0,country:0,freeway:0,airfield:0,interior:0}};
+  const stats={roads:roads.length,junctions:0,crosswalks:0,arrows:0,curbSegments:0,reflectors:0,shoulderSegments:0,airfieldMarkings:0,styles:{city:0,country:0,freeway:0,airfield:0,interior:0,access:0}};
   const normals=new WeakMap<T.Vector3,[number,number]>();
   for(const road of roads){const p=road.points,closed=p[0].distanceTo(p.at(-1)!)<.1;for(let i=0;i<p.length;i++){
     const before=p[i===0&&closed?p.length-2:Math.max(0,i-1)],after=p[i===p.length-1&&closed?1:Math.min(p.length-1,i+1)],dx=after.x-before.x,dz=after.z-before.z,len=Math.hypot(dx,dz)||1;

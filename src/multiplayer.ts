@@ -4,6 +4,7 @@ import type {Pose,RoomView,Credentials} from '../shared/protocol';
 import {PoseBuffer} from '../shared/interpolation';
 import catalog from '../shared/tracks.json';
 import {createCar} from './car';
+import { GT_FRIEND_PAINT } from './gt-model';
 import type {World,Quality,Lighting} from './types';
 
 export class RoomSession {
@@ -71,7 +72,7 @@ export class RoomSession {
 }
 
 export class RemoteVehicle {
-  car=createCar({color:0xc9684d,label:'Friend Cayenne'});root=new T.Group();loaded=false;
+  car=createCar({color:GT_FRIEND_PAINT,label:'Friend Sunspoke GT'});root=new T.Group();loaded=false;
   constructor(scene:T.Scene,private world:World){
     this.root.add(this.car.group);this.root.visible=false;
     const canvas=document.createElement('canvas');canvas.width=256;canvas.height=64;const ctx=canvas.getContext('2d')!;ctx.fillStyle='#173b41dd';ctx.fillRect(0,0,256,64);ctx.fillStyle='#fff1d4';ctx.font='32px Barlow,Arial';ctx.textAlign='center';ctx.fillText('Friend',128,43);

@@ -16,11 +16,29 @@ try {
     import { Driving } from './src/driving.ts';
     import { CITY } from './src/city.ts';
     import { COUNTY_ROADS } from './src/county-roads.ts';
+    import { PLACES, SCENIC_STOPS } from './src/places.ts';
+    import { RoadNavigation, routeProgress } from './src/road-navigation.ts';
+    import { isSubmerged } from './src/water-recovery.ts';
     globalThis.document = { createElement() { return { width:0, height:0, getContext() {
       return new Proxy({createLinearGradient:()=>({addColorStop(){}}),createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)})},
         {get:(target,key)=>key in target ? target[key] : ()=>{}});
     } }; } };
     const world=createWorld(), b=world.bounds;
+    const navigation=new RoadNavigation(world);
+    const spawn=new Vector3(-65,world.surfaceHeight(-65,210),210);
+    for(const place of PLACES){
+      const route=navigation.route(spawn,place.approach??place);
+      assert.ok(route&&route.points.length>=2&&route.distance>0,'Routable from spawn: '+place.name);
+      assert.ok(routeProgress(route,route.goal).distance<.1,'Arrival distance reaches zero: '+place.name);
+      assert.ok(navigation.route(route.goal,spawn),'Return route: '+place.name);
+    }
+    assert.equal(navigation.route(new Vector3(-900,-4,0),PLACES[0]),undefined,'No offshore shortcuts to roads');
+    const separated={...world,colliders:[],surfaceHeight:undefined,groundHeight:()=>0,roads:[
+      {width:8,points:[new Vector3(-30,0,0),new Vector3(30,0,0)]},
+      {width:8,points:[new Vector3(0,8,-30),new Vector3(0,8,30)]}
+    ]};
+    assert.equal(new RoadNavigation(separated).route(new Vector3(-30,0,0),{x:0,z:-30}),undefined,'No transfer at an overpass');
+    console.log('PASS bidirectional routes to all '+PLACES.length+' destinations, road snap and grade separation');
     world.group.updateMatrixWorld(true);
     const terrain=world.group.children.filter(o=>o.name==='Base terrain'||o.name==='Road underlay');
     for(const z of [-90,-45,0,45,90]){
@@ -48,6 +66,32 @@ try {
     assert.equal(world.surfaceHeight(-101,14),5.1);
     assert.equal(world.groundHeight(-101,0),-2.5);
     const forward={forward:true,backward:false,left:false,right:false,handbrake:false};
+    const steer={forward:false,backward:false,left:false,right:false,handbrake:false};
+    for(const stop of SCENIC_STOPS){
+      const road=world.roads.find(road=>road.name===stop.name),a=road.points[0],b=road.points.at(-1);
+      const heading=Math.atan2(a.x-b.x,a.z-b.z),length=Math.hypot(a.x-b.x,a.z-b.z);
+      for(const [from,to,yaw] of [[a,b,heading],[b,a,heading+Math.PI]]){
+        const car=new Driving(world);car.teleport(from.clone(),yaw,true);
+        for(let i=0;i<600;i++){
+          const remaining=Math.hypot(car.state.position.x-to.x,car.state.position.z-to.z);
+          if(remaining<1.6)break;
+          const speed=Math.abs(car.state.speed);
+          car.step(1/60,{...steer,forward:speed<3.7,brake:speed>4});
+          assert.ok(!isSubmerged(car.state),'Scenic access stays dry');
+        }
+        assert.ok(Math.hypot(car.state.position.x-to.x,car.state.position.z-to.z)<1.6,'Drive scenic access both ways: '+stop.name);
+        assert.ok(length>=18,'Scenic stop has a usable separate approach');
+      }
+    }
+    const oceanCar=new Driving(world);
+    oceanCar.state.position.set(150,0,970);oceanCar.state.heading=Math.PI;
+    for(let i=0;i<360&&!isSubmerged(oceanCar.state);i++)oceanCar.step(1/60,forward);
+    assert.ok(isSubmerged(oceanCar.state),'Detect the Isla Luz underwater softlock');
+    oceanCar.reset();assert.ok(!isSubmerged(oceanCar.state),'Recovery returns to a road above water');
+    for(const name of ['Isla Luz Causeway','Harbour Bridge','Verde Skyline Bridge']){
+      const bridge=world.roads.find(road=>road.name===name);
+      for(const p of bridge.points)assert.ok(!isSubmerged({...oceanCar.state,position:p}),'Bridge decks remain drivable');
+    }
     const entry=new Driving(world);entry.state.position.set(-46,0,0);entry.state.heading=Math.PI/2;
     for(let i=0;i<600&&entry.state.position.x>-71;i++)entry.step(1/60,forward);
     for(let i=0;i<180;i++)entry.step(1/60,{...forward,forward:false,brake:true});
@@ -78,6 +122,7 @@ try {
     assert.ok(successful.drive.state.position.z>-95,'Brake to a stop inside the compound');
     const undershoot=jump(40);
     assert.ok(undershoot.land&&undershoot.land.y===-2.5,'Slow launch must fall into the recessed gap, not snap onto the landing');
+    assert.ok(!isSubmerged(undershoot.drive.state),'Ramp Time retains manual reset after an undershoot');
     undershoot.drive.reset();
     assert.ok(!undershoot.drive.state.airborne&&undershoot.drive.state.verticalSpeed===0&&undershoot.drive.state.position.x===-65);
     const jump30=jump(82,30),jump120=jump(82,120);

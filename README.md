@@ -1,30 +1,32 @@
 # Sunspoke Coast
 
-A desktop browser driving game set in a fictional seaside entertainment district. Drive one midnight-teal Porsche Cayenne SUV through the beach boulevard, hotel streets, and coastal overlook. Every road is available immediately.
+A desktop browser driving game set in a fictional seaside entertainment district. Drive the metallic teal Sunspoke GT through the beach boulevard, hotel streets, and coastal overlook. Every road is available immediately.
 
-Sunspoke County now has **nine districts, 53 connected roads and about 25.8 km of authored road centerlines** across a **3.38 km² bounded play area**. Crown Downtown adds a dense skyline, Canal Gardens has villas and neighbourhood bridges, Southport has working-port scenery, Coast Airfield has a drivable runway and perimeter circuit, and Isla Luz is reached by an elevated causeway. Sierra Verde and Silver Lake add winding northern country roads. The original beachfront, Palm Quarter, Ramp Time compound, Cayenne, beach crowd and smooth driving camera remain part of the county.
+Sunspoke County has **nine districts, 58 connected roads and about 26 km of authored road centerlines** across a **3.38 km² bounded play area**. Crown Downtown adds a dense skyline, Canal Gardens has villas and neighbourhood bridges, Southport has working-port scenery, Coast Airfield has a drivable runway and perimeter circuit, and Isla Luz is reached by an elevated causeway. Sierra Verde and Silver Lake add winding northern country roads. Look for the signed drive-in stops at **Sierra Vista**, **Silver Lake Overlook**, and **Sunset Point**.
 
-Press **M** to open the county atlas. It draws the actual road geometry, coast, districts and car position, with scroll zoom and drag panning. M or Esc returns to the previous driving/pause state. The map screen pauses driving and suspends the hidden 3D rendering.
+Press **M** to open the county atlas. Choose one of 12 destinations and select **Set route** to see the route and distance in the driving HUD. The north-up minimap follows the car and can be hidden in Pause. The atlas supports search, pointer or keyboard panning, zoom, fit, and recentering. **M** or **Esc** closes it. The map pauses driving and suspends the 3D rendering while it is open. A race takes priority over personal navigation until free roam resumes.
 
 This is original procedural geography inspired by the city, coast, islands and countryside mix in [Rockstar's official location overview](https://www.rockstargames.com/VI/only-in-leonida). All buildings and scenery are bundled/generated locally.
 
 ## Opening screen
 
-The opening uses locally bundled coastal artwork, a live Cayenne preview, a keyboard-controls guide and an explicit loading panel. Its percentage, received megabytes and completed-file count come from the 37 startup game files (about 21.5 MB), rather than a timed animation. The artwork, fonts and engine code load separately. Download completion is followed by a preparation stage; **Drive the coast** becomes available after shader preparation and the first successful game render. A stalled, missing or incomplete download offers **Retry download**. Cached downloads can finish quickly, and additional scenery/detail levels still load in the background.
+The opening uses locally bundled coastal artwork, a live Sunspoke GT preview, a keyboard-controls guide and an explicit loading panel. Its percentage, received megabytes and completed-file count come from the 37 startup game files (about 20.2 MB), rather than a timed animation. The artwork, fonts and engine code load separately. Download completion is followed by a preparation stage; **Drive the coast** becomes available after shader preparation and the first successful game render. A stalled, missing or incomplete download offers **Retry download**. Cached downloads can finish quickly, and additional scenery/detail levels still load in the background.
 
 ## Play with a friend
 
-Press **Esc** and use **Play with a friend**, above Visual quality. Choose **Create room**, copy its three-digit code, and let your friend paste it and choose **Join**. You drive the teal Cayenne; your friend drives the coral Cayenne. Both players can explore or enter the beachfront circuit, Silver Lake circuit, airport sprint and Downtown Switchbacks. Downtown Switchbacks adds a 2.26 km lap with 12 rounded corners, roadside chevrons and next-turn/braking guidance. Cars are ghosts to each other. The host chooses a race; both players click **Ready** before the shared countdown.
+Press **Esc** and use **Play with a friend**. Choose **Create room**, copy its three-digit code, and let your friend paste it and choose **Join**. Both players can explore or enter the beachfront circuit, Silver Lake circuit, airport sprint and Downtown Switchbacks. Downtown Switchbacks adds a 2.26 km lap with 12 rounded corners, roadside chevrons and next-turn/braking guidance. Cars are ghosts to each other. The host chooses a race, and both players click **Ready** before the shared countdown.
+
+**Driving settings → Car paint** switches your GT between **Deep Metallic Teal** and **Ferrari Red**. The choice is saved in your browser and affects your own view in solo and co-op.
 
 Multiplayer requires internet access and the online room server. Solo driving remains available offline. See `MULTIPLAYER.md` for race rules, local development and server ownership. The multiplayer server is deployed permanently in the owner's verified Cloudflare account.
 
 ## Visual upgrade
 
-The current source and included build add 29 imported CC0 model designs with three detail levels, seven PBR surface sets and three bundled HDR lighting environments. The Cayenne has sculpted body panels, clearer cabin details, brushed wheels, animated steering and brake lights, and the gold **NAREN** hatch signature. Low and higher-detail car GLBs preserve the same dimensions and handling.
+The current source and included build add 29 imported CC0 model designs with three detail levels, seven PBR surface sets and three bundled HDR lighting environments. The Sunspoke GT has sculpted fenders, split-spoke wheels, a fastback cabin, animated lights and steering, and a gold **NAREN** signature between its tail lamps. Low and higher-detail car GLBs preserve the same dimensions and handling.
 
 The county now has textured grass meadows, imported palms and trees, roadside furniture, additional homes and lakefront towers, terrain foundations, riverbank reeds, district signs, boats, birds and flags. Road improvements include continuous curved asphalt, curbs, shoulders, turn arrows, crossings and reflectors. The gallery has fitted image displays, glass sensor doors and entrance status lights. Static scenery is prebaked locally to avoid rebuilding the entire county during browser startup.
 
-**Release status:** code, build and automated checks pass. The owner authorized GitHub main and Site publication on 17 November 2026 with browser acceptance still pending. Current-build browser screenshots, interaction/audio checks and three five-minute Intel Iris Xe performance drives remain unverified because native browser access was stopped. Earlier screenshots and timings in `TESTING.md` describe older builds. See `IMPLEMENTATION_STATUS.md` for the exact verification boundary.
+**Review status.** The county and UI update is available in the local build. `TESTING.md` and `IMPLEMENTATION_STATUS.md` record the current build checks and browser evidence. For co-op development, use the local Worker and the `VITE_MULTIPLAYER_URL` override in `MULTIPLAYER.md` so the frontend and Worker use the same baked map version.
 
 ## Sierra Verde and Silver Lake
 
@@ -81,7 +83,7 @@ Start with **Low** quality on integrated graphics. Settings apply immediately. V
 | Medium | 100% | 8 | Sun shadows and soft bloom |
 | High | 100% | 12 | Ambient shading and one 512 px lake reflection, updated at up to 8 Hz |
 
-The pause menu includes **Save performance report**. This exports foreground driving frame times, the viewport, internal render size, selected preset, browser identification and asset errors. Open the county map and choose **Save full map** for a full-area PNG. Photo mode pauses vehicle physics and offers mouse orbit and zoom.
+The pause menu includes **Save performance report**. This exports foreground driving frame times, the viewport, internal render size, selected preset, GPU renderer, browser identification and asset errors. Open the county map and choose **Save map** for a full-area PNG. Photo mode pauses vehicle physics and offers mouse and keyboard orbit and zoom.
 
 ## Rebuild or develop
 
@@ -103,11 +105,10 @@ node scripts/serve.mjs
 
 ## Assets and audio
 
-The car is an original approximation of the Cayenne with an enclosed roof, four doors, four-point headlights and a rear light bar. Its editable Blender source, geometry source and preparation scripts are in `source/assets/car/`; the browser loads bundled GLBs. Geography and landmarks are authored in the project. Imported scenery, textures and lighting environments come from Poly Haven, Kenney and Quaternius under CC0, with creator/source records in `public/assets/manifest.json` and `source/assets/provenance/`. **World assets & credits** in the pause menu opens their bundled credits page. `source/assets/README.md` explains asset preparation and LOD regeneration.
+The Sunspoke GT is an original two-seat sports coupe designed for the game. Its editable Blender source, geometry source and preparation scripts are in `source/assets/car/`; the browser loads bundled GLBs. Geography and landmarks are authored in the project. Imported scenery, textures and lighting environments come from Poly Haven, Kenney and Quaternius under CC0, with creator/source records in `public/assets/manifest.json` and `source/assets/provenance/`. **World assets & credits** in the pause menu opens their bundled credits page. `source/assets/README.md` explains asset preparation and LOD regeneration.
 
 Engine, tire, surf and city ambience use Web Audio synthesis. Playing the included build requires no API keys or external asset services. Audio begins after clicking **Drive**, following browser audio permissions. Reacquiring imported source files is optional and requires internet access. The included built game runs offline. After installing development dependencies with `npm ci`, rebuilding requires no external asset downloads.
 
-The SUV proportions follow Porsche's published Cayenne dimensions. [Porsche technical data](https://download.newsroom.porsche.com/dam/jcr%3Abb376133-788c-4e9c-8e92-9630383cc062/pag-cayenne-td-en.pdf.PDF)
 
 The gallery images retain their individual public-domain, CC0 or CC BY licenses. Credits and original source links are included in `public/gallery/` and `dist/gallery/`.
 
@@ -132,4 +133,4 @@ node checks/release-checks.mjs
 
 For browser diagnostics, append `?qa=1&routes=1` to the local URL. Route results are written to the hidden `qa-report` JSON element. Add `&view=beach&quality=low&benchmark=1` for a 60-frame completed-render timing sample. Diagnostic views run independently of browser focus so automated screenshots can be captured. The normal game pauses when focus is lost.
 
-Static accounting for this build is approximately **22.9 MB** of initial Low-quality files and **45.9 MB** for the complete built game, below the 25 MB / 120 MB budgets. This is file-size accounting, not a measured browser network waterfall or an FPS result. The ZIP contains source, the complete `dist/`, the Windows launcher and documentation; dependency folders and transient acquisition caches are excluded.
+The local build uses approximately **23.3 MB** of initial Low-quality files and **46.3 MB** for the complete game, within the 25 MB and 120 MB static budgets. The launcher serves `dist/` directly.

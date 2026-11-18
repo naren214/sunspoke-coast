@@ -19,7 +19,7 @@ try{
     const index=createRoadIndex(world.roads,landHeight),grass=world.group.getObjectByName('County grass meadows'),stats=world.group.userData.roadImprovements;
     console.log('Landscape',JSON.stringify({constructionMs:Math.round(constructionMs),grass:grass.userData,roads:stats}));
     assert.ok(grass.userData.tufts>40000&&grass.userData.chunks>400);
-    assert.equal(stats.roads,53);assert.ok(stats.junctions>40&&stats.crosswalks>60&&stats.arrows>100&&stats.reflectors>500&&stats.curbSegments>1000&&stats.airfieldMarkings>50);
+    assert.equal(stats.roads,world.roads.length);assert.equal(stats.styles.access,5);assert.ok(stats.junctions>40&&stats.crosswalks>60&&stats.arrows>100&&stats.reflectors>500&&stats.curbSegments>1000&&stats.airfieldMarkings>50);
     assert.equal(stats.styles.freeway,1);assert.equal(stats.styles.airfield,2);assert.equal(stats.styles.interior,1);
     const matrix=new Matrix4(),point=new Vector3();let checked=0,north=0,urban=0,island=0;
     for(const mesh of grass.children){

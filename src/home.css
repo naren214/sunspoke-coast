@@ -73,6 +73,7 @@
 .home-ride .home-micro{color:#efe5cdc2;font-size:9px}
 .home-ride h2{font-size:clamp(25px,2.4vw,39px);letter-spacing:-1px;margin:9px 0 9px;color:#fff5df}
 .home-ride-color{font-size:9px;letter-spacing:2.2px;color:#e8ebddb3}
+#ride-paint{text-transform:uppercase}
 .home-ride-color i{margin:0 8px;opacity:.5}
 .home-ride-line{display:flex;align-items:center;gap:25px;border-top:1px solid #efe5cd33;padding-top:12px;margin-top:19px}
 .home-ride-line>div{display:flex;align-items:baseline;gap:6px}
