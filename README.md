@@ -1,5 +1,7 @@
 # Sunspoke Coast
 
+[Play in a desktop browser](https://suncoast.coolbream8192.chatgpt.site/)
+
 A desktop browser driving game set in a fictional seaside entertainment district. Drive the metallic teal Sunspoke GT through the beach boulevard, hotel streets, and coastal overlook. Every road is available immediately.
 
 Sunspoke County has **nine districts, 60 connected roads and about 26 km of authored road centerlines** across a **3.38 km² bounded play area**. Crown Downtown adds a dense skyline, Canal Gardens has villas and neighbourhood bridges, Southport has working-port scenery, Coast Airfield has a drivable runway and perimeter circuit, and Isla Luz is reached by an elevated causeway. Sierra Verde and Silver Lake add winding northern country roads. Look for the signed drive-in stops at **Sierra Vista**, **Silver Lake Overlook**, and **Sunset Point**.
@@ -36,7 +38,9 @@ Sierra Verde is now a connected hill town with 16 homes, 10 shops/civic venues, 
 
 Inside are eight locally bundled internet images: four memes and four real photographs. Each display has a title and credit; **Gallery photos & image credits** in the pause menu opens the complete [source and license page](public/gallery/index.html). Full provenance is in `public/gallery/credits.json`. These pictures require no live image service or internet connection when playing the downloaded build.
 
-## Play the included build
+## Play a downloaded build
+
+For the current source checkout, follow [Rebuild or develop](#rebuild-or-develop). The [GitHub Releases](https://github.com/naren214/sunspoke-coast/releases) downloads are snapshots of earlier versions.
 
 1. Extract the ZIP into a folder.
 2. Install Node.js 22.12 or newer if it is unavailable on your computer.
