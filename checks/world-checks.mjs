@@ -39,6 +39,37 @@ try {
     ]};
     assert.equal(new RoadNavigation(separated).route(new Vector3(-30,0,0),{x:0,z:-30}),undefined,'No transfer at an overpass');
     console.log('PASS bidirectional routes to all '+PLACES.length+' destinations, road snap and grade separation');
+    const roadPoint=([x,z])=>new Vector3(x,world.surfaceHeight(x,z),z);
+    const localConnections=[
+      ...[-160,0,160].map(z=>[[440,z],[469,z+30],75]),
+      ...[-100,80,260].map(z=>[[510,z],[469,z+30],90]),
+      [[970,-422],[1025,-468],140],
+      [[1262,228],[1217,260],90],
+      [[414,520],[470,552],105],
+      [[210,-1020],[256,-970],90],
+      [[509,-650],[606,-608],125],
+      [[606,-760],[702,-747],110],
+      [[930,-1076],[878,-1110],85]
+    ];
+    for(const [a,b,maxDistance] of localConnections)for(const [start,end] of [[a,b],[b,a]]){
+      const route=navigation.route(roadPoint(start),roadPoint(end));
+      assert.ok(route&&route.distance<=maxDistance,'Direct road transfer '+start+' → '+end+' '+route?.distance);
+    }
+    let gradeSamples=0,maxGrade=0,maxCrossfall=0;
+    for(const road of world.roads)for(let i=1;i<road.points.length;i++){
+      const a=road.points[i-1],b=road.points[i],dx=b.x-a.x,dz=b.z-a.z,len=Math.hypot(dx,dz);
+      if(len<.001)continue;
+      const fx=dx/len,fz=dz/len,nx=fz,nz=-fx;
+      for(const t of [.25,.75])for(const lane of [-.4,-.25,0,.25,.4]){
+        const offset=road.width*lane,x=a.x+dx*t+nx*offset,z=a.z+dz*t+nz*offset;
+        const height=world.surfaceHeight;
+        const grade=Math.abs(height(x+.5*fx,z+.5*fz)-height(x-.5*fx,z-.5*fz));
+        const crossfall=Math.abs(height(x+.5*nx,z+.5*nz)-height(x-.5*nx,z-.5*nz));
+        assert.ok(grade<=.25&&crossfall<=.15,(road.name??'Beach/Palm road')+' at '+[x,z]+' grade '+grade+' crossfall '+crossfall);
+        maxGrade=Math.max(maxGrade,grade);maxCrossfall=Math.max(maxCrossfall,crossfall);gradeSamples++;
+      }
+    }
+    console.log('PASS direct junction routing and countywide lane grading',JSON.stringify({localConnections:localConnections.length,gradeSamples,maxGrade,maxCrossfall}));
     world.group.updateMatrixWorld(true);
     const terrain=world.group.children.filter(o=>o.name==='Base terrain'||o.name==='Road underlay');
     for(const z of [-90,-45,0,45,90]){

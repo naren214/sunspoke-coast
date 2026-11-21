@@ -1,11 +1,11 @@
 import * as T from 'three';
 import type { Collider, Lighting, Road, World } from './types';
 import { CITY } from './city';
-import { isLand, landHeight, MAINLAND, ISLAND, WATERS, DISTRICTS, RIVER, riverAt, waterLevel, insideGallery, GALLERY } from './geography';
+import { BEACH, BEACH_BOARDWALKS, beachShoreX, beachShoreShader, nearBeachBoardwalk, isLand, landHeight, LAND_OUTLINES, MAINLAND, WATERS, DISTRICTS, RIVER, riverAt, waterLevel, insideGallery, GALLERY } from './geography';
 import { createGrandGallery } from './gallery';
 import { developHighlands, reservedNorth } from './highlands';
 import { createRoadIndex } from './road-grading';
-import { COUNTY_ROADS } from './county-roads';
+import { COUNTY_ROADS, easedRise } from './county-roads';
 import { SCENIC_STOPS } from './places';
 import { renderRoadNetwork } from './roads';
 import { createGrassMaterial, createGrassField } from './grass';
@@ -13,6 +13,7 @@ import { createNearbyLighting } from './visuals';
 import type { Placement } from './assets';
 import {dressDistricts,createAmbientLife} from './districts';
 import { createBeachgoers } from './beachgoers';
+import { createCountyBalloon } from './balloon';
 import { createStuntArena, insideStunt, stuntGround, stuntSurface } from './stunt';
 
 const tau = Math.PI * 2;
@@ -84,7 +85,7 @@ export function createWorld(prebuilt?:T.Group): World {
   const oval = new T.IcosahedronGeometry(1,1), bud = new T.IcosahedronGeometry(1,0);
   const shade = new T.ConeGeometry(1,1,8,1,false,Math.PI/8);
   const torus = new T.TorusGeometry(1,.055,6,36);
-  const buckets = new Map<string,{g:T.BufferGeometry,m:T.Material, matrices:T.Matrix4[], shadow:boolean}>();
+  const buckets = new Map<string,{g:T.BufferGeometry,m:T.Material, matrices:T.Matrix4[], shadow:boolean,cell:string}>();
   const dummy = new T.Object3D();
   const paving:Collider[]=[];
   const placements:Placement[]=[];let resource:string|undefined;
@@ -92,8 +93,9 @@ export function createWorld(prebuilt?:T.Group): World {
     if(prebuilt)return;
     if(insideStunt(x,z,1.5))return;
     // Spatial batches let the camera and shadow frusta discard distant blocks.
-    const key=g.uuid+m.uuid+(shadow?'1':'0')+':'+Math.floor(x/120)+','+Math.floor(z/120)+':'+(resource??'');
-    let b=buckets.get(key); if (!b) { b={g,m,matrices:[],shadow}; buckets.set(key,b); }
+    const cell=Math.floor(x/120)+','+Math.floor(z/120);
+    const key=g.uuid+m.uuid+(shadow?'1':'0')+':'+cell+':'+(resource??'');
+    let b=buckets.get(key); if (!b) { b={g,m,matrices:[],shadow,cell}; buckets.set(key,b); }
     dummy.position.set(x,y,z); dummy.rotation.set(rx,ry,rz,'YXZ'); dummy.scale.set(sx,sy,sz); dummy.updateMatrix(); b.matrices.push(dummy.matrix.clone());
   }
   function cube(m:T.Material,x:number,y:number,z:number,w:number,h:number,d:number,ry=0,shadow=true) {
@@ -104,27 +106,39 @@ export function createWorld(prebuilt?:T.Group): World {
     geom(cyl,m,x,base+h/2,z,r,h,r);
   }
   function collider(x:number,z:number,hx:number,hz:number,height:number,rotation=0) { if(!insideStunt(x,z,1.5))colliders.push({x,z,halfX:hx,halfZ:hz,height,rotation}); }
-  function grid(x1:number,x2:number,z1:number,z2:number,nx:number,nz:number,m:T.Material,yOffset=0) {
+  function grid(x1:number,x2:number,z1:number,z2:number,nx:number,nz:number,m:T.Material,yOffset=0,followBeach=false) {
     if(prebuilt)return;
     const p:number[]=[],uv:number[]=[], idx:number[]=[];
     for(let j=0;j<=nz;j++) for(let i=0;i<=nx;i++) {
       // The arena has its own floor and ramps. Sampling its raised collision
       // surface on this coarse grid would slope adjacent terrain over the road.
-      const x=x1+(x2-x1)*i/nx, z=z1+(z2-z1)*j/nz; p.push(x,baseGroundHeight(x,z)+yOffset,z); uv.push(x,z);
-      if(i<nx&&j<nz&&isLand(x+(x2-x1)/nx/2,z+(z2-z1)/nz/2)&&!insideStunt(x+(x2-x1)/nx/2,z+(z2-z1)/nz/2)) { const a=j*(nx+1)+i; idx.push(a,a+nx+1,a+1,a+1,a+nx+1,a+nx+2); }
+      const z=z1+(z2-z1)*j/nz,west=followBeach?beachShoreX(z):x1;
+      const x=west+(x2-west)*i/nx;
+      const nearPavement=roadIndex!.nearest(x,z).edge;
+      // Leave room for the asphalt above a coarser terrain triangle on cut slopes.
+      const roadBed=.24*(1-T.MathUtils.smoothstep(nearPavement,3,10));
+      const height=followBeach&&i===0?landHeight(x,z):baseGroundHeight(x,z);
+      p.push(x,height+yOffset-roadBed,z); uv.push(x,z);
+      if(i>=nx||j>=nz)continue;
+      const midZ=z+(z2-z1)/nz/2,midWest=followBeach?beachShoreX(midZ):x1;
+      const midX=midWest+(x2-midWest)*(i+.5)/nx;
+      if(isLand(midX,midZ)&&!insideStunt(midX,midZ)) {
+        const a=j*(nx+1)+i;
+        idx.push(a,a+nx+1,a+1,a+1,a+nx+1,a+nx+2);
+      }
     }
     const g=new T.BufferGeometry(); g.setAttribute('position',new T.Float32BufferAttribute(p,3)); g.setAttribute('uv',new T.Float32BufferAttribute(uv,2)); g.setIndex(idx);g.computeVertexNormals();
     const mesh=new T.Mesh(g,m);mesh.name='Base terrain';mesh.receiveShadow=true;group.add(mesh);
   }
   // Road geometry carries continuous world-space UVs through the intersections.
-  function road(coords:number[][],width:number,name?:string) {
+  function road(coords:number[][],width:number,name?:string,elevation=landHeight) {
     const pts:T.Vector3[]=[];
     for(let i=0;i<coords.length-1;i++){
       const [ax,az,ay]=coords[i], [bx,bz,by]=coords[i+1];
       const n=Math.max(1,Math.ceil(Math.hypot(bx-ax,bz-az)/3.5));
-      for(let j=0;j<n;j++){const x=ax+(bx-ax)*j/n,z=az+(bz-az)*j/n;pts.push(new T.Vector3(x,ay!==undefined&&by!==undefined?T.MathUtils.lerp(ay,by,j/n):landHeight(x,z),z));}
+      for(let j=0;j<n;j++){const x=ax+(bx-ax)*j/n,z=az+(bz-az)*j/n;pts.push(new T.Vector3(x,ay!==undefined&&by!==undefined?T.MathUtils.lerp(ay,by,j/n):elevation(x,z),z));}
     }
-    const [x,z,y]=coords[coords.length-1];pts.push(new T.Vector3(x,y??landHeight(x,z),z));roads.push({points:pts,width,name});
+    const [x,z,y]=coords[coords.length-1];pts.push(new T.Vector3(x,y??elevation(x,z),z));roads.push({points:pts,width,name});
   }
   const outer:number[][]=[[-65,255],[-65,-255]];
   const arc=(cx:number,cz:number,start:number,end:number)=>{for(let i=1;i<=12;i++){const a=start+(end-start)*i/12;outer.push([cx+25*Math.cos(a),cz+25*Math.sin(a)]);}};
@@ -142,24 +156,32 @@ export function createWorld(prebuilt?:T.Group): World {
     const stop=SCENIC_STOPS.find(candidate=>candidate.name===route.name);
     if(stop){
       const access=createRoadIndex(roads.filter(candidate=>candidate.name===stop.road),landHeight).nearest(stop.from.x,stop.from.z);
-      const distance=Math.hypot(stop.x-stop.from.x,stop.z-stop.from.z);
-      const gradeLimit=Math.max(0,distance-7)*.10;
+      const dx=stop.x-stop.from.x,dz=stop.z-stop.from.z,distance=Math.hypot(dx,dz);
+      const start=6,end=distance-6,lead=(end-start)*.2;
+      const gradeLimit=(end-start-lead)*.10;
       const elevation=T.MathUtils.clamp(landHeight(stop.x,stop.z),access.height-gradeLimit,access.height+gradeLimit);
-      const entry=1-7/distance;
-      road([[stop.from.x,stop.from.z,access.height],[T.MathUtils.lerp(stop.from.x,stop.x,entry),T.MathUtils.lerp(stop.from.z,stop.z,entry),elevation],[stop.x,stop.z,elevation]],route.width,stop.name);
+      road(route.points,route.width,stop.name,(x,z)=>{
+        const along=((x-stop.from.x)*dx+(z-stop.from.z)*dz)/distance;
+        return T.MathUtils.lerp(access.height,elevation,easedRise(along,start,end,lead));
+      });
       stops.push({...stop,elevation});
     }else if(route.curve){
       const curve=new T.CatmullRomCurve3(route.points.map(p=>new T.Vector3(p[0],p[2]??landHeight(p[0],p[1]),p[1])),Boolean(route.closed),'centripetal');
       const points=curve.getSpacedPoints(Math.ceil(curve.getLength()/3.5));
-      // Explicitly elevated causeways retain their spline profile; country roads follow terrain.
-      points.forEach(p=>{if(!route.points.some(p=>p.length>2))p.y=landHeight(p.x,p.z);else p.y=Math.max(0,p.y);});
+      // Keep the plan alignment while applying the road's vertical profile.
+      const retainsSplineHeight=route.points.some(p=>p.length>2);
+      const elevation=route.elevation??landHeight;
+      points.forEach(p=>{p.y=retainsSplineHeight?Math.max(0,p.y):elevation(p.x,p.z);});
       roads.push({name:route.name,points,width:route.width});
-    }else road(route.points,route.width,route.name);
+    }else road(route.points,route.width,route.name,route.elevation);
   }
   roadIndex=createRoadIndex(roads,landHeight);
   for(let x=-88;x<1420;x+=160)for(let z=-1300;z<1100;z+=160)
     grid(x,x+160,z,z+160,z< -350||z>650?40:20,z< -350||z>650?40:20,surface.land,-.025);
-  grid(-130,-86,-1220,1040,18,450,surface.sand,-.011);
+  grid(296,676,-1580,-1300,95,70,surface.land,-.025);
+  grid(-130,-86,-1220,BEACH.minZ,18,174,surface.sand,-.011);
+  grid(BEACH.originalShoreX,-86,BEACH.minZ,BEACH.maxZ,32,175,surface.sand,-.011,true);
+  grid(-130,-86,BEACH.maxZ,1040,18,138,surface.sand,-.011);
   grid(-88,-75,-305,305,6,125,surface.walk,.014);
   for(let z=-303;z<305;z+=5)cube(surface.tile,-81.5,groundHeight(-81.5,z)+.034,z,12.1,.018,.045,0,false);
   function nearJoin(x:number,z:number) {
@@ -205,7 +227,11 @@ export function createWorld(prebuilt?:T.Group): World {
   for(let z=-251;z<=252;z+=17.5){
     if(clearOfCrossStreet(z)&&clearOfCrossStreet(z+2)) {palm(-77,z,8.6+random()*2.3);palm(-53,z+2,9+random()*1.4);}
   }
-  for(let z=-283;z<288;z+=18+random()*9){palm(-94-random()*6,z,5.8+random()*3);if(random()>.45)palm(-92,z+6,5.4+random());}
+  for(let z=-283;z<288;z+=18+random()*9){
+    const x=-94-random()*6,height=5.8+random()*3;
+    if(!nearBeachBoardwalk(z,4))palm(x,z,height);
+    if(random()>.45&&!nearBeachBoardwalk(z+6,4))palm(-92,z+6,5.4+random());
+  }
   for(let z=-245;z<245;z+=24){if(clearOfCrossStreet(z))palm(168,z,7.4+random()*1.8);}
   const boulder=new T.DodecahedronGeometry(1,0);
   function stone(x:number,z:number,s:number){resource='boulder';const y=groundHeight(x,z);placements.push({id:'boulder',x,y,z,height:s*1.1});geom(boulder,surface.rock,x,y+.34*s,z,s*1.6,s*.77,s*1.15,random()*tau,.16);collider(x,z,s,s*.8,s*1.1);resource=undefined;}
@@ -241,19 +267,73 @@ export function createWorld(prebuilt?:T.Group): World {
     cube(surface.stone,x,y+height,z,w+.05,.1,d+.08,yaw);collider(x,z,w*.5,d*.5,height,yaw);
   }
   for(let z=-300;z<299;z+=5){
-    if(Math.abs(z%56)>8)rail(-88,z,.34,5,0,.54);
+    if(Math.abs(z%56)>8&&!nearBeachBoardwalk(z,6))rail(-88,z,.34,5,0,.54);
   }
-  // Low road-end walls and headland rocks ground the perimeter visually.
-  // The former eastern city wall is opened to the county road network.
 
-  for(let z=-296;z<=296;z+=8){
-    if(Math.abs(z)<108)continue;
-    rail(-115,z,.56,8,0,.48);
+  // The planks share edge heights so the deck follows the sand without ledges.
+  const deck=mat('#ffffff',.92);
+  deck.name='Weathered beach timber';
+  deck.vertexColors=true;
+  const timber=['#a98766','#b39272','#a18163','#b1987b','#b79b79'].map(color=>new T.Color(color));
+  for(const [walk,z] of BEACH_BOARDWALKS.entries()){
+    const start=-87.7,end=beachShoreX(z)+19;
+    const sections=Math.ceil((start-end)/.46);
+    if(!prebuilt){
+      const positions:number[]=[], colors:number[]=[], indices:number[]=[];
+      const point=(t:number,side:number)=>{
+        const x=T.MathUtils.lerp(start,end,t),width=3.8+4.8*T.MathUtils.smoothstep(t,.78,1);
+        const edgeZ=z+side*width/2;
+        return [x,groundHeight(x,edgeZ)+.08,edgeZ];
+      };
+      for(let i=0;i<sections;i++){
+        const vertex=positions.length/3,color=timber[(i*7+walk*3)%timber.length];
+        for(const t of [i/sections,(i+1)/sections])for(const side of [-1,1]){
+          positions.push(...point(t,side));
+          colors.push(color.r,color.g,color.b);
+        }
+        indices.push(vertex,vertex+2,vertex+1,vertex+1,vertex+2,vertex+3);
+      }
+      const geometry=new T.BufferGeometry();
+      geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));
+      geometry.setAttribute('color',new T.Float32BufferAttribute(colors,3));
+      const uv=new Float32Array(positions.length/3*2);
+      for(let i=0;i<positions.length/3;i++){
+        uv[i*2]=positions[i*3];
+        uv[i*2+1]=positions[i*3+2];
+      }
+      geometry.setAttribute('uv',new T.BufferAttribute(uv,2));
+      geometry.setIndex(indices);
+      geometry.computeVertexNormals();
+      const surface=new T.Mesh(geometry,deck);
+      surface.name='Beach boardwalk';
+      surface.receiveShadow=true;
+      group.add(surface);
+    }
+    for(const side of [-1,1]){
+      const x=end+3.2,edgeZ=z+side*3.35;
+      cube(surface.wood,x,groundHeight(x,edgeZ)+.57,edgeZ,3.5,.19,.55,0,false);
+      for(const dx of [-1.25,1.25])post(surface.dark,x+dx,edgeZ,.075,.51);
+      const markerX=end+1,markerZ=z+side*3.75,y=groundHeight(markerX,markerZ);
+      post(surface.dark,markerX,markerZ,.08,.63,y);
+      cube(surface.amber,markerX,y+.65,markerZ,.20,.11,.20,0,false);
+    }
   }
+
+  const pavilionX=beachShoreX(159)+26,pavilionZ=159;
+  const pavilionY=groundHeight(pavilionX,pavilionZ);
+  cube(surface.walk,pavilionX,pavilionY+.04,pavilionZ,12,.12,8,0,false);
+  for(const dx of [-5,5])for(const dz of [-3.25,3.25]){
+    post(surface.wood,pavilionX+dx,pavilionZ+dz,.13,3.15);
+    collider(pavilionX+dx,pavilionZ+dz,.14,.14,3.2);
+  }
+  for(const dz of [-3.25,3.25])cube(surface.aqua,pavilionX,pavilionY+3.10,pavilionZ+dz,11.5,.25,.34);
+  for(let dx=-5.4;dx<=5.5;dx+=.6)cube(surface.aqua,pavilionX+dx,pavilionY+3.27,pavilionZ,.35,.17,7.5);
+  lettering('SUNSPOKE PAVILION','BEACH CLUB','#f4e4b8','#254e51',pavilionX-5.54,pavilionY+2.73,pavilionZ,6.3,.8);
 
   const fabrics=[mat('#df765e'),mat('#77a8a4'),mat('#e3ba64')];
   function umbrella(x:number,z:number,s:number,c:number){
     const y=groundHeight(x,z),yaw=random()*tau;
+    if(nearBeachBoardwalk(z,8)||Math.abs(x-pavilionX)<9&&Math.abs(z-pavilionZ)<7)return;
     geom(cyl,surface.wood,x,y+s*1.2,z,.055,2.4*s,.055);
     // Alternate triangular fabric panels around a broad octagonal parasol.
     for(let i=0;i<8;i++)geom(wedge,i%2===0?fabrics[c]:surface.ivory,x,y+2.03*s,z,s,s,s,i*tau/8+yaw,0,0,true);
@@ -266,10 +346,16 @@ export function createWorld(prebuilt?:T.Group): World {
   const wedge=new T.BufferGeometry();
   wedge.setAttribute('position',new T.Float32BufferAttribute([0,.72,0,1.58,0,0,1.117,0,1.117,1.58,0,0,1.58,-.13,0,1.117,-.13,1.117,1.58,0,0,1.117,-.13,1.117,1.117,0,1.117],3));
   wedge.computeVertexNormals();surface.ivory.side=T.DoubleSide;fabrics.forEach(m=>m.side=T.DoubleSide);
-  for(let z=-169;z<207;z+=13+random()*5){umbrella(-104+random()*3,z,1+random()*.15,Math.floor(random()*3));if(random()>.36)umbrella(-108+random()*2,z+4,.87+random()*.15,Math.floor(random()*3));}
+  for(let z=-225;z<247;z+=16+random()*5){
+    umbrella(-104+random()*3,z,1+random()*.15,Math.floor(random()*3));
+    if(random()>.36)umbrella(-137+random()*4,z+4,.87+random()*.15,Math.floor(random()*3));
+  }
+  for(const [i,z] of [-185,-120,-70,-12,46,96,175,209].entries()){
+    umbrella(beachShoreX(z)+24,z,1.16,i%fabrics.length);
+  }
   // Two raised lifeguard huts break up the palm line on the public beach.
   for(const z of [-126,109]){
-    const x=-95,y=groundHeight(x,z);
+    const x=-128,y=groundHeight(x,z);
     for(const dx of [-1.65,1.65])for(const dz of [-1.7,1.7])post(surface.wood,x+dx,z+dz,.12,2,y);
     cube(surface.cream,x,y+1.65,z,5.1,.25,5);cube(surface.aqua,x+.3,y+2.63,z,3.7,1.78,3.5);
     cube(surface.glass,x-1.57,y+2.85,z,.075,.81,2.6);
@@ -308,16 +394,21 @@ export function createWorld(prebuilt?:T.Group): World {
   // Main buildings have modeled plinths, floor bands and independent crowns.
   function tower(x:number,z:number,base:number,w:number,d:number,h:number,skin:T.Material,id:number) {
     const glass=id%3===1?surface.blueglass:surface.glass, accent=neons[id%3];
-    cube(skin,x,base+h/2,z,w,h,d);
+    const curtainWall=h>=28 && id%3!==2;
+    cube(curtainWall?glass:skin,x,base+h/2,z,w,h,d);
     const floors=Math.max(2,Math.floor((h-1)/3.6)), spacing=(h-1.2)/floors;
     for(let floor=0;floor<floors;floor++){
       const y=base+1.4+floor*spacing;
       for(const s of [-1,1]){
-        cube(glass,x+s*(w/2+.035),y,z,.11,spacing*.66,d-.9);
-        cube(glass,x,y,z+s*(d/2+.035),w-.9,spacing*.66,.11);
-        if(floor%2===0||id%4===2){
-          cube(skin,x+s*(w/2+.19),y-spacing*.36,z,.52,.19,d+.6);
-          cube(skin,x,y-spacing*.36,z+s*(d/2+.18),w+.65,.19,.5);
+        if(!curtainWall){
+          cube(glass,x+s*(w/2+.035),y,z,.11,spacing*.66,d-.9);
+          cube(glass,x,y,z+s*(d/2+.035),w-.9,spacing*.66,.11);
+        }
+        if(curtainWall||floor%2===0||id%4===2){
+          const band=curtainWall&&floor%4!==0?surface.dark:skin;
+          const depth=curtainWall&&floor%4!==0?.24:.52;
+          cube(band,x+s*(w/2+depth*.22),y-spacing*.36,z,depth,.22,d+.24);
+          cube(band,x,y-spacing*.36,z+s*(d/2+depth*.22),w+.24,.22,depth);
         }
         const by=Math.ceil(d/4.8);
         for(let i=1;i<by;i++)if((i*7+floor*5+id*3)%9<2){
@@ -335,6 +426,12 @@ export function createWorld(prebuilt?:T.Group): World {
       if(id%3===0&&j%2===0)cube(accent,x+s*(w/2+.44),base+h*.52,zz,.07,h*.9,.13,0,false);
     }
     for(const s of [-1,1])for(const dx of [-1,1])cube(skin,x+dx*(w/2-.38),base+h/2,z+s*(d/2+.13),.58,h+.45,.42);
+    if(curtainWall){
+      const bays=Math.max(2,Math.ceil(w/4.5));
+      for(let i=1;i<bays;i++)for(const side of [-1,1]){
+        cube(surface.dark,x+(i/bays-.5)*w,base+h/2,z+side*(d/2+.08),.15,h,.22,0,false);
+      }
+    }
     cube(skin,x,base+h+.12,z,w+.65,.34,d+.65);
     cube(accent,x,base+h+.36,z,w+.24,.13,d+.24,0,false);
     cube(surface.roof,x,base+h+.52,z,w-.41,.23,d-.41);
@@ -473,10 +570,10 @@ export function createWorld(prebuilt?:T.Group): World {
   // County scenery uses the same spatially culled batches as the original city.
   function lotClear(x:number,z:number,w:number,d:number){
     if(!isLand(x,z)||insideGallery(x,z,25))return false;
-    const radius=Math.hypot(w,d)/2,p=roadIndex!.nearest(x,z);
-    return p.distance>p.width/2+radius+2&&[[-1,-1],[1,-1],[1,1],[-1,1]].every(([a,b])=>isLand(x+a*w/2,z+b*d/2));
+    const radius=Math.hypot(w,d)/2;
+    return roadIndex!.clear(x,z,radius+2)&&[[-1,-1],[1,-1],[1,1],[-1,1]].every(([a,b])=>isLand(x+a*w/2,z+b*d/2));
   }
-  const roadClear=(x:number,z:number,margin:number)=>{const p=roadIndex!.nearest(x,z);return p.distance>p.width/2+margin;};
+  const roadClear=(x:number,z:number,margin:number)=>roadIndex!.clear(x,z,margin);
   const highlands=developHighlands({group,roads,surface,mat,glow,cube,geom,collider,groundHeight,lotClear,roadClear,palm,lamp,tower,podium,fountain,bench,lettering});
   const cityConcrete=mat('#bac2c2'),citySilver=mat('#a6b3b9'),cityDark=mat('#576875');
   for(const [column,x] of [615,800].entries())for(const [row,z] of [-180,-10,170].entries()){
@@ -509,7 +606,10 @@ export function createWorld(prebuilt?:T.Group): World {
     if(!lotClear(x,z,24,32))continue;
     const y=groundHeight(x,z),skin=facadeSkins[row%5];
     podium(x,z,24,32,3.8,skin,surface.mint);tower(x,z,y+4.3,19,26,5+row*1.5,skin,row);
-    geom(shade,surface.terra,x,y+12+row,z,15,3.5,18,Math.PI/4);
+    const roofY=y+9.85+row*1.5;
+    cube(surface.ivory,x,roofY,z,20,.36,27);
+    cube(surface.wood,x-4,roofY+.74,z-3,7,1.1,13);
+    cube(surface.green,x+4,roofY+.26,z+6,7,.16,10,0,false);
     cube(surface.pool,x+18,y+.05,z,9,.12,18);palm(x-17,z-13,7.6);palm(x-17,z+13,8.2);
   }
   for(let z=-120;z<440;z+=12)for(const x of [1061,1099]){
@@ -576,6 +676,50 @@ export function createWorld(prebuilt?:T.Group): World {
     palm(x-18,z,8);palm(x+18,z,8.5);
   }
   lettering('ISLA LUZ','TAKE THE LONG WAY','#f6e1a7','#335952',340,5,940,18,3,-Math.PI/2);
+  // Isla Verde's buildings sit inside the loop, with a walkable plaza between rows.
+  const islandLots=[
+    {x:420,z:-1460,w:29,d:26,h:24,name:'VERDE MARINA'},
+    {x:480,z:-1460,w:37,d:28,h:44,name:'NORTHLIGHT HOTEL'},
+    {x:553,z:-1460,w:34,d:27,h:30,name:'TIDELINE RESIDENCES'},
+    {x:420,z:-1398,w:28,d:22,h:11,name:'VERDE MARKET'},
+    {x:480,z:-1398,w:35,d:22,h:14,name:'ISLAND PAVILION'},
+    {x:553,z:-1398,w:27,d:22,h:18,name:'MARINA LOFTS'},
+  ];
+  islandLots.forEach(({x,z,w,d,h,name},i)=>{
+    if(!lotClear(x,z,w+5,d+5))return;
+    const y=groundHeight(x,z),accent=neons[i%neons.length];
+    podium(x,z,w,d,4.6,surface.ivory,accent);
+    const width=w*.86,depth=d*.84;
+    const upper=h>=30?h*.3:0;
+    tower(x,z,y+5.3,width,depth,h-upper,i%2?citySilver:surface.ivory,90+i);
+    if(upper){
+      tower(x+width*.08,z,y+5.85+h-upper,width*.68,depth*.7,upper,citySilver,90+i);
+      cube(surface.green,x-width*.34,y+5.9+h-upper,z,width*.15,.18,depth*.7,0,false);
+    }else{
+      cube(cityDark,x-width*.2,y+h+6.6,z,4,1.3,5);
+      for(const shift of [-1,1])cube(surface.blueglass,x+width*.18,y+h+6.12,z+shift*4,5,.24,4,0,false);
+    }
+    collider(x,z,width/2,depth/2,h+7);
+    const side=z<-1430?-1:1;
+    const front=z+side*d/2,sidewalk=side<0?-1501:-1359;
+    const walkZ=(front+sidewalk)/2,walkDepth=Math.abs(front-sidewalk);
+    cube(surface.walk,x,y+.035,walkZ,6,.12,walkDepth,0,false);
+    for(const offset of [-1,1]){
+      const planterX=x+offset*(w/2-3),planterZ=front+side*4;
+      if(roadClear(planterX,planterZ,3))planter(planterX,planterZ,1.45);
+    }
+    lettering(name,'ISLA VERDE','#edf5ed','#254a50',x,y+5.55,front+side*1.52,w*.82,2,side<0?Math.PI:0);
+  });
+  if(lotClear(480,-1430,19,14)){
+    const y=groundHeight(480,-1430);
+    cube(surface.walk,480,y+.05,-1430,20,.1,15);
+    fountain(480,-1430,3);
+    bench(472,-1430,Math.PI/2);
+    bench(488,-1430,-Math.PI/2);
+  }
+  for(const x of [397,455,505,573]){
+    if(lotClear(x,-1490,4,4))lamp(x,-1490,Math.PI);
+  }
   // Pine country, winding roads and the white hillside landmark.
   const pine=mat('#45694d');
   for(let i=0;i<290;i++){
@@ -606,22 +750,27 @@ export function createWorld(prebuilt?:T.Group): World {
     for(const side of [-1,1]){const xx=p.x+side*dz/l*17,zz=p.z-side*dx/l*17,q=roadIndex!.nearest(xx,zz);if(q.distance<q.width/2+1)continue;post(surface.black,xx,zz,.14,7,p.y);collider(xx,zz,.18,.18,p.y-groundHeight(xx,zz)+7);}
     lettering(text,'CROSSTOWN · EXIT 01','#eef5df','#285b50',p.x,p.y+7.5,p.z,24,3.2,yaw);
   }
-  for(const r of roads.filter(r=>r.name==='Isla Luz Causeway'||r.name==='Harbour Bridge'))for(let i=1;i<r.points.length;i+=3){
-    const a=r.points[i-1],b=r.points[i],dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz);
-    if(isLand(b.x,b.z))continue;
+  for(const r of roads.filter(r=>r.name?.endsWith('Causeway')||r.name==='Harbour Bridge'))for(let i=0;i<r.points.length-1;i+=3){
+    const a=r.points[i],b=r.points[Math.min(i+3,r.points.length-1)],dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz);
+    const mid=a.clone().lerp(b,.5),yaw=Math.atan2(dx,dz),pitch=-Math.atan2(b.y-a.y,l);
+    if(isLand(mid.x,mid.z))continue;
     for(const side of [-1,1]){
-      const x=b.x+side*dz/l*(r.width/2+.6),z=b.z-side*dx/l*(r.width/2+.6),y=b.y;
-      cube(surface.cream,x,y+.6,z,.35,1.2,10,Math.atan2(dx,dz));
-      collider(x,z,.18,5,y-groundHeight(x,z)+1.2,Math.atan2(dx,dz));
+      const x=mid.x+side*dz/l*(r.width/2+.6),z=mid.z-side*dx/l*(r.width/2+.6);
+      geom(box,surface.cream,x,mid.y+.6,z,.35,1.2,a.distanceTo(b)+.12,yaw,0,pitch);
+      collider(x,z,.18,l/2+.06,Math.max(a.y,b.y)-groundHeight(x,z)+1.2,yaw);
     }
-    if(!isLand(b.x,b.z))cube(cityConcrete,b.x,(b.y-3.5)/2,b.z,2.4,b.y+3.5,2.4);
+    if(r.name!=='Isla Verde Causeway'||i%9===0){
+      cube(cityConcrete,mid.x,(mid.y-3.5)/2,mid.z,2.4,mid.y+3.5,2.4);
+      if(r.name==='Isla Verde Causeway')cube(citySilver,mid.x,mid.y-.85,mid.z,r.width+.7,1.35,4.5);
+    }
   }
   // Coast and lake barriers keep water edges legible while leaving every bridge open.
-  const shores=[MAINLAND,ISLAND,...WATERS.map(w=>w.polygon??(w.shape==='ellipse'?Array.from({length:48},(_,i)=>[w.x+Math.cos(i*tau/48)*w.rx,w.z+Math.sin(i*tau/48)*w.rz]):[[w.x-w.rx,w.z-w.rz],[w.x+w.rx,w.z-w.rz],[w.x+w.rx,w.z+w.rz],[w.x-w.rx,w.z+w.rz]]))];
+  const shores=[...LAND_OUTLINES,...WATERS.map(w=>w.polygon??(w.shape==='ellipse'?Array.from({length:48},(_,i)=>[w.x+Math.cos(i*tau/48)*w.rx,w.z+Math.sin(i*tau/48)*w.rz]):[[w.x-w.rx,w.z-w.rz],[w.x+w.rx,w.z-w.rz],[w.x+w.rx,w.z+w.rz],[w.x-w.rx,w.z+w.rz]]))];
   for(const polygon of shores)for(let i=0;i<polygon.length;i++){
     const a=polygon[i],b=polygon[(i+1)%polygon.length],steps=Math.ceil(Math.hypot(a[0]-b[0],a[1]-b[1])/9);
     for(let j=0;j<steps;j++){
       const x=T.MathUtils.lerp(a[0],b[0],j/steps),z=T.MathUtils.lerp(a[1],b[1],j/steps),p=roadIndex!.nearest(x,z);
+      if(polygon===MAINLAND&&x<-110&&z>BEACH.minZ&&z<BEACH.maxZ)continue;
       if(insideStunt(x,z,4)||riverAt(x,z).distance<RIVER.width/2+6||p.distance<p.width/2+10)continue;
       const y=landHeight(x,z);geom(boulder,surface.rock,x,y+.3,z,2.2,1.1,2,random()*tau);
       collider(x,z,1.6,1.6,y-groundHeight(x,z)+1.7);
@@ -665,8 +814,9 @@ export function createWorld(prebuilt?:T.Group): World {
     vertexShader:`
       uniform float clock;
       varying vec3 worldP;
+      ${beachShoreShader}
       void main(){
-        vec3 p=position; float d=p.x> -108.?30.:max(0.,-117.-p.x);
+        vec3 p=position; float d=p.x> -108.?30.:max(0.,beachShoreX(p.z)-p.x);
         float wave=sin(.72*p.x+.034*p.z+clock*1.63+sin(p.z*.15)*.28)*.034;
         wave+=sin(p.x*.22+p.z*.041+clock*.91)*.048;
         p.y+=wave*smoothstep(0.,8.,d);
@@ -675,10 +825,11 @@ export function createWorld(prebuilt?:T.Group): World {
     fragmentShader:`
       uniform float clock,power;uniform vec3 shallows,deep,surf,glint,fogColor;
       varying vec3 worldP;
+      ${beachShoreShader}
       float wave(vec2 p){return sin(p.x*.76+p.y*.14+clock*1.6+sin(p.y*.121)*.7)+.56*sin(p.x*1.21-p.y*.32+clock*1.14)+.33*sin(p.x*2.47+p.y*.49+clock*1.91);}
       void main(){
-        vec2 p=worldP.xz;float head=smoothstep(200.,278.,-p.y);
-        float shore=-117.6-3.25*head+sin(p.y*.13)*.23,dist=max(0.,shore-p.x);if(p.x> -108.)dist=30.;
+        vec2 p=worldP.xz;
+        float shore=beachShoreX(p.y)+sin(p.y*.13)*.23,dist=max(0.,shore-p.x);if(p.x> -108.)dist=30.;
         float camD=distance(worldP,cameraPosition);
         float nearDetail=1.-smoothstep(70.,250.,camD);
         float w=wave(p),w2=wave(p+vec2(1.25,2.9));
@@ -704,8 +855,9 @@ export function createWorld(prebuilt?:T.Group): World {
     const g=new T.PlaneGeometry(x2-x1,z2-z1,nx,nz);g.rotateX(-Math.PI/2);g.translate((x1+x2)/2,-.535,(z1+z2)/2);
     const mesh=new T.Mesh(g,ocean);group.add(mesh);
   }
-  seaPatch(-178,-108,-1350,1250,48,250);seaPatch(-1600,-178,-1600,1600,45,67);
-  seaPatch(-178,1600,-1600,1400,80,110);
+  seaPatch(-248,-108,-1600,1600,76,280);seaPatch(-1600,-248,-1600,1600,45,67);
+  seaPatch(-108,1600,-1600,1600,80,110);
+  seaPatch(-1600,1600,-3000,-1600,80,46);
   const scenicAsphalt=surface.asphalt.clone();
   scenicAsphalt.name='Scenic stop asphalt';scenicAsphalt.color.set('#eff3f5');
   for(const stop of stops){
@@ -780,10 +932,11 @@ export function createWorld(prebuilt?:T.Group): World {
   for(const [key,b] of buckets){
     const instances=new T.InstancedMesh(b.g,b.m,b.matrices.length);
     b.matrices.forEach((m,i)=>instances.setMatrixAt(i,m));instances.castShadow=b.shadow;instances.receiveShadow=true;
-    instances.userData.resource=key.split(':').at(-1)||undefined;instances.computeBoundingSphere();group.add(instances);
+    instances.userData.worldCell=b.cell;instances.userData.resource=key.split(':').at(-1)||undefined;instances.computeBoundingSphere();group.add(instances);
   }
   dressDistricts(group,colliders,roads,groundHeight,placements);
   const ambientLife=createAmbientLife(group,groundHeight);
+  const updateBalloon=createCountyBalloon(group);
   if(prebuilt){
     const materials=new Map<string,T.Material>(Object.values(surface).map(m=>[m.name,m]));dayGlow.forEach(d=>{if(d.material.name)materials.set(d.material.name,d.material);});
     const restored=new Set<T.Material>();
@@ -801,6 +954,7 @@ export function createWorld(prebuilt?:T.Group): World {
   let last:Lighting|undefined;
   function update(time:number,lighting:Lighting,carPosition:T.Vector3){
     meadow.update(time,carPosition);ambientLife.update(time,lighting);
+    updateBalloon(time,lighting);
     stunt.update(lighting);
     gallery.lighting(lighting);highlands.update(time,lighting);
     beachgoers.update(time);
@@ -820,7 +974,32 @@ export function createWorld(prebuilt?:T.Group): World {
   group.userData.cityArea={original:CITY.originalArea,current:CITY.area,ratio:CITY.area/CITY.originalArea};
   group.userData.districts=DISTRICTS;
   group.userData.lightSources=lightSources.length;group.userData.placements=placements;
-  return {group,roads,colliders,visualHeight:(x,z)=>{if(insideGallery(x,z))return GALLERY.floor+.08;const p=roadIndex!.nearest(x,z);return stuntSurface(x,z,p.distance<=p.width/2+.3?p.height+.06:groundHeight(x,z));},setQuality:(quality)=>{meadow.setQuality(quality);nearbyLighting.setQuality(quality);ambientLife.setQuality(quality);},dynamicColliders:gallery.dynamicColliders,remotePositions,stepEnvironment:(dt,p)=>gallery.step(dt,p,remotePositions),loadAssets:gallery.loadAssets,groundHeight,surfaceHeight:(x,z)=>{if(insideGallery(x,z))return GALLERY.floor+.08;const p=roadIndex!.nearest(x,z);return stuntSurface(x,z,p.distance<=p.width/2+0.3?p.height:groundHeight(x,z));},update,bounds:CITY};
+  const staticTiles=group.children.filter(child=>child.userData.worldCell&&Array.isArray(child.userData.worldBounds));
+  const staticBounds=new T.Box3(),shadowBounds=new T.Box3(),staticFrustum=new T.Frustum(),shadowFrustum=new T.Frustum(),staticViewProjection=new T.Matrix4(),shadowViewProjection=new T.Matrix4();
+  function updateStaticVisibility(camera:T.Camera,shadowCamera?:T.Camera){
+    if(!staticTiles.length)return;
+    camera.updateMatrixWorld();
+    staticViewProjection.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);
+    staticFrustum.setFromProjectionMatrix(staticViewProjection);
+    if(shadowCamera){
+      shadowCamera.updateMatrixWorld();
+      shadowViewProjection.multiplyMatrices(shadowCamera.projectionMatrix,shadowCamera.matrixWorldInverse);
+      shadowFrustum.setFromProjectionMatrix(shadowViewProjection);
+    }
+    for(const tile of staticTiles){
+      const bounds=tile.userData.worldBounds as number[];
+      staticBounds.min.set(bounds[0],bounds[1],bounds[2]);staticBounds.max.set(bounds[3],bounds[4],bounds[5]);
+      const inCamera=staticFrustum.intersectsBox(staticBounds);
+      const inShadow=!!shadowCamera&&shadowFrustum.intersectsBox(shadowBounds.copy(staticBounds).expandByScalar(12));
+      tile.visible=inCamera||inShadow;
+    }
+  }
+  function driveSurface(x:number,z:number,asphaltLift=0){
+    if(insideGallery(x,z))return GALLERY.floor+.08;
+    const p=roadIndex!.nearest(x,z);
+    return stuntSurface(x,z,p.edge<=.3?p.height+asphaltLift:groundHeight(x,z));
+  }
+  return {group,roads,colliders,visualHeight:(x,z)=>driveSurface(x,z,.06),updateStaticVisibility,setQuality:(quality)=>{meadow.setQuality(quality);nearbyLighting.setQuality(quality);ambientLife.setQuality(quality);},dynamicColliders:gallery.dynamicColliders,remotePositions,stepEnvironment:(dt,p)=>gallery.step(dt,p,remotePositions),loadAssets:gallery.loadAssets,groundHeight,surfaceHeight:driveSurface,update,bounds:CITY};
 }
 
 

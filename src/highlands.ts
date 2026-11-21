@@ -28,7 +28,7 @@ export function developHighlands(k:Kit){
   const {group,roads,surface:s,cube,geom,collider,groundHeight:ground,lotClear,roadClear,palm,lamp,tower,podium,fountain,bench,lettering}=k;
   const silver=k.mat('#c3cbd0',.29,.55),blue=k.mat('#3c788a',.22,.5),sandstone=k.mat('#d2bea0'),white=k.mat('#e4e9e6');
   const neon=k.glow('#7deee7',.25,2.4),gold=k.glow('#efbd78',.24,2.5),violet=k.glow('#a6b7ff',.2,2);
-  const cone=new T.ConeGeometry(1,1,4),cylinder=new T.CylinderGeometry(1,1,1,24),sphere=new T.SphereGeometry(1,14,10);
+  const cone=new T.ConeGeometry(1,1,4),cylinder=new T.CylinderGeometry(1,1,1,24),sphere=new T.SphereGeometry(1,14,10),beam=new T.BoxGeometry(1,1,1);
   let homes=0,shops=0,skyline=0,fixtures=0;
   // Sierra Verde's town is built around a connected, terraced street network.
   for(const [row,z] of [-925,-870,-770,-705].entries())for(const [col,x] of [265,320,425,510].entries()){
@@ -36,7 +36,10 @@ export function developHighlands(k:Kit){
     const y=ground(x,z),id=row*4+col,h=5+(id%3)*2;
     podium(x,z,23,24,3.5,id%2?s.cream:s.terra,neon);
     tower(x,z,y+4.1,19,20,h,id%2?s.ivory:s.aqua,id);
-    geom(cone,id%2?s.terra:s.roof,x,y+h+6,z,17,4,17,Math.PI/4);
+    const roofY=y+h+4.7;
+    cube(s.ivory,x,y+h+4.95,z,20.5,.4,21.5);
+    cube(id%2?s.terra:s.wood,x-4,roofY+.95,z+3,8,1.5,10);
+    cube(blue,x+4,roofY+.55,z-4,6,.18,7,0,false);
     for(const dx of [-9,9])palm(x+dx,z+18,6.8,false);
     cube(s.walk,x,y+.03,z-17,22,.1,9);homes++;
     if(row===1||row===2){
@@ -74,10 +77,13 @@ export function developHighlands(k:Kit){
   }
   // Fine, slender towers and sculptural crowns frame the modern lake district.
   const sites:[number,number,number,number,number][]=[];
+  // Move three south-bank towers clear of the circuit and its freeway link.
+  const relocated:Record<number,[number,number]>={3:[1102.5,-449],4:[1000.6,-521],5:[929.4,-521]};
   for(let i=0;i<18;i++){
-    const a=i*Math.PI/9;sites.push([965+Math.cos(a)*205,-640+Math.sin(a)*157,18,21,55+(i*23)%125]);
+    const a=i*Math.PI/9,[x,z]=relocated[i]??[965+Math.cos(a)*205,-640+Math.sin(a)*157];
+    sites.push([x,z,18,21,55+(i*23)%125]);
   }
-  sites.push([1095,-900,34,38,188],[1170,-900,35,37,145],[705,-610,37,40,112],[1295,-720,22,28,134],[1045,-855,26,30,95]);
+  sites.push([1095,-900,34,38,188],[1170,-900,35,37,145],[705,-610,37,40,112],[1330,-720,22,28,134],[1045,-855,26,30,95]);
   sites.forEach(([x,z,w,d,h],i)=>{
     if(!lotClear(x,z,w+5,d+5))return;
     const y=ground(x,z),accent=[neon,gold,violet][i%3];
@@ -141,14 +147,16 @@ export function developHighlands(k:Kit){
   // A cable-stayed bridge crosses the river between the town and the lake.
   const bridge=roads.find(r=>r.name==='Verde Skyline Bridge')!;
   for(let i=1;i<bridge.points.length;i++){
-    const a=bridge.points[i-1],b=bridge.points[i],dx=b.x-a.x,dz=b.z-a.z,len=Math.hypot(dx,dz),yaw=Math.atan2(dx,dz);
-    if(riverAt(b.x,b.z).distance>RIVER.width/2+10)continue;
+    const a=bridge.points[i-1],b=bridge.points[i],dx=b.x-a.x,dz=b.z-a.z,len=Math.hypot(dx,dz);
+    const mid=a.clone().lerp(b,.5),yaw=Math.atan2(dx,dz),pitch=-Math.atan2(b.y-a.y,len),span=a.distanceTo(b);
+    if(riverAt(mid.x,mid.z).distance>RIVER.width/2+10)continue;
     for(const side of [-1,1]){
-      const x=b.x+side*dz/len*12,z=b.z-side*dx/len*12;
+      const x=mid.x+side*dz/len*12,z=mid.z-side*dx/len*12;
       const crossing=roads.some(r=>r!==bridge&&r.points.some(p=>Math.hypot(p.x-x,p.z-z)<r.width/2+4));
       if(crossing)continue;
-      cube(silver,x,b.y+.65,z,.35,1.3,len+.12,yaw);collider(x,z,.2,len/2+.06,b.y-ground(x,z)+1.3,yaw);
-      cube(neon,x,b.y+1.35,z,.1,.1,len+.15,yaw, false);
+      geom(beam,silver,x,mid.y+.65,z,.35,1.3,span+.15,yaw,0,pitch);
+      collider(x,z,.2,len/2+.075,Math.max(a.y,b.y)-ground(x,z)+1.3,yaw);
+      geom(beam,neon,x,mid.y+1.35,z,.1,.1,span+.15,yaw,0,pitch,false);
     }
   }
   const center=bridge.points.reduce((best,p)=>riverAt(p.x,p.z).distance<riverAt(best.x,best.z).distance?p:best,bridge.points[0]);
@@ -166,8 +174,8 @@ export function developHighlands(k:Kit){
   for(const road of roads)for(let i=1;i<road.points.length;i++){
     const p=road.points[i],a=road.points[i-1];
     if(riverAt(p.x,p.z).distance>RIVER.width/2+2||lakeContains(p.x,p.z))continue;
-    const dx=p.x-a.x,dz=p.z-a.z,len=Math.hypot(dx,dz),yaw=Math.atan2(dx,dz);
-    cube(silver,(a.x+p.x)/2,(a.y+p.y)/2-.42,(a.z+p.z)/2,road.width+.6,.75,len+.1,yaw);
+    const dx=p.x-a.x,dz=p.z-a.z,yaw=Math.atan2(dx,dz),pitch=-Math.atan2(p.y-a.y,Math.hypot(dx,dz));
+    geom(beam,silver,(a.x+p.x)/2,(a.y+p.y)/2-.49,(a.z+p.z)/2,road.width+.6,.75,a.distanceTo(p)+.12,yaw,0,pitch);
     if(i%7===0){const bottom=waterLevel(p.x,p.z)-3.8;cube(silver,p.x,(p.y+bottom)/2,p.z,2.2,Math.max(.1,p.y-bottom),2.2);}
   }
   lettering('VERDE SKYLINE BRIDGE','TOWN / SILVER LAKE','#e7ffed','#2a4c56',650,ground(650,-760)+5,-770,30,3,Math.PI/2);

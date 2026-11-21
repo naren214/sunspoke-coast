@@ -29,7 +29,9 @@ export function createNearbyLighting(group:T.Group,sources:LightSite[]){
       const target=i<limit&&enabled?slot.target:undefined;
       if(slot.site!==target){slot.fade=Math.max(0,slot.fade-dt*5);if(slot.fade===0){slot.site=target;if(target){slot.light.position.copy(target.position);slot.light.color.copy(target.color);slot.light.distance=target.range??26;}}}
       else slot.fade=Math.min(1,slot.fade+dt*4);
-      slot.light.intensity=enabled?(slot.site?.intensity??0)*slot.fade*(setting==='night'?1:.72):0;slot.light.visible=i<limit;
+      slot.light.intensity=enabled?(slot.site?.intensity??0)*slot.fade*(setting==='night'?1:.72):0;
+      // Three.js includes visible lights in every lit shader, even at zero intensity.
+      slot.light.visible=enabled&&i<limit;
     });
     group.userData.activeLocalLights=slots.filter(s=>s.light.visible).length;
   }

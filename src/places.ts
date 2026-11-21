@@ -22,7 +22,7 @@ export const SCENIC_STOPS = [
 
 export const PLACES: Place[] = [
   ...SCENIC_STOPS.map(stop => ({ ...stop, kind: 'vista' as const })),
-  { id: 'beach', name: 'Sunspoke Beach', district: 'Sunspoke Beach', kind: 'landmark', x: -65, z: 160, description: 'The main coastal boulevard beside the beach promenade.' },
+  { id: 'beach', name: 'Sunspoke Beach', district: 'Sunspoke Beach', kind: 'landmark', x: -65, z: 160, description: 'The coastal boulevard beside three timber boardwalks and the beachfront pavilion.' },
   { id: 'palm', name: 'Palm Quarter', district: 'Palm Quarter', kind: 'landmark', x: 280, z: 0, description: 'Palm-lined resort streets inland from the promenade.' },
   { id: 'ramp', name: 'Ramp Time', district: 'Sunspoke Beach', kind: 'drive', x: -101, z: 0, approach: { x: -65, z: 0 }, description: 'Enter through the gold and teal arch off the boulevard.' },
   { id: 'crown', name: 'Crown Downtown', district: 'Crown Downtown', kind: 'drive', x: 720, z: 80, description: 'A grid of city blocks and the Downtown Switchbacks course.' },
@@ -31,4 +31,5 @@ export const PLACES: Place[] = [
   { id: 'airfield', name: 'Runway 07', district: 'Coast Airfield', kind: 'drive', x: 110, z: 520, description: 'The west end of the airfield runway, via the taxiway.' },
   { id: 'bridge', name: 'Verde Skyline Bridge', district: 'Sierra Verde', kind: 'landmark', x: 730, z: -737, description: 'The cable-stayed crossing between Sierra Verde and Silver Lake.' },
   { id: 'gallery', name: 'NAREN Grand Gallery', district: 'Silver Lake', kind: 'landmark', x: 930, z: -980, approach: { x: 930, z: -904 }, description: 'An eight-piece drive-through gallery with automatic glass doors.' },
+  { id: 'isla-verde', name: 'Isla Verde Waterfront', district: 'Isla Verde', kind: 'drive', x: 480, z: -1510, description: 'The north island’s waterfront loop, reached by causeway from Sierra Verde.' },
 ];

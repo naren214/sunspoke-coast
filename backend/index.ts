@@ -3,6 +3,20 @@ import {RoomEngine,RoomError} from '../shared/room.ts';
 import {PROTOCOL,validCode,type Track} from '../shared/protocol.ts';
 import catalog from '../shared/tracks.json';
 const tracks=catalog.tracks as Track[];
+// These deployed builds have the same race routes but different world bake IDs.
+const publishedMaps=new Set([
+  '45e1a8f39188244ab257df2c1622eb0b7df942b8e4e63659c4d66bdb105f96e3:rooms-v1',
+  '7093fbbea9163f412d6ba96b17cf5dfb8d140666227b36baf7ceef0498ee94b7:rooms-v1',
+]);
+const publishedTrackDigest='1cb3a455a6806a9338396ac511bdf3d67a20990fd561566a2b783814b15a7820';
+const encodedTracks=new TextEncoder().encode(JSON.stringify(tracks));
+async function supportsMapVersion(mapVersion:string){
+  if(mapVersion===catalog.mapVersion)return true;
+  if(!publishedMaps.has(mapVersion))return false;
+  const digest=await crypto.subtle.digest('SHA-256',encodedTracks);
+  const hex=Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
+  return hex===publishedTrackDigest;
+}
 interface Env {ROOMS:DurableObjectNamespace<CoastRoom>;ALLOWED_ORIGINS:string;}
 const json=(value:unknown,status=200)=>Response.json(value,{status});
 export default {
@@ -54,12 +68,13 @@ export class CoastRoom extends DurableObject<Env>{
       }
       if(url.pathname==='/create'||url.pathname==='/join'){
         const raw=await request.text();if(raw.length>4096)throw new RoomError('Request too large.');let body:any;try{body=JSON.parse(raw);}catch{throw new RoomError('Invalid JSON.');}
-        if(body.protocol!==PROTOCOL||body.mapVersion!==catalog.mapVersion)throw new RoomError('Game versions differ. Both players must refresh.',412);
+        if(body?.protocol!==PROTOCOL||!await supportsMapVersion(body.mapVersion))throw new RoomError('This game build is incompatible with the room server. Reload the game and try again.',412);
         if(url.pathname==='/create'){
           if(this.engine&&!this.engine.data.closed){await this.save();return json({error:'Code occupied.'},409);}
-          this.engine=RoomEngine.create(url.searchParams.get('code')!,catalog.mapVersion,tracks,now,body.pose);
+          this.engine=RoomEngine.create(url.searchParams.get('code')!,body.mapVersion,tracks,now,body.pose);
           if(['golden','twilight','night'].includes(body.lighting))this.engine.data.lighting=body.lighting;
         }else if(!this.engine||this.engine.data.closed)throw new RoomError('Room expired or code not found.',404);
+        else if(body.mapVersion!==this.engine.data.mapVersion)throw new RoomError('Game versions differ. Both players must open the same game build.',409);
         const credentials=url.pathname==='/create'?this.engine!.credentials(this.engine!.data.players[0]):this.engine!.add('guest',now);
         await this.save();await this.ctx.storage.setAlarm(now+15000);this.broadcast();return json(credentials);
       }

@@ -2,7 +2,7 @@
 
 A desktop browser driving game set in a fictional seaside entertainment district. Drive the metallic teal Sunspoke GT through the beach boulevard, hotel streets, and coastal overlook. Every road is available immediately.
 
-Sunspoke County has **nine districts, 58 connected roads and about 26 km of authored road centerlines** across a **3.38 km² bounded play area**. Crown Downtown adds a dense skyline, Canal Gardens has villas and neighbourhood bridges, Southport has working-port scenery, Coast Airfield has a drivable runway and perimeter circuit, and Isla Luz is reached by an elevated causeway. Sierra Verde and Silver Lake add winding northern country roads. Look for the signed drive-in stops at **Sierra Vista**, **Silver Lake Overlook**, and **Sunset Point**.
+Sunspoke County has **nine districts, 60 connected roads and about 26 km of authored road centerlines** across a **3.38 km² bounded play area**. Crown Downtown adds a dense skyline, Canal Gardens has villas and neighbourhood bridges, Southport has working-port scenery, Coast Airfield has a drivable runway and perimeter circuit, and Isla Luz is reached by an elevated causeway. Sierra Verde and Silver Lake add winding northern country roads. Look for the signed drive-in stops at **Sierra Vista**, **Silver Lake Overlook**, and **Sunset Point**.
 
 Press **M** to open the county atlas. Choose one of 12 destinations and select **Set route** to see the route and distance in the driving HUD. The north-up minimap follows the car and can be hidden in Pause. The atlas supports search, pointer or keyboard panning, zoom, fit, and recentering. **M** or **Esc** closes it. The map pauses driving and suspends the 3D rendering while it is open. A race takes priority over personal navigation until free roam resumes.
 
@@ -24,7 +24,7 @@ Multiplayer requires internet access and the online room server. Solo driving re
 
 The current source and included build add 29 imported CC0 model designs with three detail levels, seven PBR surface sets and three bundled HDR lighting environments. The Sunspoke GT has sculpted fenders, split-spoke wheels, a fastback cabin, animated lights and steering, and a gold **NAREN** signature between its tail lamps. Low and higher-detail car GLBs preserve the same dimensions and handling.
 
-The county now has textured grass meadows, imported palms and trees, roadside furniture, additional homes and lakefront towers, terrain foundations, riverbank reeds, district signs, boats, birds and flags. Road improvements include continuous curved asphalt, curbs, shoulders, turn arrows, crossings and reflectors. The gallery has fitted image displays, glass sensor doors and entrance status lights. The browser generates the county during preparation.
+The county now has textured grass meadows, imported palms and trees, roadside furniture, additional homes and lakefront towers, terrain foundations, riverbank reeds, district signs, boats, birds and flags. Road improvements include continuous curved asphalt, curbs, shoulders, turn arrows, crossings and reflectors. The gallery has fitted image displays, glass sensor doors and entrance status lights. The browser loads the baked static county during preparation and generates it locally if the cache is unavailable.
 
 **Review status.** The county and UI update is available in the local build. `TESTING.md` and `IMPLEMENTATION_STATUS.md` record the current build checks and browser evidence. For co-op development, use the local Worker and the `VITE_MULTIPLAYER_URL` override in `MULTIPLAYER.md` so the frontend and Worker use the same baked map version.
 
@@ -103,6 +103,8 @@ node scripts/serve.mjs
 
 `npm run build` checks TypeScript and creates the complete static game in `dist/`. Before development or a production build, `scripts/bake-world.mjs` refreshes the static county cache when its source fingerprint changes. The source is in `src/`. The project uses TypeScript, Vite, Three.js, and Web Audio. `scripts/serve.mjs` serves the built files with Node's standard library.
 
+Run a hardware accelerated driving performance sample with `npm run performance:browser -- --route=beachfront --quality=medium --minutes=5 --runs=3`. The test starts the production build in Chrome, drives the route, records frame pacing and route coverage, and saves results under `.cache/browser-performance/`. Use `--route=all` for the beachfront, Crosstown Freeway, and Silver Lake routes. Select `--quality=low` or `--quality=high` to compare the other presets.
+
 ## Assets and audio
 
 The Sunspoke GT is an original two-seat sports coupe designed for the game. Its editable Blender source, geometry source and preparation scripts are in `source/assets/car/`; the browser loads bundled GLBs. Geography and landmarks are authored in the project. Imported scenery, textures and lighting environments come from Poly Haven, Kenney and Quaternius under CC0, with creator/source records in `public/assets/manifest.json` and `source/assets/provenance/`. **World assets & credits** in the pause menu opens their bundled credits page. `source/assets/README.md` explains asset preparation and LOD regeneration.
@@ -130,6 +132,8 @@ node checks/visual-checks.mjs
 node checks/loading-checks.mjs
 node checks/release-checks.mjs
 ```
+
+The browser performance run is separate because each route takes five minutes by default.
 
 For browser diagnostics, append `?qa=1&routes=1` to the local URL. Route results are written to the hidden `qa-report` JSON element. Add `&view=beach&quality=low&benchmark=1` for a 60-frame completed-render timing sample. Diagnostic views run independently of browser focus so automated screenshots can be captured. The normal game pauses when focus is lost.
 

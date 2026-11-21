@@ -1,7 +1,7 @@
 import * as T from 'three';
 import type {World,Collider,Lighting,Quality} from './types';
 import type {Placement} from './assets';
-import {DISTRICTS,MAINLAND,ISLAND,WATERS,RIVER,riverAt,isLand,waterLevel,insideGallery} from './geography';
+import {DISTRICTS,LAND_OUTLINES,WATERS,RIVER,riverAt,isLand,waterLevel,insideGallery} from './geography';
 import {createRoadIndex} from './road-grading';
 import {insideStunt} from './stunt';
 
@@ -52,6 +52,7 @@ export function dressDistricts(group:T.Group,colliders:Collider[],roads:World['r
     'SOUTHPORT':['crate','barrel'],
     'COAST AIRFIELD':['crate','barrel'],
     'ISLA LUZ':['bench','picnic','trashcan'],
+    'ISLA VERDE':['planter','seating','bench'],
     'SIERRA VERDE':['bench','picnic','planter'],
     'SILVER LAKE':['seating','planter','bench'],
   };
@@ -74,7 +75,7 @@ export function dressDistricts(group:T.Group,colliders:Collider[],roads:World['r
   root.userData={newHomes:homes,newTowers:towers,streetProps:props,foundations:foundationKeys.size};
   // Sandy and planted banks hide coarse terrain edges without touching roads.
   const bankPositions:number[]=[],uv:number[]=[],indices:number[]=[];
-  const outlines=[MAINLAND,ISLAND,...WATERS.filter(w=>w.polygon).map(w=>w.polygon!)];
+  const outlines=[...LAND_OUTLINES,...WATERS.filter(w=>w.polygon).map(w=>w.polygon!)];
   for(const outline of outlines)for(let i=0;i<outline.length;i++){
     const a=outline[i],b=outline[(i+1)%outline.length],dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz);if(!len)continue;
     let nx=dz/len,nz=-dx/len;const mx=(a[0]+b[0])/2,mz=(a[1]+b[1])/2;if(!isLand(mx+nx*6,mz+nz*6)){nx=-nx;nz=-nz;}

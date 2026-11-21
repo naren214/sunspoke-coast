@@ -7,10 +7,10 @@ import { insideStunt } from './stunt';
 export type RoadStyle='city'|'country'|'freeway'|'airfield'|'interior'|'access';
 export function roadStyle(road:Road):RoadStyle{
   if(road.name==='Grand Gallery Drive')return 'interior';
-  if(road.name==='Runway 07'||road.name==='Airfield Taxiway')return 'airfield';
+  if(road.name==='Runway 07'||road.name==='Airfield Taxiway'||road.name==='East Runway Exit')return 'airfield';
   if(road.name==='Crosstown Freeway')return 'freeway';
   if(road.width<10)return 'access';
-  if(['Sierra Coast Highway','Verde Skyline Bridge','Gallery Sierra Approach','Verde North Approach','Verde South Approach','Verde Bridge Approach'].includes(road.name??''))return 'country';
+  if(['Sierra Coast Highway','Verde Skyline Bridge','Gallery Sierra Approach','Verde North Approach','Verde South Approach','Verde Bridge Approach','Isla Verde Causeway'].includes(road.name??''))return 'country';
   return 'city';
 }
 type Junction={x:number;z:number;roads:Set<number>};
@@ -25,7 +25,8 @@ export function findRoadJunctions(roads:Road[]){
       for(const other of list){
         if(other.road===id||seen.has(other))continue;seen.add(other);
         const cross=s.dx*other.dz-s.dz*other.dx;
-        if(Math.abs(cross)<.01)continue;
+        // Fillets and road continuations share pavement without forming crosswalk junctions.
+        if(Math.abs(cross)<=.42*Math.hypot(s.dx,s.dz)*Math.hypot(other.dx,other.dz))continue;
         const ox=other.ax-s.ax,oz=other.az-s.az,t=(ox*other.dz-oz*other.dx)/cross,u=(ox*s.dz-oz*s.dx)/cross;
         if(t<-.001||t>1.001||u<-.001||u>1.001||Math.abs(s.ay+t*s.dy-other.ay-u*other.dy)>1)continue;
         const x=s.ax+t*s.dx,z=s.az+t*s.dz;
@@ -110,17 +111,29 @@ export function renderRoadNetwork(group:T.Group,roads:Road[],index:ReturnType<ty
     writer.quad([[-1,-1],[1,-1],[-1,1],[1,1]].map(([s,t])=>[x+nx*s*across/2+dx*t*along/2,z+nz*s*across/2+dz*t*along/2]),lift);
   }
   roads.forEach((road,id)=>{
-    const style=roadStyle(road),material=style==='freeway'?freeway:style==='country'?country:style==='airfield'?airfield:city;
-    stats.styles[style]++;
+    const type=roadStyle(road),material=type==='freeway'?freeway:type==='country'?country:type==='airfield'?airfield:city;
+    stats.styles[type]++;
     const asphalt=new SurfaceWriter(height),shoulders=new SurfaceWriter(height),curbs=new SurfaceWriter(height),drains=new SurfaceWriter(height);
     let distance=0,nextArrow=65,nextReflector=12;
     for(let i=1;i<road.points.length;i++){
       const a=road.points[i-1],b=road.points[i],dx=b.x-a.x,dz=b.z-a.z,len=Math.hypot(dx,dz);if(len<.001)continue;
       const x=(a.x+b.x)/2,z=(a.z+b.z)/2,nx=dz/len,nz=-dx/len,fx=dx/len,fz=dz/len;
       const half=road.width/2;
-      for(let j=0;j<8;j++)roadQuad(asphalt,a,b,-half+road.width*j/8,-half+road.width*(j+1)/8,.06);
+      const na=normals.get(a)!,nb=normals.get(b)!;
+      const nonlinear=[-half,-half/2,0,half/2,half].some(offset=>{
+        const ax=a.x+na[0]*offset,az=a.z+na[1]*offset,bx=b.x+nb[0]*offset,bz=b.z+nb[1]*offset;
+        return Math.abs(height((ax+bx)/2,(az+bz)/2)-(height(ax,az)+height(bx,bz))/2)>.024;
+      });
+      for(let j=0;j<8;j++){
+        const left=-half+road.width*j/8,right=-half+road.width*(j+1)/8;
+        if(nonlinear){
+          roadQuad(asphalt,a,b,left,right,.06,0,.5);
+          roadQuad(asphalt,a,b,left,right,.06,.5,1);
+        }else roadQuad(asphalt,a,b,left,right,.06);
+      }
       if(insideGallery(x,z)||insideStunt(x,z,2)){distance+=len;continue;}
-      if(style!=='interior')for(const side of [-1,1]){
+      const style=type==='interior'?'country':type;
+      for(const side of [-1,1]){
         const margin=style==='city'?2.35:1.55,xx=x+nx*side*(half+margin/2),zz=z+nz*side*(half+margin/2);
         if(index.occupiedByOther(xx,zz,id,2.3)||!isLand(xx,zz))continue;
         const edge=side*half,outer=side*(half+margin);
@@ -137,7 +150,7 @@ export function renderRoadNetwork(group:T.Group,roads:Road[],index:ReturnType<ty
         let cursor=0;
         while(cursor<len-1e-6){const phase=(distance+cursor)%period,span=Math.min(len-cursor,phase<on?on-phase:period-phase);if(phase<on)roadQuad(writer,a,b,offset-width/2,offset+width/2,.09,cursor/len,(cursor+span)/len);cursor+=Math.max(.0001,span);}
       }
-      if(style!=='interior'&&style!=='airfield'&&!join){
+      if(style!=='airfield'&&!join){
         for(const side of [-1,1])roadQuad(markingsWhite,a,b,side*(half-.56)-.075,side*(half-.56)+.075,.087);
         const double=style==='country'||style==='freeway'||road.width>=18;
         if(double)for(const side of [-1,1])roadQuad(markingsYellow,a,b,side*.19-.065,side*.19+.065,.089);
@@ -154,7 +167,7 @@ export function renderRoadNetwork(group:T.Group,roads:Road[],index:ReturnType<ty
       }
       if(distance+len>=nextArrow){
         nextArrow+=120;
-        if(style!=='interior'&&style!=='airfield'&&!join&&!index.occupiedByOther(x+fx*18,z+fz*18,id,4)&&!index.occupiedByOther(x-fx*18,z-fz*18,id,4)){
+        if(style!=='airfield'&&!join&&!index.occupiedByOther(x+fx*18,z+fz*18,id,4)&&!index.occupiedByOther(x-fx*18,z-fz*18,id,4)){
           for(const side of [-1,1]){
             const xx=x-fz*side*road.width*.25,zz=z+fx*side*road.width*.25,ux=-fz*side,uz=fx*side,vx=fx*side,vz=fz*side;
             const shape=[[-.2,-1.9],[.2,-1.9],[.2,.7],[.85,.7],[0,2.2],[-.85,.7],[-.2,.7]];
@@ -164,11 +177,11 @@ export function renderRoadNetwork(group:T.Group,roads:Road[],index:ReturnType<ty
       }
       if(distance+len>=nextReflector){
         nextReflector+=style==='city'?28:18;
-        if(!join&&style!=='interior')for(const side of [-1,1]){stamp(cats,x+nx*side*(half-.32),z+nz*side*(half-.32),fx,fz,.14,.25,.092);stats.reflectors++;}
+        if(!join)for(const side of [-1,1]){stamp(cats,x+nx*side*(half-.32),z+nz*side*(half-.32),fx,fz,.14,.25,.092);stats.reflectors++;}
       }
       distance+=len;
     }
-    attach(asphalt,material,'Road asphalt');attach(shoulders,style==='city'?concrete:gravel,'Road underlay');attach(curbs,curb,'Raised road curbs');attach(drains,gutter,'Road drainage channels');
+    attach(asphalt,material,'Road asphalt');attach(shoulders,type==='city'?concrete:gravel,'Road underlay');attach(curbs,curb,'Raised road curbs');attach(drains,gutter,'Road drainage channels');
   });
   const junctions=findRoadJunctions(roads);stats.junctions=junctions.length;
   for(const junction of junctions){

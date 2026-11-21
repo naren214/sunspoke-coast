@@ -1,6 +1,6 @@
 import type { DriveState, World } from './types';
 import { CITY } from './city';
-import { DISTRICTS, MAINLAND, ISLAND, WATERS, RIVER, GALLERY, landHeight } from './geography';
+import { DISTRICTS, LAND_OUTLINES, WATERS, RIVER, GALLERY, landHeight } from './geography';
 import { PLACES, type MapPoint } from './places';
 import { roadStyle } from './roads';
 import { RoadNavigation, routeProgress, type RoadRoute } from './road-navigation';
@@ -21,7 +21,7 @@ function line(c:CanvasRenderingContext2D,v:View,points:Path,close=false) {
   if(close)c.closePath();
 }
 const fromPairs = (points:number[][]) => points.map(([x,z])=>({x,z}));
-const coastlines = [fromPairs(MAINLAND),fromPairs(ISLAND)];
+const coastlines = LAND_OUTLINES.map(fromPairs);
 const river = fromPairs(RIVER.points);
 const mapMiddle = { x:(CITY.minX+CITY.maxX)/2, z:(CITY.minZ+CITY.maxZ)/2 };
 
@@ -94,6 +94,7 @@ export class CountyAtlas {
   constructor(private world:World){
     const km=world.roads.reduce((sum,r)=>sum+r.points.reduce((s,p,i)=>s+(i?p.distanceTo(r.points[i-1]):0),0),0)/1000;
     el('atlas-summary').textContent=DISTRICTS.length+' districts · '+km.toFixed(1)+' km of roads';
+    el('home-district-count').textContent=String(DISTRICTS.length);
     el('home-road-length').textContent=km.toFixed(1);
     this.paintBase(canvasLayer(this.sheet,860,1230,1),this.sheetView,false);
     this.fillList();

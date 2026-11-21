@@ -1,37 +1,50 @@
 <!doctype html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#102b2e"><meta name="description" content="Take the coast road in the Sunspoke GT. An unhurried drive through Sunspoke Coast."><title>Sunspoke Coast — Leave the ordinary</title><link rel="preload" href="/home/coast-keyart.webp" as="image" fetchpriority="high"><link rel="icon" type="image/svg+xml" href="/favicon.svg"></head><body><main id="app"><canvas id="scene" aria-label="Sunspoke Coast driving world"></canvas>
-<section id="opening" class="screen opening" data-stage="download" aria-busy="true">
-  <div class="home-art" aria-hidden="true"></div><div class="home-shade" aria-hidden="true"></div><div class="home-grain" aria-hidden="true"></div>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#0b1b20"><meta name="description" content="Drive the Sunspoke GT through a coastal county. Explore solo or race with a friend."><title>Sunspoke Coast</title><link rel="preload" href="/home/coast-keyart.webp" as="image" fetchpriority="high"><link rel="icon" type="image/svg+xml" href="/favicon.svg"></head><body><main id="app"><canvas id="scene" aria-label="Sunspoke Coast driving world"></canvas>
+<section id="opening" class="screen opening" data-stage="download" aria-labelledby="home-title" aria-busy="true">
+  <div class="home-art" aria-hidden="true"></div>
+  <div class="home-shade" aria-hidden="true"></div>
   <header class="home-header">
-    <a class="home-brand" href="/" aria-label="Sunspoke Coast home"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M4 31h40M7 37c6-4 11-4 17 0s11 4 17 0M12 28a12 12 0 0 1 24 0M24 5v5M7 13l4 4M41 13l-4 4M3 25h5M40 25h5"/></svg><span>SUNSPOKE<small>COAST</small></span></a>
-    <span class="home-header-note"><i></i> A LITTLE FURTHER FROM EVERYDAY</span>
+    <div class="home-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M4 31h40M7 37c6-4 11-4 17 0s11 4 17 0M12 28a12 12 0 0 1 24 0M24 5v5M7 13l4 4M41 13l-4 4M3 25h5M40 25h5"/></svg></div>
     <details id="home-controls" class="home-controls">
-      <summary><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M6 9h1m4 0h1m4 0h1M6 12h1m4 0h1m4 0h1M7 16h10"/></svg>How to play<span class="home-controls-plus">+</span></summary>
-      <div class="home-controls-panel"><p class="home-micro">MAKE YOURSELF AT HOME</p><h2>The long way, explained.</h2><dl><div><dt><kbd>W A S D</kbd> / <kbd>↑ ↓ ← →</kbd></dt><dd>Drive &amp; steer</dd></div><div><dt><kbd>S</kbd> / <kbd>↓</kbd></dt><dd>Brake, then reverse</dd></div><div><dt><kbd>Shift</kbd> / <kbd>Space</kbd></dt><dd>Brake / handbrake</dd></div><div><dt>Mouse drag / scroll</dt><dd>Look around / zoom</dd></div><div><dt><kbd>R</kbd> / <kbd>Esc</kbd></dt><dd>Reset / pause</dd></div><div><dt><kbd>M</kbd> / <kbd>F2</kbd></dt><dd>Map / photo mode</dd></div></dl><p>Bring a friend: use the same three-digit room code in the game.</p></div>
+      <summary><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M6 9h1m4 0h1m4 0h1M6 12h1m4 0h1m4 0h1M7 16h10"/></svg>How to play<span class="home-controls-plus" aria-hidden="true">+</span></summary>
+      <div class="home-controls-panel">
+        <h2>Driving controls</h2>
+        <dl>
+          <div><dt><kbd>W A S D</kbd> / <kbd>↑ ↓ ← →</kbd></dt><dd>Drive &amp; steer</dd></div>
+          <div><dt><kbd>S</kbd> / <kbd>↓</kbd></dt><dd>Brake, then reverse</dd></div>
+          <div><dt><kbd>Shift</kbd> / <kbd>Space</kbd></dt><dd>Brake / handbrake</dd></div>
+          <div><dt>Mouse drag / scroll</dt><dd>Look around / zoom</dd></div>
+          <div><dt><kbd>R</kbd> / <kbd>Esc</kbd></dt><dd>Reset / pause</dd></div>
+          <div><dt><kbd>M</kbd> / <kbd>F2</kbd></dt><dd>Map / photo mode</dd></div>
+        </dl>
+        <p>To play together, open Pause and share a three-digit room code.</p>
+      </div>
     </details>
   </header>
   <div class="home-main">
     <div class="home-hero">
-      <p class="home-kicker"><span></span> THE COAST IS CALLING</p>
-      <h1 class="home-title">Leave the<br><em>ordinary.</em></h1>
-      <p class="home-copy">Nine districts. One very good escape.<br>Cruise the coast, chase the next bend, or bring a friend.</p>
-      <div class="home-download">
-        <div class="home-download-top"><div><p class="home-micro">YOUR NEXT GREAT DRIVE</p><h2 id="loading-title">Loading your coast</h2></div><strong id="loading-percent">0<span>%</span></strong></div>
-        <div id="loading-progress" class="loading-progress" role="progressbar" aria-label="Game data downloaded" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="loading-fill"></span></div>
-        <div class="home-download-meta"><span id="loading-bytes">Finding game files…</span><span id="loading-files"></span></div>
-        <p id="loading-status" role="status">Connecting to the coast…</p>
-        <ol class="home-load-steps" aria-label="Loading stages"><li data-load-step="download" class="current"><i></i>Download</li><li data-load-step="prepare"><i></i>Prepare</li><li data-load-step="ready"><i></i>Drive</li></ol>
-        <button id="load-retry" class="home-retry" hidden>Retry download <span aria-hidden="true">↗</span></button>
+      <h1 id="home-title" class="home-title"><span>Sunspoke</span> <em>Coast</em></h1>
+      <p class="home-copy">Cruise the coast in the Sunspoke GT. Explore solo or race a friend.</p>
+      <div class="home-launch">
+        <button id="drive" class="home-drive" type="button" disabled>
+          <span id="drive-label">Drive the coast</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
+        </button>
+        <div class="home-download">
+          <div class="home-download-top"><h2 id="loading-title">Downloading game data</h2><strong id="loading-percent">0%</strong></div>
+          <div id="loading-progress" class="loading-progress" role="progressbar" aria-label="Game data downloaded" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="loading-fill"></span></div>
+          <div class="home-download-meta"><span id="loading-bytes">Finding game files…</span><span id="loading-files"></span></div>
+          <p id="loading-status" role="status">Connecting…</p>
+          <button id="load-retry" class="home-retry" type="button" hidden>Retry download</button>
+        </div>
+        <p class="home-drive-note">Keyboard &amp; mouse</p>
       </div>
-      <button id="drive" class="home-drive" disabled><span class="home-drive-dot" aria-hidden="true"></span><span id="drive-label">Loading the coast</span><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 25 25 7M9 7h16v16"/></svg></button>
-      <p class="home-drive-note"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 11V9a7 7 0 0 1 14 0v2M3 10h3v7H3a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1Zm14 0h-3v7h3a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1Z"/></svg>Best with sound on<span>·</span>Keyboard &amp; mouse</p>
     </div>
-    <aside class="home-scene" aria-label="Your car">
-      <div class="home-scene-caption"><i></i><span id="preview-label">A GLIMPSE OF YOUR ESCAPE</span></div>
-      <div class="home-ride"><p class="home-micro">WAITING FOR YOU</p><h2>Sunspoke GT</h2><span class="home-ride-color"><span id="ride-paint">Deep Metallic Teal</span> <i>·</i> NAREN</span><div class="home-ride-line"><div><strong>250</strong><span>KM/H</span></div><p>One car.<br>A thousand detours.</p></div></div>
-    </aside>
   </div>
-  <footer class="home-footer"><div class="home-world"><span><strong>9</strong> DISTRICTS</span><span><strong id="home-road-length">26.0</strong> KM OF ROAD</span></div><div class="home-experiences"><span><i>01</i>Find your coast</span><span><i>02</i>Bring a friend</span><span><i>03</i>Chase the apex</span></div><p class="home-signoff">NO WRONG TURNS.<br><span>JUST GOOD STORIES.</span></p></footer>
+  <footer class="home-footer">
+    <div class="home-world"><span><strong id="home-district-count">10</strong> districts</span><span><strong id="home-road-length">27.6</strong> km of road</span></div>
+    <div class="home-ride"><span id="preview-label">In-game preview</span><strong>Sunspoke GT</strong><span id="ride-paint">Deep Metallic Teal</span></div>
+  </footer>
   <noscript>Enable JavaScript to load Sunspoke Coast.</noscript>
 </section>
 

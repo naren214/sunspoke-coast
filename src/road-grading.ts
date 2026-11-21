@@ -13,26 +13,31 @@ export function createRoadIndex(roads:Road[],natural:(x:number,z:number)=>number
       }
   }
   function nearest(x:number,z:number){
-    let distance=Infinity,height=natural(x,z),width=0;
+    let distance=Infinity,edge=Infinity,height=0,width=0;
     const candidates=new Map<number,{distance:number;height:number;width:number}>();
     for(const s of cells.get(Math.floor(x/size)+','+Math.floor(z/size))??[]){
       const t=MathUtils.clamp(((x-s.ax)*s.dx+(z-s.az)*s.dz)/(s.length2||1),0,1);
       const d=Math.hypot(x-s.ax-t*s.dx,z-s.az-t*s.dz);
+      edge=Math.min(edge,d-s.width/2);
       if(d<(candidates.get(s.road)?.distance??Infinity))candidates.set(s.road,{distance:d,height:s.ay+t*s.dy,width:s.width});
       if(d<distance){distance=d;height=s.ay+t*s.dy;width=s.width;}
     }
     let weight=0,total=0;
     for(const p of candidates.values()){
-      const w=Math.exp(-2*(p.distance/Math.max(p.width/2,6))**2)*(1-MathUtils.smoothstep(p.distance,p.width/2+6,p.width/2+18));
+      const w=Math.exp(-2*(p.distance/Math.max(p.width/2,6))**2)*
+        (1-MathUtils.smoothstep(p.distance-p.width/2,0,28));
       weight+=w;total+=w*p.height;
     }
     if(weight>1e-8)height=total/weight;
-    return {distance,height,width};
+    else if(!Number.isFinite(distance))height=natural(x,z);
+    return {distance,edge,height,width};
   }
   function grade(x:number,z:number){
-    const p=nearest(x,z),base=natural(x,z),edge=p.distance-p.width/2;
-    if(edge>=28)return base;
-    const blend=1-MathUtils.smoothstep(edge,8,28);
+    const p=nearest(x,z);
+    if(p.edge<=0)return p.height;
+    const base=natural(x,z);
+    if(p.edge>=28)return base;
+    const blend=1-MathUtils.smoothstep(p.edge,0,28);
     return MathUtils.lerp(base,p.height,blend);
   }
   function occupiedByOther(x:number,z:number,road:number,margin=0){

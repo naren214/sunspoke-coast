@@ -103,12 +103,16 @@ export function createGrassField(group:T.Group,colliders:Collider[],ground:(x:nu
     root.add(mesh);meshes.push({mesh,x:b.x,z:b.z,full:b.matrices.length});
     mesh.userData.patch={x:b.x,z:b.z,full:b.matrices.length};
   }
-  let quality:Quality='low';
+  let quality:Quality='low',nextVisibilityUpdate=0;
+  const lastVisibilityPosition=new T.Vector3(Number.NaN,0,0);
   const presets={low:{range:80,density:.38},medium:{range:115,density:.68},high:{range:155,density:1}};
-  function setQuality(next:Quality){quality=next;range.value=presets[next].range;meshes.forEach(b=>{b.mesh.count=Math.ceil(b.full*presets[next].density);});root.userData.quality=next;}
+  function setQuality(next:Quality){quality=next;range.value=presets[next].range;nextVisibilityUpdate=0;meshes.forEach(b=>{b.mesh.count=Math.ceil(b.full*presets[next].density);});root.userData.quality=next;}
   function update(time:number,position:T.Vector3){
-    wind.value=time;const reach=presets[quality].range+size*.72;
-    for(const b of meshes)b.mesh.visible=(b.x-position.x)**2+(b.z-position.z)**2<reach*reach;
+    wind.value=time;
+    if(time<nextVisibilityUpdate&&lastVisibilityPosition.distanceToSquared(position)<9)return;
+    nextVisibilityUpdate=time+.1;lastVisibilityPosition.copy(position);
+    const reach=presets[quality].range+size*.72,reachSquared=reach*reach;
+    for(const b of meshes){const visible=(b.x-position.x)**2+(b.z-position.z)**2<reachSquared;if(b.mesh.visible!==visible)b.mesh.visible=visible;}
   }
   root.userData={tufts:count,chunks:meshes.length,trianglesPerTuft:12,quality:'low',spacing:3.6};
   setQuality('low');update(0,new T.Vector3(-65,0,210));

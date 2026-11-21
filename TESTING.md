@@ -1,5 +1,19 @@
 # Sunspoke Coast verification
 
+## Medium performance pass on battery
+
+The production build ran automated keyboard driving for one minute per route in focused headless Chrome on Intel Iris Xe (D3D11), with Windows on battery. The viewport and internal canvas were both 1920 × 1080. The run used Medium with golden-hour lighting, live sun shadows, bloom, and the original draw distance.
+
+| Route | Average FPS | p95 frame | p99 frame | Frames at or above 100 ms |
+| --- | ---: | ---: | ---: | ---: |
+| Beachfront Circuit | 23.2 | 66.7 ms | 74.7 ms | 2 |
+| Crosstown Freeway | 27.8 | 58.2 ms | 58.5 ms | 1 |
+| Silver Lake Circuit | 37.8 | 49.8 ms | 50.3 ms | 2 |
+
+The final build missed the 30 FPS average target on two routes. All routes missed the 33.5 ms p95 target. The run had no browser errors, failed HTTP responses, asset errors, lost focus, or route recoveries. The earlier five-minute Beachfront pass used an experimental shadow update policy that has since been removed. It does not qualify as a result for this build.
+
+The bake reduced the eligible static batches from 1,653 to 1,435 across 213 cells. Shader warm-up now runs both outdoor daylight and local-light variants during preparation. The raw final sample is in `.cache/browser-performance/final-battery.json`. Reproduce the sustained test with `npm run performance:browser -- --route=all --quality=medium --minutes=5 --runs=3 --expect-renderer=Iris`.
+
 ## Sunspoke GT
 
 - The production build serves all 156 files over HTTP. The startup manifest checks 37 assets totaling 20,242,726 bytes. The fresh Low build inventory is 21,879,851 bytes against a 25 MB limit.

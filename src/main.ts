@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { createBloom } from './bloom';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { createWorld } from './world';
+import { loadBakedWorld } from './world-cache';
 import { CountyAtlas } from './atlas';
 import { createCar } from './car';
 import { GT_ORBIT, GT_PAINTS } from './gt-model';
@@ -22,6 +23,7 @@ import type {GameDownloads} from './downloads';
 import type {OpeningScreen} from './opening';
 import {VEHICLE} from './vehicle';
 import {isSubmerged} from './water-recovery';
+import catalog from '../shared/tracks.json';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const clamp = THREE.MathUtils.clamp;
@@ -30,7 +32,8 @@ const qaView = new URLSearchParams(location.search).has('qa') && new URLSearchPa
 type GameMode = 'driving' | 'pause' | 'atlas' | 'photo';
 let started = false;
 let lighting: Lighting = 'golden';
-let quality: Quality = 'low';
+const requestedQuality=new URLSearchParams(location.search).get('quality');
+let quality: Quality = requestedQuality==='medium'||requestedQuality==='high'||requestedQuality==='low'?requestedQuality:'low';
 let volume = .45;
 let showControls = true;
 let showMinimap = true;
@@ -39,7 +42,12 @@ let elapsed = 0;
 let orbitLast = 0;
 let pointer: number | undefined;
 const orbit = { ...GT_ORBIT };
-const frameTimes: number[] = [];
+const frameHistogram = new Uint32Array(10001);
+const logicHistogram = new Uint32Array(10001),renderHistogram = new Uint32Array(10001);
+let measuredFrames = 0, totalFrameMs = 0, overBudgetFrames = 0, stallsOver100Ms = 0, maxFrameMs = 0;
+let totalLogicMs=0,totalRenderSubmitMs=0;
+let lastAnimationPhases={logicMs:0,renderSubmitMs:0,totalScriptMs:0};
+const stallSamples:{second:number;frameMs:number;position:number[];previousPhases:typeof lastAnimationPhases;heapUsed:number|null;drawCalls:number;triangles:number;visibleTiles:number;programs:number|null}[]=[];
 
 
 const presets=VISUAL_QUALITY;
@@ -47,6 +55,7 @@ const presets=VISUAL_QUALITY;
 export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
   THREE.DefaultLoadingManager.setURLModifier(url=>downloads.resource(url));
   const renderer = new THREE.WebGLRenderer({ canvas: $('scene') as HTMLCanvasElement, antialias: true, powerPreference: 'high-performance' });
+  renderer.info.autoReset = false;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
@@ -58,9 +67,13 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
   const progress=(_fraction:number,label:string)=>opening.stage(label);
   progress(.02,'Loading Sunspoke Coast');await new Promise(resolve=>requestAnimationFrame(resolve));
   const library=new AssetLibrary(downloads);
-  await Promise.all([document.fonts.load('190px CoastSignature'),document.fonts.load('900 245px Barlow'),library.init()]);
-  progress(.08,'Building the county');
-  const world = createWorld();
+  const [cachedCounty] = await Promise.all([
+    loadBakedWorld(progress),
+    document.fonts.load('190px CoastSignature'),
+    document.fonts.load('900 245px Barlow'),
+    library.init()
+  ]);
+  const world = createWorld(cachedCounty);
   const scenery=createImportedScenery(world.group,library,world.group.userData.placements??[]);
   const atlas=new CountyAtlas(world);
   const canvas = $('scene') as HTMLCanvasElement;
@@ -90,6 +103,11 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
   sun.shadow.bias = -.00015;
   sun.shadow.normalBias = .08;
   scene.add(sun, sun.target);
+  scene.onBeforeRender = (_renderer, _scene, renderCamera) => {
+    const shadowCamera=renderer.shadowMap.enabled?sun.shadow.camera:undefined;
+    if(shadowCamera){sun.updateMatrixWorld(true);sun.target.updateMatrixWorld(true);sun.shadow.updateMatrices(sun);}
+    world.updateStaticVisibility?.(renderCamera,shadowCamera);
+  };
   const fill = new THREE.DirectionalLight('#81cbdf', .5);
   fill.position.set(120, 80, 80);
   scene.add(fill);
@@ -100,6 +118,8 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
   const skyUniforms = { cloudClock:{value:0}, top: { value: new THREE.Color('#619cb6') }, middle: { value: new THREE.Color('#f1bb96') }, bottom: { value: new THREE.Color('#e8c0a2') }, sunDirection: { value: new THREE.Vector3(-.9, .24, -.36).normalize() }, sunColor: { value: new THREE.Color('#ffddb0') }, sunStrength: { value: 1 } };
   const sky = new THREE.Mesh(new THREE.SphereGeometry(1400, 32, 20), new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, uniforms: skyUniforms, vertexShader: 'varying vec3 vDirection; void main(){vDirection=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}', fragmentShader: 'varying vec3 vDirection;uniform float cloudClock;uniform vec3 top;uniform vec3 middle;uniform vec3 bottom;uniform vec3 sunDirection;uniform vec3 sunColor;uniform float sunStrength;void main(){vec3 d=normalize(vDirection);float h=max(0.0,d.y);vec3 col=mix(bottom,middle,smoothstep(-.08,.05,d.y));col=mix(col,top,pow(h,.5));float band=smoothstep(.08,.18,d.y)*(1.-smoothstep(.5,.8,d.y));float cloud=pow(max(0.,sin(d.x*25.+d.z*8.+cloudClock*.004)*.3+sin(d.z*18.-d.x*9.-cloudClock*.003)*.25+.4),5.)*band;col=mix(col,middle+vec3(.07),cloud*.25);float s=max(0.0,dot(d,sunDirection));col+=sunColor*pow(s,18.0)*.15*sunStrength;col+=sunColor*smoothstep(.9994,.9998,s)*2.5*sunStrength;gl_FragColor=vec4(col,1.0);}' }));
   scene.add(sky);
+  // Opaque scenery writes depth first, so the sky shader only shades open pixels.
+  sky.renderOrder = 100;
   (sky.material as THREE.ShaderMaterial).fragmentShader=(sky.material as THREE.ShaderMaterial).fragmentShader.replace(
     'gl_FragColor=vec4(col,1.0);','gl_FragColor=vec4(col,1.0);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n');
   const starGeometry = new THREE.BufferGeometry();
@@ -117,12 +137,21 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
   const reflectionMaterial=lakeReflection.material as THREE.ShaderMaterial;reflectionMaterial.transparent=true;reflectionMaterial.depthWrite=false;reflectionMaterial.fragmentShader=reflectionMaterial.fragmentShader.replace('#include <tonemapping_fragment>','gl_FragColor.a=.26;\n#include <tonemapping_fragment>');
   const captureReflection=lakeReflection.onBeforeRender.bind(lakeReflection);let nextReflection=0;
   lakeReflection.onBeforeRender=(...args)=>{const time=performance.now();if(time<nextReflection)return;nextReflection=time+125;captureReflection(...args);};scene.add(lakeReflection);
-  const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .22, .35, 1.15);
+  const bloom = createBloom(innerWidth, innerHeight);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
 
   let lastResolution='';
   let measuredPrevious=false;
+  function clearStats() {
+    frameHistogram.fill(0);
+    logicHistogram.fill(0);
+    renderHistogram.fill(0);
+    stallSamples.length = 0;
+    measuredFrames = totalFrameMs = totalLogicMs = totalRenderSubmitMs = 0;
+    overBudgetFrames = stallsOver100Ms = maxFrameMs = 0;
+    measuredPrevious = false;
+  }
   function resize(trackChange=true) {
     renderer.setPixelRatio(Math.min(devicePixelRatio, presets[quality].pixel));
     renderer.setSize(innerWidth, innerHeight);
@@ -133,11 +162,11 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
     camera.updateProjectionMatrix();
     if(trackChange){
       const resolution=[innerWidth,innerHeight,canvas.width,canvas.height].join('x');
-      if(lastResolution!==resolution){frameTimes.length=0;measuredPrevious=false;lastResolution=resolution;}
+      if(lastResolution!==resolution){clearStats();lastResolution=resolution;}
     }
   }
   function applyQuality(next: Quality) {
-    if(quality!==next){frameTimes.length=0;measuredPrevious=false;}
+    if(quality!==next)clearStats();
     quality = next;
     world.setQuality?.(next);car.setQuality(next);multiplayer.quality(next);scenery.setQuality(next);library.setQuality(next);
     ao.enabled=presets[next].ao;lakeReflection.visible=presets[next].reflection;
@@ -151,7 +180,7 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
     selectSetting('quality',next);
   }
   function applyLighting(next: Lighting) {
-    if(lighting!==next){frameTimes.length=0;measuredPrevious=false;}
+    if(lighting!==next)clearStats();
     lighting = next;scene.environment=outdoor[next].texture;void library.environment(renderer,next).then(environment=>{if(lighting===next)scene.environment=environment.texture;}).catch(()=>{});
     const data = { golden: { top: '#78adc2', mid: '#ead3b6', bottom: '#dcd8c4', fog: '#c4c5ba', hemi: '#b5d8df', ground: '#b19574', sun: '#ffc994', intensity: 2.35, ambient: 1.05, env: .7, exposure: 1, skySun: 1 }, twilight: { top: '#354c83', mid: '#dd9ba8', bottom: '#b691ac', fog: '#9e90ae', hemi: '#869ed0', ground: '#74788d', sun: '#f1b2ac', intensity: .75, ambient: 1.35, env: .65, exposure: 1.12, skySun: .4 }, night: { top: '#08152f', mid: '#244064', bottom: '#324d67', fog: '#253d56', hemi: '#7995c2', ground: '#4e6484', sun: '#a9c8ff', intensity: .18, ambient: .48, env: .3, exposure: 1.05, skySun: 0 } }[next];
     skyUniforms.top.value.set(data.top); skyUniforms.middle.value.set(data.mid); skyUniforms.bottom.value.set(data.bottom); skyUniforms.sunStrength.value = data.skySun;
@@ -182,7 +211,7 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
     if (selected) $('ride-paint').textContent = selected.textContent;
   }
   function persist() { try { localStorage.setItem('sunspoke-settings', JSON.stringify({quality, lighting, volume,showControls,showMinimap,paint})); } catch {} }
-  try { const saved = JSON.parse(localStorage.getItem('sunspoke-settings') || '{}'); if (Object.hasOwn(presets,saved.quality)) quality = saved.quality; if (typeof saved.volume === 'number') volume = clamp(saved.volume, 0, 1); if (typeof saved.showControls === 'boolean') showControls = saved.showControls; if(typeof saved.showMinimap==='boolean')showMinimap=saved.showMinimap; if(saved.paint==='teal'||saved.paint==='red')paint=saved.paint; } catch {}
+  try { const saved = JSON.parse(localStorage.getItem('sunspoke-settings') || '{}'); if (!requestedQuality&&Object.hasOwn(presets,saved.quality)) quality = saved.quality; if (typeof saved.volume === 'number') volume = clamp(saved.volume, 0, 1); if (typeof saved.showControls === 'boolean') showControls = saved.showControls; if(typeof saved.showMinimap==='boolean')showMinimap=saved.showMinimap; if(saved.paint==='teal'||saved.paint==='red')paint=saved.paint; } catch {}
   applyPaint(paint);
   applyQuality(quality);
   applyLighting('golden');
@@ -238,6 +267,7 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
     const previousAspect=camera.aspect;camera.aspect=16/9;camera.updateProjectionMatrix();renderer.setPixelRatio(1);renderer.setSize(1920,1080,false);composer.setPixelRatio(1);composer.setSize(1920,1080);ao.setSize(960,540);
     const copy=document.createElement('canvas');copy.width=1920;copy.height=1080;
     try{
+      renderer.info.reset();
       if(bloom.enabled||ao.enabled)composer.render();else renderer.render(scene,camera);
       copy.getContext('2d')!.drawImage(renderer.domElement,0,0);
     }finally{camera.aspect=previousAspect;resize(false);}
@@ -247,11 +277,17 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
   const ext = gl.getExtension('WEBGL_debug_renderer_info');
   const gpu = ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);
   function timings(){
-    const sorted=[...frameTimes].sort((a,b)=>a-b),seconds=frameTimes.reduce((a,b)=>a+b,0)/1000;
-    return {seconds,frames:sorted.length,fps:seconds?sorted.length/seconds:null,medianMs:sorted[Math.floor(sorted.length*.5)]??null,p95Ms:sorted[Math.floor(sorted.length*.95)]??null};
+    function percentile(histogram:Uint32Array,fraction:number){
+      if(!measuredFrames)return null;
+      const target=Math.min(measuredFrames-1,Math.floor(measuredFrames*fraction));let seen=0;
+      for(let i=0;i<histogram.length;i++){seen+=histogram[i];if(seen>target)return i/10;}
+      return histogram===frameHistogram?maxFrameMs:null;
+    }
+    const seconds=totalFrameMs/1000;
+    return {seconds,frames:measuredFrames,fps:seconds?measuredFrames/seconds:null,medianMs:percentile(frameHistogram,.5),p95Ms:percentile(frameHistogram,.95),p99Ms:percentile(frameHistogram,.99),meanLogicMs:measuredFrames?totalLogicMs/measuredFrames:null,meanRenderSubmitMs:measuredFrames?totalRenderSubmitMs/measuredFrames:null,p95LogicMs:percentile(logicHistogram,.95),p95RenderSubmitMs:percentile(renderHistogram,.95),overBudgetFrames,stallsOver100Ms,maxFrameMs:measuredFrames?maxFrameMs:null,stallSamples:stallSamples.slice()};
   }
   $('performance-report').onclick=()=>{
-    const data={build:'county-overhaul',quality,lighting,viewport:[innerWidth,innerHeight],internal:[canvas.width,canvas.height],...timings(),renderer:gpu,assets:library.errors,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,userAgent:navigator.userAgent};
+    const data={build:catalog.mapVersion,quality,lighting,viewport:[innerWidth,innerHeight],devicePixelRatio,internal:[canvas.width,canvas.height],...timings(),renderer:gpu,assets:library.errors,rendering:world.group.userData.rendering??null,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,userAgent:navigator.userAgent};
     const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download='Sunspoke-Performance.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
   };
   $('close-map').onclick=toggleAtlas;$('open-map').onclick=toggleAtlas;$('hud-map').onclick=toggleAtlas;
@@ -338,12 +374,22 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
   const sunDirection = new THREE.Vector3(-.9,.24,-.36).normalize();
   let submergedFor=0,waterRecoverySent=false,shownSpeed=-1,shownGear='';
   function animate(now: number) {
+    const scriptStart=performance.now();
     const rawDt=Math.max(0,(now-lastFrame)/1000),dt=Math.min(rawDt,.05);
     lastFrame=now;elapsed+=dt;
     const friend=multiplayer.update(elapsed);
     const paused=mode!=='driving',driving=started&&!paused&&multiplayer.canDrive();
     const measure=driving&&!document.hidden&&document.hasFocus()&&!captureJump;
-    if(measure&&measuredPrevious&&rawDt>0&&frameTimes.length<60000)frameTimes.push(rawDt*1000);
+    if(measure&&measuredPrevious&&rawDt>0){
+      const frameMs=rawDt*1000;measuredFrames++;totalFrameMs+=frameMs;
+      frameHistogram[Math.min(frameHistogram.length-1,Math.round(frameMs*10))]++;
+      totalLogicMs+=lastAnimationPhases.logicMs;totalRenderSubmitMs+=lastAnimationPhases.renderSubmitMs;
+      logicHistogram[Math.min(logicHistogram.length-1,Math.round(lastAnimationPhases.logicMs*10))]++;
+      renderHistogram[Math.min(renderHistogram.length-1,Math.round(lastAnimationPhases.renderSubmitMs*10))]++;
+      if(frameMs>33.5)overBudgetFrames++;
+      if(frameMs>=100){stallsOver100Ms++;stallSamples.push({second:elapsed,frameMs,position:drive.state.position.toArray(),previousPhases:{...lastAnimationPhases},heapUsed:(performance as any).memory?.usedJSHeapSize??null,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,visibleTiles:world.group.children.filter(child=>child.userData.worldCell&&Array.isArray(child.userData.worldBounds)&&child.visible).length,programs:renderer.info.programs?.length??null});}
+      maxFrameMs=Math.max(maxFrameMs,frameMs);
+    }
     measuredPrevious=measure;
     if(mode==='atlas'){
       atlas.updatePlayers(drive.renderState(true),friend,elapsed,false);
@@ -395,18 +441,42 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
     if(gear!==shownGear){shownGear=gear;$('gear').textContent=gear;}
     const fill=Math.min(100,Math.abs(state.speed)/VEHICLE.topSpeed*100).toFixed(1)+'%';
     if($('speed-fill').dataset.fill!==fill){$('speed-fill').dataset.fill=fill;$('speed-fill').style.width=fill;}
+    const renderStart=performance.now();lastAnimationPhases.logicMs=renderStart-scriptStart;
+    renderer.info.reset();
     if (bloom.enabled||ao.enabled) composer.render(); else renderer.render(scene,camera);
+    const renderEnd=performance.now();lastAnimationPhases.renderSubmitMs=renderEnd-renderStart;lastAnimationPhases.totalScriptMs=renderEnd-scriptStart;
     canvas.dataset.ready = 'true';
     requestAnimationFrame(animate);
   }
   progress(.82,'Lighting the evening');await library.environment(renderer,'golden').then(e=>scene.environment=e.texture).catch(()=>{});
-  progress(.92,'Preparing the first view');await renderer.compileAsync(scene,camera);
+  progress(.88,'Planting the districts');await scenery.remaining();
+  progress(.94,'Preparing the first view');
+  let gpuWarmup:{drawCalls:number;triangles:number;visibleTiles:number;sceneryBatches:number;programs:number|null}|null=null;
+  const initialCamera={position:camera.position.clone(),quaternion:camera.quaternion.clone(),fov:camera.fov,aspect:camera.aspect,near:camera.near,far:camera.far},shadowsEnabled=renderer.shadowMap.enabled,restoreScenery=scenery.warmupVisibility();
+  const shadowCamera=sun.shadow.camera as THREE.OrthographicCamera,initialShadowBounds={left:shadowCamera.left,right:shadowCamera.right,top:shadowCamera.top,bottom:shadowCamera.bottom,near:shadowCamera.near,far:shadowCamera.far},initialSunPosition=sun.position.clone(),initialSunTarget=sun.target.position.clone();
+  try{
+    camera.position.set(665,4200,-275);camera.lookAt(665,0,-275);camera.fov=70;camera.near=.1;camera.far=10000;camera.updateProjectionMatrix();camera.updateMatrixWorld(true);
+    // Warm the real shadow path across the county so first entry into a new
+    // district does not lazily compile its shadow materials during driving.
+    sun.target.position.set(500,0,0);sun.position.copy(sun.target.position).addScaledVector(sunDirection,180);
+    shadowCamera.left=-1600;shadowCamera.right=1600;shadowCamera.top=1600;shadowCamera.bottom=-1600;shadowCamera.near=1;shadowCamera.far=4000;shadowCamera.updateProjectionMatrix();sun.updateMatrixWorld(true);sun.target.updateMatrixWorld(true);renderer.shadowMap.needsUpdate=true;sun.shadow.needsUpdate=true;
+    await renderer.compileAsync(scene,camera);
+    renderer.info.reset();if(bloom.enabled||ao.enabled)composer.render();else renderer.render(scene,camera);
+    // Warm both light counts. The first render uses the full local light pool
+    // for interiors and dusk. Outdoor daylight has no active local lights.
+    world.update(0,'golden',drive.state.position);
+    if(bloom.enabled||ao.enabled)composer.render();else renderer.render(scene,camera);
+    gpuWarmup={drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,visibleTiles:world.group.children.filter(child=>child.userData.worldCell&&Array.isArray(child.userData.worldBounds)&&child.visible).length,sceneryBatches:scenery.root.userData.batches??0,programs:renderer.info.programs?.length??null};
+  }finally{
+    shadowCamera.left=initialShadowBounds.left;shadowCamera.right=initialShadowBounds.right;shadowCamera.top=initialShadowBounds.top;shadowCamera.bottom=initialShadowBounds.bottom;shadowCamera.near=initialShadowBounds.near;shadowCamera.far=initialShadowBounds.far;shadowCamera.updateProjectionMatrix();sun.position.copy(initialSunPosition);sun.target.position.copy(initialSunTarget);sun.updateMatrixWorld(true);sun.target.updateMatrixWorld(true);renderer.shadowMap.needsUpdate=true;sun.shadow.needsUpdate=true;
+    renderer.shadowMap.enabled=shadowsEnabled;camera.position.copy(initialCamera.position);camera.quaternion.copy(initialCamera.quaternion);camera.fov=initialCamera.fov;camera.aspect=initialCamera.aspect;camera.near=initialCamera.near;camera.far=initialCamera.far;camera.updateProjectionMatrix();camera.updateMatrixWorld(true);restoreScenery();
+  }
   await new Promise(resolve=>requestAnimationFrame(resolve));
   animate(performance.now());
   opening.ready();
   THREE.DefaultLoadingManager.setURLModifier(url=>url);
   downloads.release();
-  void scenery.remaining();void multiplayer.init();
+  void multiplayer.init();
   if (new URLSearchParams(location.search).has('qa')) {
     const params = new URLSearchParams(location.search);
     const report = document.createElement('script'); report.id='qa-report'; report.type='application/json'; document.body.append(report);
@@ -416,8 +486,8 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
       drive, world, car, camera, renderer, audio, input, multiplayer,
       pause: setPaused, light: applyLighting, quality: applyQuality,
       teleport(x:number,z:number,heading=0) { stateTeleport(x,z,heading); },
-      stats() { return {...timings(),width:innerWidth,height:innerHeight,renderWidth:canvas.width,renderHeight:canvas.height,quality,lighting,paused:mode!=='driving',renderer:gpu,airborne:drive.state.airborne,verticalSpeed:drive.state.verticalSpeed,pitch:drive.state.pitch,captureJump,stunt:world.group.getObjectByName('RAMP TIME stunt compound')?.userData,cityArea:world.group.userData.cityArea,beachgoers:world.group.getObjectByName('Adult beachgoers')?.userData,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,speed:drive.state.speed,heading:drive.state.heading,steering:drive.state.steering,position:drive.state.position.toArray(),audioState:(audio as any).ctx?.state,audioGain:(audio as any).master?.gain.value}; },
-      clearStats() { frameTimes.length=0;measuredPrevious=false; }
+      stats() { return {...timings(),build:catalog.mapVersion,width:innerWidth,height:innerHeight,devicePixelRatio,renderWidth:canvas.width,renderHeight:canvas.height,quality,lighting,paused:mode!=='driving',renderer:gpu,assets:library.errors.slice(),phases:{...lastAnimationPhases},heapUsed:(performance as any).memory?.usedJSHeapSize??null,airborne:drive.state.airborne,verticalSpeed:drive.state.verticalSpeed,pitch:drive.state.pitch,captureJump,stunt:world.group.getObjectByName('RAMP TIME stunt compound')?.userData,cityArea:world.group.userData.cityArea,beachgoers:world.group.getObjectByName('Adult beachgoers')?.userData,scenery:{loaded:scenery.root.userData.loaded?.length??0,total:scenery.root.userData.total??0,batches:scenery.root.userData.batches??0},warmup:gpuWarmup,programs:renderer.info.programs?.length??null,rendering:world.group.userData.rendering??null,visibleStaticTiles:world.group.children.filter(child=>child.userData.worldCell&&Array.isArray(child.userData.worldBounds)&&child.visible).length,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,speed:drive.state.speed,heading:drive.state.heading,steering:drive.state.steering,position:drive.state.position.toArray(),audioState:(audio as any).ctx?.state,audioGain:(audio as any).master?.gain.value}; },
+      clearStats
     };
     function stateTeleport(x:number,z:number,heading:number) { drive.reset();drive.state.position.set(x,(world.surfaceHeight??world.groundHeight)(x,z),z);drive.state.heading=heading; }
     if (params.get('quality') && params.get('quality')! in presets) applyQuality(params.get('quality') as Quality);
@@ -429,7 +499,7 @@ export async function boot(downloads:GameDownloads,opening:OpeningScreen) {
     if(params.has('routes')) import('./qa').then(({validateRoads})=>{routeChecks=validateRoads(world);});
     if(params.has('benchmark')) window.setTimeout(()=>{
       const times:number[]=[];
-      for(let i=0;i<65;i++) { const start=performance.now();if(bloom.enabled)composer.render();else renderer.render(scene,camera);gl.finish();if(i>=5)times.push(performance.now()-start); }
+      renderer.info.reset();for(let i=0;i<65;i++) { const start=performance.now();if(bloom.enabled)composer.render();else renderer.render(scene,camera);gl.finish();if(i>=5)times.push(performance.now()-start); }renderer.info.reset();
       times.sort((a,b)=>a-b);benchmark={frames:times.length,medianMs:times[30],p95Ms:times[57],meanMs:times.reduce((a,b)=>a+b,0)/times.length};
       report.textContent=JSON.stringify({...((window as any).__SUNSPOKE__.stats()),visibility:document.visibilityState,benchmark,routeChecks});
       report.dataset.benchDone = 'true';

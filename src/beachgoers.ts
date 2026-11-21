@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { BEACH_BOARDWALKS } from './geography';
 
 // Stylized adult holidaymakers with shared, instanced geometry and opaque swimwear.
 export function createBeachgoers(height: (x: number, z: number) => number) {
@@ -18,17 +19,24 @@ export function createBeachgoers(height: (x: number, z: number) => number) {
   type Part = { person: number; g: T.BufferGeometry; m: T.Material; p: T.Vector3; s: T.Vector3; r: T.Euler; limb: number; index?: number; mesh?: T.InstancedMesh };
   const parts: Part[] = [];
   const people: { x: number; z: number; yaw: number; scale: number; walking: boolean; reclining: boolean; phase: number }[] = [];
+  const partsByPerson: Part[][] = [];
   let seed = 96141;
   const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
   function add(person: number, g: T.BufferGeometry, m: T.Material, x: number, y: number, z: number, sx: number, sy: number, sz: number, limb = 0, rx = 0) {
-    parts.push({ person, g, m, p: new T.Vector3(x, y, z), s: new T.Vector3(sx, sy, sz), r: new T.Euler(rx, 0, 0), limb });
+    const part = { person, g, m, p: new T.Vector3(x, y, z), s: new T.Vector3(sx, sy, sz), r: new T.Euler(rx, 0, 0), limb };
+    parts.push(part);
+    (partsByPerson[person] ??= []).push(part);
   }
   for (let i = 0; i < 84; i++) {
     const walking = i % 4 === 0, reclining = i % 5 === 1;
     let z = -155 + (i % 28) * 12.6 + Math.floor(i / 28) * 2.2;
     // Keep the central stunt compound clear; visitors occupy the public beaches.
     if(Math.abs(z)<103)z=z<0?-108-Math.abs(z)*0.6:108+z*0.8;
-    const x = walking ? -111 + random() * 1.5 : -108 + (i % 3) * 3.1 + random();
+    for(const path of BEACH_BOARDWALKS){
+      const margin=walking?11:6;
+      if(Math.abs(z-path)<margin)z=path+(z<path?-margin:margin);
+    }
+    const x = walking ? -150 + random() * 1.5 : -145 + (i % 3) * 13 + random();
     people.push({ x, z, yaw: walking ? (i % 8 ? 0 : Math.PI) : random() * Math.PI * 2, scale: 0.96 + random() * 0.14, walking, reclining, phase: random() * 6.28 });
     const skin = skins[i % skins.length], suit = suits[i % suits.length];
     const bikini = i % 3 !== 0, thong = bikini && i % 2 === 0;
@@ -72,33 +80,45 @@ export function createBeachgoers(height: (x: number, z: number) => number) {
     mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
     mesh.castShadow = mesh.receiveShadow = true;
     // Walkers remain within the authored beach strip; fixed bounds avoid per-frame scans.
-    mesh.boundingSphere = new T.Sphere(new T.Vector3(-103, 1, 15), 205);
+    mesh.boundingSphere = new T.Sphere(new T.Vector3(-132, 1, 15), 205);
     bucket.forEach((part, index) => { part.mesh = mesh; part.index = index; });
     group.add(mesh);
   }
   const root = new T.Object3D(), local = new T.Object3D(), matrix = new T.Matrix4();
+  function updatePerson(personIndex: number, time: number, dirtyMeshes: Set<T.InstancedMesh>) {
+    const person = people[personIndex];
+    const stride = person.walking ? Math.sin(time * 3.3 + person.phase) : Math.sin(time * 0.7 + person.phase) * 0.03;
+    const z = person.z + (person.walking ? Math.sin(time * 0.055 + person.phase) * 5 : 0);
+    root.position.set(person.x, height(person.x, z) + (person.reclining ? 0.17 : 0.02), z);
+    root.rotation.set(person.reclining ? -Math.PI / 2 : 0, person.yaw, 0, 'YXZ');
+    root.scale.setScalar(person.scale);
+    root.updateMatrix();
+    for (const part of partsByPerson[personIndex]) {
+      const { position, rotation, scale } = local;
+      position.copy(part.p);
+      rotation.copy(part.r);
+      scale.copy(part.s);
+      if (part.limb && person.walking) {
+        position.z += stride * part.limb * (part.p.y < 0.8 ? 0.11 : 0.055);
+        rotation.x += stride * part.limb * 0.22;
+      }
+      local.updateMatrix();
+      matrix.multiplyMatrices(root.matrix, local.matrix);
+      part.mesh!.setMatrixAt(part.index!, matrix);
+      dirtyMeshes.add(part.mesh!);
+    }
+  }
+  const initialMeshes = new Set<T.InstancedMesh>();
+  for (let i = 0; i < people.length; i++) updatePerson(i, 0, initialMeshes);
+  for (const mesh of initialMeshes) mesh.instanceMatrix.needsUpdate = true;
   let previous = -1;
   function update(time: number) {
     if (time - previous < 1 / 20 && time >= previous) return;
     previous = time;
-    for (const part of parts) {
-      const p = people[part.person];
-      const stride = p.walking ? Math.sin(time * 3.3 + p.phase) : Math.sin(time * 0.7 + p.phase) * 0.03;
-      const z = p.z + (p.walking ? Math.sin(time * 0.055 + p.phase) * 5 : 0);
-      root.position.set(p.x, height(p.x, z) + (p.reclining ? 0.17 : 0.02), z);
-      root.rotation.set(p.reclining ? -Math.PI / 2 : 0, p.yaw, 0, 'YXZ');
-      root.scale.setScalar(p.scale); root.updateMatrix();
-      local.position.copy(part.p); local.rotation.copy(part.r); local.scale.copy(part.s);
-      if (part.limb && p.walking) {
-        local.position.z += stride * part.limb * (part.p.y < 0.8 ? 0.11 : 0.055);
-        local.rotation.x += stride * part.limb * 0.22;
-      }
-      local.updateMatrix(); matrix.multiplyMatrices(root.matrix, local.matrix);
-      part.mesh!.setMatrixAt(part.index!, matrix);
-    }
-    group.children.forEach(mesh => { (mesh as T.InstancedMesh).instanceMatrix.needsUpdate = true; });
+    const dirtyMeshes = new Set<T.InstancedMesh>();
+    for (let i = 0; i < people.length; i++) if (people[i].walking) updatePerson(i, time, dirtyMeshes);
+    for (const mesh of dirtyMeshes) mesh.instanceMatrix.needsUpdate = true;
   }
-  group.userData = { adults: people.length, walkers: people.filter(p => p.walking).length, bikini: 56, thong: 28 };
-  update(0);
+  group.userData = { adults: people.length, walkers: people.filter(p => p.walking).length, animatedAtHz: 20, bikini: 56, thong: 28 };
   return { group, update };
 }

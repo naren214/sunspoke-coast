@@ -7,6 +7,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1",
+    "performance:browser": "node checks/browser-performance.mjs",
     "prebuild": "node scripts/bake-world.mjs",
     "predev": "node scripts/bake-world.mjs && node scripts/build-boot-manifest.mjs --public",
     "postbuild": "node scripts/build-boot-manifest.mjs",

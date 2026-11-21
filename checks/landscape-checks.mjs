@@ -20,7 +20,7 @@ try{
     console.log('Landscape',JSON.stringify({constructionMs:Math.round(constructionMs),grass:grass.userData,roads:stats}));
     assert.ok(grass.userData.tufts>40000&&grass.userData.chunks>400);
     assert.equal(stats.roads,world.roads.length);assert.equal(stats.styles.access,5);assert.ok(stats.junctions>40&&stats.crosswalks>60&&stats.arrows>100&&stats.reflectors>500&&stats.curbSegments>1000&&stats.airfieldMarkings>50);
-    assert.equal(stats.styles.freeway,1);assert.equal(stats.styles.airfield,2);assert.equal(stats.styles.interior,1);
+    assert.equal(stats.styles.freeway,1);assert.equal(stats.styles.airfield,3);assert.equal(stats.styles.interior,1);
     const matrix=new Matrix4(),point=new Vector3();let checked=0,north=0,urban=0,island=0;
     for(const mesh of grass.children){
       assert.equal(mesh.castShadow,false);assert.ok(Array.from(mesh.geometry.attributes.color.array).every(v=>v>.5));
@@ -57,6 +57,12 @@ try{
     }
     console.log('Road surface coverage',JSON.stringify({roadSamples,issues:issues.slice(0,8)}));
     assert.equal(issues.length,0,'Asphalt covers lanes continuously and raised edges stay outside them');
+    // At these cuts, coarse terrain triangles used to poke through the pavement.
+    for(const [x,z] of [[1037,-249.2],[451.1,385.3],[483.9,272.3],[932.8,-1104.6],[655.3,-771.1],[767.6,-718.9]]){
+      const surface=world.surfaceHeight(x,z),ray=new Raycaster(new Vector3(x,surface+10,z),new Vector3(0,-1,0));
+      const top=ray.intersectObjects([...asphalt,...terrain],false)[0];
+      assert.ok(top?.object.name==='Road asphalt'&&Math.abs(top.point.y-surface-.06)<.08,'Visible pavement matches the driving surface at '+[x,z]);
+    }
     for(const name of ['Road lane paint and crossings','Road centre paint','Road reflective studs']){
       const mesh=world.group.getObjectByName(name);assert.ok(mesh&&Array.from(mesh.geometry.attributes.position.array).every(Number.isFinite));
     }

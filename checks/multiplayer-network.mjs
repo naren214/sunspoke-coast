@@ -3,9 +3,17 @@ import {readFile} from 'node:fs/promises';
 import {WebSocket} from 'ws';
 const base=process.argv[2]??'http://127.0.0.1:8787',origin=process.argv[3]??'http://127.0.0.1:4173',catalog=JSON.parse(await readFile(new URL('../shared/tracks.json',import.meta.url),'utf8'));
 const post=async(path,body)=>{const r=await fetch(base+path,{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify(body)});assert.equal(r.headers.get('access-control-allow-origin'),origin);return {status:r.status,data:await r.json()};};
-const input={protocol:1,mapVersion:catalog.mapVersion};
+const input={protocol:1,mapVersion:process.argv[5]??catalog.mapVersion};
+const otherSupportedMap=process.argv[6];
+assert.equal((await post('/rooms',{...input,mapVersion:'unknown'})).status,412);
 const host=(await post('/rooms',input));assert.equal(host.status,200,JSON.stringify(host));const h=host.data;
+assert.equal(h.mapVersion,input.mapVersion);
+if(otherSupportedMap){
+ const mismatch=await post('/rooms/'+h.code+'/join',{...input,mapVersion:otherSupportedMap});
+ assert.equal(mismatch.status,409,JSON.stringify(mismatch));assert.match(mismatch.data.error,/same game build/);
+}
 const guest=await post('/rooms/'+h.code+'/join',input);assert.equal(guest.status,200,JSON.stringify(guest));const g=guest.data;
+assert.equal(g.mapVersion,input.mapVersion);
 assert.equal((await post('/rooms/'+h.code+'/join',input)).status,409);
 const clients=[];
 function connect(credentials){return new Promise((resolve,reject)=>{const ws=new WebSocket(base.replace(/^http/,'ws')+'/rooms/'+credentials.code+'/socket',{headers:{Origin:origin}});clients.push(ws);ws.rooms=[];ws.on('error',reject);ws.on('open',()=>ws.send(JSON.stringify({type:'auth',credentials})));ws.on('message',raw=>{const m=JSON.parse(raw);if(m.type==='room'){ws.room=m.room;ws.rooms.push(m.room);resolve(ws);}else if(m.type==='error')reject(Error(m.message));});setTimeout(()=>reject(Error('WebSocket welcome timed out')),10000).unref();});}

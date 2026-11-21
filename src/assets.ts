@@ -2,6 +2,8 @@ import * as T from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {HDRLoader} from 'three/addons/loaders/HDRLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {BEACH,beachShoreShader} from './geography';
 import type {Lighting,Quality} from './types';
 import type {GameDownloads} from './downloads';
 
@@ -9,6 +11,31 @@ export interface ModelAsset{id:string;url:string;source:string;author:string;lic
 export interface MaterialAsset{id:string;baseColor:string;normal?:string;roughness?:string;source:string;author:string;license:string;repeat?:number;}
 export interface AssetManifest{models:ModelAsset[];materials:MaterialAsset[];environments:{id:string;url:string}[];}
 export type Placement={id:string;x:number;y:number;z:number;height:number;rotation?:number;size?:number[];animate?:boolean;};
+type PreparedModelPart={part:string;material:T.Material|T.Material[];geometry:T.BufferGeometry;};
+function prepareStaticModelParts(model:T.Group,base:T.Vector3):PreparedModelPart[]{
+  const layout=(geometry:T.BufferGeometry)=>'index:'+Boolean(geometry.index)+'|'+Object.keys(geometry.attributes).sort().map(name=>{const attribute=geometry.attributes[name];return name+':'+attribute.itemSize+':'+attribute.normalized+':'+attribute.array.constructor.name;}).join('|');
+  const buckets=new Map<string,{part:string;material:T.Material|T.Material[];geometries:T.BufferGeometry[]}>(),identities=new Map<string,{uuid:string;part:string}[]>();
+  model.traverse(o=>{
+    if(!(o instanceof T.Mesh)||Object.keys(o.geometry.morphAttributes).length)return;
+    const geometry=o.geometry.clone();geometry.applyMatrix4(o.matrixWorld);geometry.translate(base.x,base.y,base.z);
+    if(Array.isArray(o.material)){
+      const part='mesh:'+o.name+':'+layout(geometry),key='array:'+o.uuid;
+      buckets.set(key,{part,material:o.material,geometries:[geometry]});return;
+    }
+    const source=o.material,attributes=layout(geometry),signature=(source.name||source.type)+':'+source.type+':'+attributes,ids=identities.get(signature)??[];
+    let identity=ids.find(item=>item.uuid===source.uuid);
+    if(!identity){identity={uuid:source.uuid,part:signature+'#'+ids.length};ids.push(identity);identities.set(signature,ids);}
+    const key=source.uuid+'|'+attributes;let bucket=buckets.get(key);
+    if(!bucket){bucket={part:identity.part,material:source,geometries:[]};buckets.set(key,bucket);}
+    bucket.geometries.push(geometry);
+  });
+  return [...buckets.values()].map(bucket=>{
+    if(bucket.geometries.length===1)return{part:bucket.part,material:bucket.material,geometry:bucket.geometries[0]};
+    const geometry=mergeGeometries(bucket.geometries,false);for(const source of bucket.geometries)source.dispose();
+    if(!geometry)throw new Error('Imported model parts had incompatible vertex layouts.');
+    return{part:bucket.part,material:bucket.material,geometry};
+  });
+}
 type SurfaceTexture={
   texture:T.Texture;
   original:CanvasImageSource&{width:number;height:number};
@@ -76,17 +103,32 @@ export class AssetLibrary{
       if(!(m instanceof T.MeshStandardMaterial)||m.transparent)continue;
       let id:string|undefined;
       if(o.name==='Road asphalt'||m.name==='Scenic stop asphalt')id='asphalt';else if(o.name==='Road underlay')id='pavement';else if(m.name==='surface:sand')id='sand';else if(m.name==='County meadow grass')id='grass';
-      else if(['surface:walk','surface:curb','surface:stone'].includes(m.name))id='pavement';else if(['surface:cream','surface:ivory'].includes(m.name))id='facade';else if(m.name==='surface:terra')id='brick';else if(m.name==='surface:wood')id='wood';
+      else if(['surface:walk','surface:curb','surface:stone'].includes(m.name))id='pavement';else if(['surface:cream','surface:ivory'].includes(m.name))id='facade';else if(m.name==='surface:terra')id='brick';else if(m.name==='surface:wood'||m.name==='Weathered beach timber')id='wood';
       if(id){const set=targets.get(id)??new Set<T.MeshStandardMaterial>();set.add(m);targets.set(id,set);}
     }});
     let done=0;
     await Promise.all([...targets].map(async([id,materials])=>{try{const maps=await this.surface(id);for(const m of materials){m.map=maps.color;m.normalMap=maps.normal??null;m.normalScale.set(.38,.38);m.roughnessMap=maps.roughness??null;m.roughness=.88;
-      if(id!=='grass')m.onBeforeCompile=shader=>{shader.vertexShader=shader.vertexShader.replace('#include <project_vertex>',`#include <project_vertex>
+      if(id!=='grass')m.onBeforeCompile=shader=>{
+        const isSand=id==='sand';
+        if(isSand){
+          shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec2 vBeachSand;');
+          shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
+            varying vec2 vBeachSand;
+            ${beachShoreShader}`);
+          shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+            if(vBeachSand.x < -108. && vBeachSand.y > ${BEACH.minZ.toFixed(1)} && vBeachSand.y < ${BEACH.maxZ.toFixed(1)}){
+              float inland=vBeachSand.x-beachShoreX(vBeachSand.y);
+              float dry=smoothstep(1.,10.+sin(vBeachSand.y*.2),inland);
+              diffuseColor.rgb*=mix(vec3(.68,.62,.54),vec3(1.12,1.04,.89),dry);
+            }`);
+        }
+        shader.vertexShader=shader.vertexShader.replace('#include <project_vertex>',`#include <project_vertex>
         vec4 surfaceLocal=vec4(transformed,1.);
         #ifdef USE_INSTANCING
         surfaceLocal=instanceMatrix*surfaceLocal;
         #endif
         vec3 surfaceWorld=(modelMatrix*surfaceLocal).xyz;
+        ${isSand?'vBeachSand=surfaceWorld.xz;':''}
         vec3 surfaceNormal=abs(inverseTransformDirection(transformedNormal,viewMatrix));
         vec2 surfaceUV=surfaceNormal.y>max(surfaceNormal.x,surfaceNormal.z)?surfaceWorld.xz:surfaceNormal.x>surfaceNormal.z?surfaceWorld.zy:surfaceWorld.xy;
         #ifdef USE_MAP
@@ -97,7 +139,7 @@ export class AssetLibrary{
         #endif
         #ifdef USE_ROUGHNESSMAP
         vRoughnessMapUv=(roughnessMapTransform*vec3(surfaceUV,1.)).xy;
-        #endif`);};if(id!=='grass')m.customProgramCacheKey=()=> 'sunspoke-world-space-pbr';m.needsUpdate=true;
+        #endif`);};if(id!=='grass')m.customProgramCacheKey=()=>id==='sand'?'sunspoke-shore-sand':'sunspoke-world-space-pbr';m.needsUpdate=true;
     }}catch(e){this.errors.push(String(e));}progress(++done/targets.size);}));
   }
 }
@@ -111,15 +153,18 @@ export function createImportedScenery(group:T.Group,library:AssetLibrary,placeme
   proxies.forEach(proxy=>proxy.material=fadeMaterial(proxy.material));
   const loaded=new Set<string>(),pending=new Set<string>(),prepared=new Set<string>(),upgrading=new Set<string>(),referenceDimensions=new Map<string,T.Vector3>();
   const groups=new Map<string,Placement[]>();for(const p of placements){const list=groups.get(p.id)??[];list.push(p);groups.set(p.id,list);}
+  let nextSpatialUpdate=0;
+  const lastSpatialPosition=new T.Vector3(Number.NaN,0,0);
   async function load(id:string){
     if(pending.has(id)||loaded.has(id))return;pending.add(id);
     try{
       const requested=quality,model=await library.model(id,requested),bounds=new T.Box3().setFromObject(model),dimensions=bounds.getSize(new T.Vector3()),base=new T.Vector3(-bounds.min.x-dimensions.x/2,-bounds.min.y,-bounds.min.z-dimensions.z/2);
       referenceDimensions.set(id,dimensions.clone());
       const byCell=new Map<string,Placement[]>();for(const p of groups.get(id)??[]){const key=Math.floor(p.x/128)+','+Math.floor(p.z/128),list=byCell.get(key)??[];list.push(p);byCell.set(key,list);}
-      model.traverse(o=>{if(!(o instanceof T.Mesh))return;
+      const actor=id.startsWith('adult-');
+      if(actor)model.traverse(o=>{if(!(o instanceof T.Mesh))return;
         const geometry=o.geometry.clone();geometry.applyMatrix4(o.matrixWorld);geometry.translate(base.x,base.y,base.z);
-        const actor=id.startsWith('adult-');let material=o.material;
+        let material=o.material;
         if(actor){const source=Array.isArray(material)?material:[material];material=source.map(m=>{const next=m.clone();next.onBeforeCompile=(shader:Parameters<T.Material['onBeforeCompile']>[0])=>{shader.uniforms.actorClock=actorClock;shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nuniform float actorClock;');shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
           float gait=sin(actorClock*2.4)*sign(position.x);transformed.z+=gait*(position.y<.95?.08:position.y<1.5?.035:0.);`);};next.customProgramCacheKey=()=> 'sunspoke-local-people';return next;});if(!Array.isArray(o.material))material=material[0];}
         for(const [cell,list] of byCell){
@@ -127,8 +172,12 @@ export function createImportedScenery(group:T.Group,library:AssetLibrary,placeme
           list.forEach((p,i)=>{const scale=p.height/Math.max(.01,dimensions.y);dummy.position.set(p.x,p.y,p.z);dummy.rotation.set(0,p.rotation??0,0);dummy.scale.set(p.size?p.size[0]/dimensions.x:scale,p.size?p.size[1]/dimensions.y:scale,p.size?p.size[2]/dimensions.z:scale);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);});
           mesh.castShadow=true;mesh.receiveShadow=true;mesh.computeBoundingSphere();root.add(mesh);chunks.push({mesh,center:mesh.boundingSphere!.center.clone(),radius:mesh.boundingSphere!.radius,resource:id,placements:list,actor,key:id+':'+cell,part:o.name,levels:{[requested]:geometry}});
         }
-      });
-      prepared.add(id+':'+requested);loaded.add(id);root.userData.loaded=[...loaded];
+      });else for(const part of prepareStaticModelParts(model,base))for(const [cell,list] of byCell){
+        const mesh=new T.InstancedMesh(part.geometry,fadeMaterial(part.material),list.length),dummy=new T.Object3D();mesh.name='Imported '+id;
+        list.forEach((p,i)=>{const scale=p.height/Math.max(.01,dimensions.y);dummy.position.set(p.x,p.y,p.z);dummy.rotation.set(0,p.rotation??0,0);dummy.scale.set(p.size?p.size[0]/dimensions.x:scale,p.size?p.size[1]/dimensions.y:scale,p.size?p.size[2]/dimensions.z:scale);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);});
+        mesh.castShadow=true;mesh.receiveShadow=true;mesh.computeBoundingSphere();root.add(mesh);chunks.push({mesh,center:mesh.boundingSphere!.center.clone(),radius:mesh.boundingSphere!.radius,resource:id,placements:list,actor,key:id+':'+cell,part:part.part,levels:{[requested]:part.geometry}});
+      }
+      prepared.add(id+':'+requested);loaded.add(id);root.userData.loaded=[...loaded];root.userData.batches=chunks.length;
       if(quality!==requested)void upgrade(id,quality);
       if(quality==='high'&&requested!=='medium')void upgrade(id,'medium');
     }catch(error){library.errors.push(id+': '+String(error));}finally{pending.delete(id);}
@@ -140,16 +189,21 @@ export function createImportedScenery(group:T.Group,library:AssetLibrary,placeme
     upgrading.add(key);
     try{const model=await library.model(id,level),bounds=new T.Box3().setFromObject(model),size=bounds.getSize(new T.Vector3()),base=new T.Vector3(-bounds.min.x-size.x/2,-bounds.min.y,-bounds.min.z-size.z/2);
       const reference=referenceDimensions.get(id)??size;
-      model.traverse(o=>{if(!(o instanceof T.Mesh))return;const geometry=o.geometry.clone();geometry.applyMatrix4(o.matrixWorld);geometry.translate(base.x,base.y,base.z);
+      const upgradePart=(part:string,geometry:T.BufferGeometry)=>{
         // Keep the initial footprint stable when decimation changes a model's bounds.
         geometry.scale(reference.x/Math.max(.001,size.x),reference.y/Math.max(.001,size.y),reference.z/Math.max(.001,size.z));
-        for(const chunk of chunks)if(chunk.resource===id&&chunk.part===o.name)chunk.levels[level]=geometry;});
+        for(const chunk of chunks)if(chunk.resource===id&&chunk.part===part)chunk.levels[level]=geometry;
+      };
+      if(id.startsWith('adult-'))model.traverse(o=>{if(!(o instanceof T.Mesh))return;const geometry=o.geometry.clone();geometry.applyMatrix4(o.matrixWorld);geometry.translate(base.x,base.y,base.z);upgradePart(o.name,geometry);});
+      else for(const part of prepareStaticModelParts(model,base))upgradePart(part.part,part.geometry);
       prepared.add(key);update(last);
     }catch(error){library.errors.push('LOD '+id+': '+String(error));}
     finally{upgrading.delete(key);}
   }
   function update(position:T.Vector3,time=clock){
     clock=time;actorClock.value=time;
+    if(time<nextSpatialUpdate&&lastSpatialPosition.distanceToSquared(position)<9)return;
+    nextSpatialUpdate=time+.1;lastSpatialPosition.copy(position);
     last.copy(position);const reach={low:150,medium:260,high:420}[quality];
     const dummy=actorDummy;let actors={low:8,medium:16,high:24}[quality];const allowance=new Map<string,number>();
     for(const chunk of chunks){chunk.mesh.visible=chunk.center.distanceToSquared(position)<((chunk.actor?65:reach)+chunk.radius)**2;
@@ -162,7 +216,13 @@ export function createImportedScenery(group:T.Group,library:AssetLibrary,placeme
     for(const object of proxies){const resource=object.userData.resource;if(!loaded.has(resource))continue;
       if(!object.boundingSphere)object.computeBoundingSphere();const radius=object.boundingSphere!.radius,distance=object.boundingSphere!.center.distanceTo(position),fade=T.MathUtils.smoothstep(distance,reach+radius-28,reach+radius);object.visible=fade>.002;for(const m of Array.isArray(object.material)?object.material:[object.material])m.opacity=(m.userData.baseOpacity??1)*fade;}
   }
+  function warmupVisibility(){
+    const previous=chunks.map(chunk=>chunk.mesh.visible);
+    chunks.forEach(chunk=>{chunk.mesh.visible=true;});
+    return()=>{chunks.forEach((chunk,index)=>{chunk.mesh.visible=previous[index];});nextSpatialUpdate=0;update(last,clock);};
+  }
   async function essential(progress:(fraction:number)=>void){const ids=['palm','bench','boulder'].filter(id=>groups.has(id)&&library.manifest.models.some(a=>a.id===id));let done=0;await Promise.all(ids.map(async id=>{await load(id);progress(++done/ids.length);}));}
   async function remaining(){for(const id of groups.keys()){if(library.manifest.models.some(a=>a.id===id)){await load(id);await new Promise(resolve=>setTimeout(resolve,24));}}}
-  return {essential,remaining,update,setQuality:(next:Quality)=>{quality=next;for(const id of loaded){void upgrade(id,next);if(next==='high')void upgrade(id,'medium');}update(last);},root};
+  root.userData.loaded=[];root.userData.total=[...groups.keys()].filter(id=>library.manifest.models.some(asset=>asset.id===id)).length;
+  return {essential,remaining,update,warmupVisibility,setQuality:(next:Quality)=>{quality=next;nextSpatialUpdate=0;for(const id of loaded){void upgrade(id,next);if(next==='high')void upgrade(id,'medium');}update(last);},root};
 }

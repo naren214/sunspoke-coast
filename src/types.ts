@@ -16,6 +16,7 @@ export interface World {
   groundHeight: (x: number, z: number) => number;
   surfaceHeight?: (x: number, z: number) => number;
   visualHeight?: (x: number, z: number) => number;
+  updateStaticVisibility?: (camera: THREE.Camera, shadowCamera?: THREE.Camera) => void;
   update: (time: number, lighting: Lighting, carPosition: THREE.Vector3) => void;
 }
 export interface Car {

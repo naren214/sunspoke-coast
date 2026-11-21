@@ -36,7 +36,13 @@ npm run multiplayer:check
 npm run multiplayer:deploy
 ```
 
-The build regenerates the race catalog from the actual roads. Deploy the matching backend before publishing the frontend. Rooms reject incompatible protocol/map versions and instruct both players to refresh. Backend allowed origins are configured in `backend/wrangler.jsonc`; the current Site and explicit localhost development ports are supported.
+The build regenerates the race catalog from the actual roads. Deploy the matching backend before publishing the frontend. The Worker can also serve explicitly verified published builds that use the same race catalog. Both players in a room must use the same map ID. Backend allowed origins are configured in `backend/wrangler.jsonc`; the current Site and explicit localhost development ports are supported.
+
+After publishing, verify room creation and joining with the published build's map ID. Find the ID in the game bundle or append `:rooms-v1` to the fingerprint from the published site's `/world/metadata.json`. Pass it to the network check after the Worker URL, Site origin, and race ID:
+
+```sh
+node checks/multiplayer-network.mjs <worker-url> <site-origin> airport <published-map-id>
+```
 
 ## Local development and checks
 

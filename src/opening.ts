@@ -13,19 +13,23 @@ export class OpeningScreen {
     text('loading-percent',s.percent+'%');text('loading-bytes',(s.loaded/1e6).toFixed(1)+' / '+(s.total/1e6).toFixed(1)+' MB');
     text('loading-files',s.completed+' / '+s.files+' files');$('loading-fill').style.width=s.percent+'%';
     const bar=$('loading-progress');bar.setAttribute('aria-valuenow',String(s.percent));bar.setAttribute('aria-valuetext',`${s.percent}% of game data received`);
-    if(s.completed===s.files){text('loading-status','Download complete. Preparing your world…');this.step('prepare');}
+    if(s.completed===s.files){
+      text('loading-title','Preparing the world');
+      text('loading-status','Download complete.');
+      this.step('prepare');
+    }
     else if(s.label!==this.lastStage){this.lastStage=s.label;text('loading-status',s.label);}
   }
-  stage(label:string){this.drawDownload();text('loading-status',label);text('loading-title','Preparing your world');this.step('prepare');}
-  private step(value:string){$('opening').dataset.stage=value;for(const node of Array.from(document.querySelectorAll<HTMLElement>('[data-load-step]'))){node.classList.toggle('current',node.dataset.loadStep===value);node.classList.toggle('complete',value==='ready'||value==='prepare'&&node.dataset.loadStep==='download');}}
+  stage(label:string){this.drawDownload();text('loading-status',label);text('loading-title','Preparing the world');this.step('prepare');}
+  private step(value:string){$('opening').dataset.stage=value;}
   ready(){
     if(this.frame){cancelAnimationFrame(this.frame);this.frame=0;}this.drawDownload();this.step('ready');
-    $('opening').dataset.preview='live';$('opening').setAttribute('aria-busy','false');text('loading-title','Your coast is ready');text('loading-status','All roads open. Take the long way.');text('drive-label','Drive the coast');text('preview-label','LIVE WORLD PREVIEW');
+    $('opening').dataset.preview='live';$('opening').setAttribute('aria-busy','false');text('loading-status','Ready to drive.');text('drive-label','Drive the coast');text('preview-label','Live preview');
     ($('drive') as HTMLButtonElement).disabled=false;$('drive').setAttribute('aria-label','Drive the coast');
   }
   fail(error:unknown){
     if(this.frame){cancelAnimationFrame(this.frame);this.frame=0;}this.drawDownload();this.step('error');$('opening').setAttribute('aria-busy','false');
-    text('loading-title','The coast needs a moment');text('loading-status',error instanceof Error?error.message:'The game could not load. Check your connection and retry.');
+    text('loading-title','Could not load the game');text('loading-status',error instanceof Error?error.message:'Check your connection and retry.');
     $('load-retry').hidden=false;($('drive') as HTMLButtonElement).disabled=true;
   }
 }
